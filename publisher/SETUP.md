@@ -33,12 +33,20 @@ this repo via `raw.githubusercontent.com`.
 
 1. Push this repo to **public** GitHub (raw.githubusercontent.com needs public).
 2. Settings → Secrets and variables → Actions → New secret:
-   - `IG_ACCESS_TOKEN` — long-lived token from step 4
-   - `IG_USER_ID` — numeric ID from step 5
-   - `GH_PAT_FOR_SECRETS` — a personal access token with `repo` scope, used **only** by the
-     monthly `refresh-token` workflow to rotate `IG_ACCESS_TOKEN` (a workflow can't write
-     its own secrets without an external PAT).
+   - `IG_ACCESS_TOKEN` — long-lived token (60d) from Meta App Dashboard
+   - `IG_USER_ID` — numeric ID from `GET /me?fields=id`
 3. Settings → Actions → General → Workflow permissions → **Read and write**.
+
+## Token refresh (manual, ~every 50 days)
+
+Dashboard tokens last 60 days. Set a calendar reminder. To rotate:
+
+```
+node publisher/refresh_token.js   # prints a fresh 60d token to stdout (needs IG_ACCESS_TOKEN env)
+# OR just regenerate via Meta App Dashboard → Generate token
+
+gh secret set IG_ACCESS_TOKEN     # paste new token
+```
 
 ## First publish — verify before going live
 
