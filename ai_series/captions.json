@@ -6,7 +6,20 @@
       "direct_value": "Agents = a model + tools + a loop. That's it.\nThe mental model, the function-call cycle, and why every framework boils down to the same 6 lines. ⬇️",
       "short_punchy": "An agent is a loop.\nNot a model.\nNot a prompt. →"
     },
-    "tags": ["#ai", "#aiagents", "#llm", "#agents", "#aidev", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#openai", "#genai"]
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#agents",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#openai",
+      "#genai"
+    ]
   },
   "2": {
     "title": "System prompts",
@@ -15,7 +28,20 @@
       "direct_value": "System prompts: the hidden context that turns a raw model into a product.\n4 ingredients every good system prompt has — with examples. ⬇️",
       "short_punchy": "ChatGPT and Claude aren't different models.\nThey're different system prompts. →"
     },
-    "tags": ["#ai", "#llm", "#promptengineering", "#systemprompt", "#aidev", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#openai", "#claude"]
+    "tags": [
+      "#ai",
+      "#llm",
+      "#promptengineering",
+      "#systemprompt",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#openai",
+      "#claude"
+    ]
   },
   "3": {
     "title": "Tokens & context windows",
@@ -24,7 +50,20 @@
       "direct_value": "Tokens, context windows, and why your long chat \"forgets\" things.\n1 token ≈ 4 chars. Today's limits, the trade-offs, and what gets dropped. ⬇️",
       "short_punchy": "1 word ≠ 1 token.\nAnd that gap is your bill. →"
     },
-    "tags": ["#ai", "#llm", "#tokens", "#contextwindow", "#aidev", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#openai", "#genai"]
+    "tags": [
+      "#ai",
+      "#llm",
+      "#tokens",
+      "#contextwindow",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#openai",
+      "#genai"
+    ]
   },
   "4": {
     "title": "Writing good tools",
@@ -33,7 +72,20 @@
       "direct_value": "Writing tools the model actually picks: name, description, schema, errors.\n4 things to nail — with the exact JSON the model reads. ⬇️",
       "short_punchy": "The model picks tools by their description.\nWrite docs, not code. →"
     },
-    "tags": ["#ai", "#aiagents", "#llm", "#toolcalling", "#functioncalling", "#aidev", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#mcp"]
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#toolcalling",
+      "#functioncalling",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#mcp"
+    ]
   },
   "5": {
     "title": "4 ways your first agent breaks",
@@ -42,7 +94,20 @@
       "direct_value": "Infinite loops, hallucinated tool calls, context overflow, silent tool errors.\nEvery first-agent bug — what causes it, how to wire around it. ⬇️",
       "short_punchy": "Your agent didn't break.\nIt did exactly what you told it to. →"
     },
-    "tags": ["#ai", "#aiagents", "#llm", "#agents", "#aidev", "#debugging", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#genai"]
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#agents",
+      "#aidev",
+      "#debugging",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#genai"
+    ]
   },
   "6": {
     "title": "Streaming, explained",
@@ -290,11 +355,11 @@
     ]
   },
   "18": {
-    "title": "Cost: what you actually pay for (SERIES FINALE)",
+    "title": "Cost: what you actually pay for",
     "variants": {
-      "mystery_hook": "After 18 posts on building with AI,\nthe most important number is still the one nobody calculates:\nthe bill.\nLet's do the napkin math. ⬇️",
-      "direct_value": "Cost: input vs output tokens, why output is 3-5x pricier, and the back-of-napkin math for a real support bot at scale.\nThe finale of an 18-post series on building with AI. ⬇️",
-      "short_punchy": "Token math is the whole game.\n18 posts. Series wraps here. →"
+      "mystery_hook": "The most important number when building with AI is the one nobody calculates:\nthe bill.\nLet's do the napkin math. ⬇️",
+      "direct_value": "Cost: input vs output tokens, why output is 3-5x pricier, and the back-of-napkin math for a real support bot at scale. ⬇️",
+      "short_punchy": "Token math is the whole game.\nUnderstand it before you scale. →"
     },
     "tags": [
       "#ai",
@@ -309,6 +374,270 @@
       "#aicost",
       "#anthropic",
       "#openai"
+    ]
+  },
+  "19": {
+    "title": "Function calling, demystified",
+    "variants": {
+      "mystery_hook": "The model doesn't run your code.\nIt never has.\nHere's what actually happens between your API call and the function result. ⬇️",
+      "direct_value": "Function calling, fully unwrapped: the request payload, tool definition anatomy, the call/execute/return loop, and why it's just chat with extra role fields. ⬇️",
+      "short_punchy": "The model recommends the book.\nYou still have to read it.\nThat's function calling. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#functioncalling",
+      "#toolcalling",
+      "#aiagents",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#genai"
+    ]
+  },
+  "20": {
+    "title": "Workflows vs agents",
+    "variants": {
+      "mystery_hook": "Everyone calls it an agent.\nMost of the time it's just a for-loop with extra API calls.\nHere's the one question that tells you which to build. ⬇️",
+      "direct_value": "Workflows vs agents: what each actually is, why agents cost 10–20× more per task, and the single decision rule that keeps your bill sane. ⬇️",
+      "short_punchy": "An agent is a workflow you couldn't write down.\nIf you could write it → workflow. →"
+    },
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#agents",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#genai",
+      "#aiarchitecture"
+    ]
+  },
+  "21": {
+    "title": "Chunking strategies for RAG",
+    "variants": {
+      "mystery_hook": "Everyone building RAG apps obsesses over the model, the vector DB, the prompt.\nNobody talks about chunking.\nIt's the unsexy half — and it's why your retrieval breaks. ⬇️",
+      "direct_value": "4 chunking strategies for RAG: fixed-size, sentence/paragraph, recursive, and semantic. With the LangChain splitter shape, overlap math, and the default config you can ship today. ⬇️",
+      "short_punchy": "Bad chunks → bad retrieval → bad answers.\nHere's how to split. →"
+    },
+    "tags": [
+      "#ai",
+      "#rag",
+      "#chunking",
+      "#vectordb",
+      "#embeddings",
+      "#llm",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#genai"
+    ]
+  },
+  "22": {
+    "title": "Reranking — retrieval ≠ relevance",
+    "variants": {
+      "mystery_hook": "Your RAG pipeline retrieves the right docs.\nSometimes.\nHere's why vector search keeps failing you — and the fix in 2 stages. ⬇️",
+      "direct_value": "Reranking explained: why cosine similarity isn't relevance, the 2-stage retrieve-then-rerank pattern, cross-encoders vs bi-encoders, and when to pay for it. ⬇️",
+      "short_punchy": "Vector search finds similar.\nNot correct.\nReranking fixes that. →"
+    },
+    "tags": [
+      "#ai",
+      "#rag",
+      "#reranking",
+      "#vectordb",
+      "#embeddings",
+      "#llm",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#genai"
+    ]
+  },
+  "23": {
+    "title": "Why agents fail in production",
+    "variants": {
+      "mystery_hook": "It worked in the demo.\nThen real traffic hit.\n5 prod-grade failure modes your staging env will never catch — and the survival kit to handle them. ⬇️",
+      "direct_value": "State leaks, tool error cascades, non-deterministic bugs, runaway cost loops, concurrency race conditions.\nEvery real prod agent failure — what causes it, how to wire around it. ⬇️",
+      "short_punchy": "Your agent passed all the tests.\nProd users are a different test. →"
+    },
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#production",
+      "#observability",
+      "#llm",
+      "#agents",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#debugging"
+    ]
+  },
+  "24": {
+    "title": "Latency: where the time actually goes",
+    "variants": {
+      "mystery_hook": "Your LLM call is slow.\nYou've stared at the logs.\nYou blame the model.\nBut it's not the model — it's where in the pipeline the time is going. ⬇️",
+      "direct_value": "TTFT vs total time. Queue → prefill → decode. What each phase scales with, what you can actually control, and when streaming helps (and when it doesn't). ⬇️",
+      "short_punchy": "Your LLM call is slow.\nHere's where the time goes. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#latency",
+      "#performance",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#genai",
+      "#anthropic",
+      "#openai"
+    ]
+  },
+  "25": {
+    "title": "Vision + LLM: models that see",
+    "variants": {
+      "mystery_hook": "GPT-4V, Claude, Gemini — they don't \"see\" images.\nHere's what they actually do — patches, embeddings, and why your 1080p photo costs 1,100 tokens. ⬇️",
+      "direct_value": "Vision-LLMs explained: how image patches become tokens, what a 1080×1080 image costs, 3 real use cases (OCR, structured extraction, visual QA), and the limits nobody warns you about. ⬇️",
+      "short_punchy": "Models don't see.\nThey tokenize.\nHere's the difference. →"
+    },
+    "tags": [
+      "#ai",
+      "#multimodal",
+      "#vision",
+      "#llm",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#gpt4v",
+      "#softwareengineering",
+      "#anthropic",
+      "#genai"
+    ]
+  },
+  "26": {
+    "title": "Voice agents: architecture",
+    "variants": {
+      "mystery_hook": "You ask. It pauses.\nThen replies a full second later.\nThat one second is why voice AI feels broken — and the whole architecture is built around shaving it down. ⬇️",
+      "direct_value": "Voice agent architecture: the Mic → STT → LLM → TTS pipeline, the 700ms latency budget, streaming all three stages, VAD turn-taking, and when to skip the whole stack with realtime models. ⬇️",
+      "short_punchy": "Voice AI's only enemy is latency.\nUnder 700ms or it's broken. →"
+    },
+    "tags": [
+      "#ai",
+      "#voiceagents",
+      "#realtime",
+      "#latency",
+      "#speechtotext",
+      "#texttospeech",
+      "#llm",
+      "#streaming",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aiengineering"
+    ]
+  },
+  "27": {
+    "title": "Local LLMs: when local beats API",
+    "variants": {
+      "mystery_hook": "You don't always need GPT-5.\nSometimes a 7B model on your laptop is faster — and free.\nHere's when local actually wins. ⬇️",
+      "direct_value": "Local LLMs explained: the Ollama + llama.cpp + GGUF stack, hardware sizing, quantization trade-offs, and the 3 conditions where local beats an API call. ⬇️",
+      "short_punchy": "API-first.\nBut when latency, privacy, or cost hits → go local. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#ollama",
+      "#locallm",
+      "#llama",
+      "#opensource",
+      "#privacyai",
+      "#selfhosted",
+      "#mlops",
+      "#aidev",
+      "#buildinpublic",
+      "#softwareengineering"
+    ]
+  },
+  "28": {
+    "title": "Fine-tuning vs prompting: the decision",
+    "variants": {
+      "mystery_hook": "Every team eventually asks: should we fine-tune?\nAlmost every time the answer is no.\nHere's the decision tree that gets it right. ⬇️",
+      "direct_value": "Fine-tuning vs prompting vs RAG vs LoRA: what each fixes, what each breaks, the cost math, and the decision tree that picks correctly 90% of the time. ⬇️",
+      "short_punchy": "Most \"we need to fine-tune\" decisions are wrong.\nPrompt first. Always. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#finetuning",
+      "#lora",
+      "#promptengineering",
+      "#rag",
+      "#mlops",
+      "#machinelearning",
+      "#aiengineering",
+      "#aidev",
+      "#buildinpublic",
+      "#genai"
+    ]
+  },
+  "29": {
+    "title": "Guardrails: production safety for LLM apps",
+    "variants": {
+      "mystery_hook": "Your LLM app will be jailbroken, prompt-injected, and leak secrets.\nThe question isn't if. It's when.\nHere's how to slow that down. ⬇️",
+      "direct_value": "LLM guardrails in 8 slides: input filters (PII, prompt injection), output filters (schema, content), rate limits, abuse prevention, and the failure modes guardrails themselves can cause. ⬇️",
+      "short_punchy": "Guardrails: input + output.\nBoth or nothing. →"
+    },
+    "tags": [
+      "#ai",
+      "#aisecurity",
+      "#promptinjection",
+      "#guardrails",
+      "#llm",
+      "#llmsecurity",
+      "#mlops",
+      "#aiengineering",
+      "#piiprotection",
+      "#ratelimiting",
+      "#aidev",
+      "#softwareengineering"
+    ]
+  },
+  "30": {
+    "title": "Self-improving agents: reflection and beyond",
+    "variants": {
+      "mystery_hook": "Can an LLM critique its own output and get better?\nSometimes yes. Often no.\nHere's the line — and the pattern that actually works in production. ⬇️",
+      "direct_value": "Reflection, DSPy, and meta-prompting: when self-correction helps (code, schemas, reasoning), when it hurts (creative, subjective), and the verify-then-reflect pattern that beats always-reflect. ⬇️",
+      "short_punchy": "Don't always reflect.\nVerify first, reflect on failures only. →"
+    },
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#reflection",
+      "#dspy",
+      "#llm",
+      "#promptengineering",
+      "#selfimproving",
+      "#metaprompting",
+      "#agenticai",
+      "#aidev",
+      "#buildinpublic",
+      "#aiengineering"
     ]
   }
 }

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-23T12:22:35.104Z",
-  "last_published_at": "2026-05-23T12:23:08.699Z",
+  "generated_at": "2026-05-23T12:36:43.943Z",
+  "last_published_at": null,
   "queue": [
     {
       "series": "ai_series",
@@ -131,9 +131,9 @@
         "slide_08.png"
       ],
       "caption": "You can't trust the model to return clean JSON.\nUnless you wire it like an app, not a chat.\nThere's 1 API param most builders miss.\nIt changes everything. ⬇️\n\n#ai #llm #json #aidev #buildwithai #buildinpublic #softwareengineering #fullstack #genai #openai #anthropic #structuredoutput",
-      "status": "published",
-      "published_at": "2026-05-23T11:51:15.350Z",
-      "media_id": "18168873445426177"
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
     },
     {
       "series": "ai_series",
@@ -150,9 +150,9 @@
         "slide_08.png"
       ],
       "caption": "Why does your agent forget you,\nbut ChatGPT remembers your name?\nThe answer isn't a bigger context window.\nIt's a totally different kind of memory. ⬇️\n\n#ai #aiagents #llm #vectordb #rag #buildwithai #buildinpublic #aibuilders #softwareengineering #memory #genai",
-      "status": "published",
-      "published_at": "2026-05-23T12:23:08.699Z",
-      "media_id": "18296689615304691"
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
     },
     {
       "series": "ai_series",
@@ -339,7 +339,235 @@
         "slide_07.png",
         "slide_08.png"
       ],
-      "caption": "After 18 posts on building with AI,\nthe most important number is still the one nobody calculates:\nthe bill.\nLet's do the napkin math. ⬇️\n\n#ai #llm #aidev #aiagents #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #aicost #anthropic #openai",
+      "caption": "The most important number when building with AI is the one nobody calculates:\nthe bill.\nLet's do the napkin math. ⬇️\n\n#ai #llm #aidev #aiagents #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #aicost #anthropic #openai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_19",
+      "post_number": 19,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "The model doesn't run your code.\nIt never has.\nHere's what actually happens between your API call and the function result. ⬇️\n\n#ai #llm #functioncalling #toolcalling #aiagents #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_20",
+      "post_number": 20,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Everyone calls it an agent.\nMost of the time it's just a for-loop with extra API calls.\nHere's the one question that tells you which to build. ⬇️\n\n#ai #aiagents #llm #agents #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #genai #aiarchitecture",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_21",
+      "post_number": 21,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Everyone building RAG apps obsesses over the model, the vector DB, the prompt.\nNobody talks about chunking.\nIt's the unsexy half — and it's why your retrieval breaks. ⬇️\n\n#ai #rag #chunking #vectordb #embeddings #llm #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_22",
+      "post_number": 22,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your RAG pipeline retrieves the right docs.\nSometimes.\nHere's why vector search keeps failing you — and the fix in 2 stages. ⬇️\n\n#ai #rag #reranking #vectordb #embeddings #llm #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_23",
+      "post_number": 23,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "It worked in the demo.\nThen real traffic hit.\n5 prod-grade failure modes your staging env will never catch — and the survival kit to handle them. ⬇️\n\n#ai #aiagents #production #observability #llm #agents #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #debugging",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_24",
+      "post_number": 24,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your LLM call is slow.\nYou've stared at the logs.\nYou blame the model.\nBut it's not the model — it's where in the pipeline the time is going. ⬇️\n\n#ai #llm #latency #performance #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #anthropic #openai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_25",
+      "post_number": 25,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "GPT-4V, Claude, Gemini — they don't \"see\" images.\nHere's what they actually do — patches, embeddings, and why your 1080p photo costs 1,100 tokens. ⬇️\n\n#ai #multimodal #vision #llm #aidev #buildwithai #buildinpublic #aibuilders #gpt4v #softwareengineering #anthropic #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_26",
+      "post_number": 26,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You ask. It pauses.\nThen replies a full second later.\nThat one second is why voice AI feels broken — and the whole architecture is built around shaving it down. ⬇️\n\n#ai #voiceagents #realtime #latency #speechtotext #texttospeech #llm #streaming #aidev #buildwithai #buildinpublic #aiengineering",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_27",
+      "post_number": 27,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You don't always need GPT-5.\nSometimes a 7B model on your laptop is faster — and free.\nHere's when local actually wins. ⬇️\n\n#ai #llm #ollama #locallm #llama #opensource #privacyai #selfhosted #mlops #aidev #buildinpublic #softwareengineering",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_28",
+      "post_number": 28,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Every team eventually asks: should we fine-tune?\nAlmost every time the answer is no.\nHere's the decision tree that gets it right. ⬇️\n\n#ai #llm #finetuning #lora #promptengineering #rag #mlops #machinelearning #aiengineering #aidev #buildinpublic #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_29",
+      "post_number": 29,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your LLM app will be jailbroken, prompt-injected, and leak secrets.\nThe question isn't if. It's when.\nHere's how to slow that down. ⬇️\n\n#ai #aisecurity #promptinjection #guardrails #llm #llmsecurity #mlops #aiengineering #piiprotection #ratelimiting #aidev #softwareengineering",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_30",
+      "post_number": 30,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Can an LLM critique its own output and get better?\nSometimes yes. Often no.\nHere's the line — and the pattern that actually works in production. ⬇️\n\n#ai #aiagents #reflection #dspy #llm #promptengineering #selfimproving #metaprompting #agenticai #aidev #buildinpublic #aiengineering",
       "status": "pending",
       "published_at": null,
       "media_id": null
