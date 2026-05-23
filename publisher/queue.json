@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-23T10:33:12.097Z",
-  "last_published_at": null,
+  "generated_at": "2026-05-23T11:50:39.698Z",
+  "last_published_at": "2026-05-23T11:51:15.350Z",
   "queue": [
     {
       "series": "ai_series",
@@ -131,9 +131,9 @@
         "slide_08.png"
       ],
       "caption": "You can't trust the model to return clean JSON.\nUnless you wire it like an app, not a chat.\nThere's 1 API param most builders miss.\nIt changes everything. ⬇️\n\n#ai #llm #json #aidev #buildwithai #buildinpublic #softwareengineering #fullstack #genai #openai #anthropic #structuredoutput",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-23T11:51:15.350Z",
+      "media_id": "18168873445426177"
     },
     {
       "series": "ai_series",
