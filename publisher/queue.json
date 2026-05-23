@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-23T12:36:43.943Z",
-  "last_published_at": null,
+  "generated_at": "2026-05-23T12:37:42.797Z",
+  "last_published_at": "2026-05-23T12:23:08.699Z",
   "queue": [
     {
       "series": "ai_series",
@@ -131,9 +131,9 @@
         "slide_08.png"
       ],
       "caption": "You can't trust the model to return clean JSON.\nUnless you wire it like an app, not a chat.\nThere's 1 API param most builders miss.\nIt changes everything. ⬇️\n\n#ai #llm #json #aidev #buildwithai #buildinpublic #softwareengineering #fullstack #genai #openai #anthropic #structuredoutput",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-23T11:51:15.350Z",
+      "media_id": "18168873445426177"
     },
     {
       "series": "ai_series",
@@ -150,9 +150,9 @@
         "slide_08.png"
       ],
       "caption": "Why does your agent forget you,\nbut ChatGPT remembers your name?\nThe answer isn't a bigger context window.\nIt's a totally different kind of memory. ⬇️\n\n#ai #aiagents #llm #vectordb #rag #buildwithai #buildinpublic #aibuilders #softwareengineering #memory #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-23T12:23:08.699Z",
+      "media_id": "18296689615304691"
     },
     {
       "series": "ai_series",
