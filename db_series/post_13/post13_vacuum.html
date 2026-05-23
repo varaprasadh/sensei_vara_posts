@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VACUUM — Why Your DB Takes Out the Trash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;
+    --merge: #ffb454;
+    --conflict: #ff7a8a;
+    --staged: #c8a8ff;
+    --head: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-content .conflict-text { color: var(--conflict); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Two-column layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
+  .col-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .col-card.accent-border { border-color: var(--accent); }
+  .col-card.conflict-border { border-color: var(--conflict); }
+  .col-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .col-item { font-size: 20px; line-height: 1.5; color: var(--text-muted); padding-left: 20px; position: relative; }
+  .col-item::before { content: "·"; position: absolute; left: 6px; color: var(--text-dim); }
+  .col-badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+  }
+  .col-badge.green { background: rgba(126,231,184,0.12); color: var(--branch); border: 1px solid rgba(126,231,184,0.3); }
+  .col-badge.red { background: rgba(255,122,138,0.12); color: var(--conflict); border: 1px solid rgba(255,122,138,0.3); }
+
+  /* Warning box */
+  .warn-box {
+    background: rgba(255,122,138,0.08);
+    border: 1px solid var(--conflict);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-top: 16px;
+  }
+  .warn-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--conflict);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .warn-text { font-size: 22px; line-height: 1.5; color: var(--text); }
+
+  /* SVG diagram area */
+  .diagram-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">vacuum.sql</span>
+    <span class="slide-num">13 / 20</span>
+  </div>
+  <div class="cover-content content">
+    <div class="label"><span class="prompt">postgres@db:~$ </span>VACUUM</div>
+    <h1>Your DB has <span class="conflict-text">trash</span>.<br>VACUUM takes<br>it out.</h1>
+    <div class="cover-tagline">Dead tuples. Bloat. Wraparound. Here's why it matters.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">mvcc_side_effect.sql</span>
+    <span class="slide-num">13 / 20</span>
+  </div>
+  <div class="content">
+    <div class="label">// the problem</div>
+    <h2>Every UPDATE leaves<br>a dead body.</h2>
+    <p class="lede">MVCC never overwrites rows — it creates a new version and marks the old one dead. Those dead tuples pile up.</p>
+    <div class="center-row" style="margin-top: 8px; gap: 20px; justify-content: flex-start;">
+      <div class="pill conflict">dead tuple</div>
+      <span class="arrow">+</span>
+      <div class="pill conflict">dead tuple</div>
+      <span class="arrow">+</span>
+      <div class="pill conflict">dead tuple</div>
+      <span class="arrow">=</span>
+      <div class="pill merge">bloat</div>
+    </div>
+    <div style="margin-top: 32px; display: flex; flex-direction: column; gap: 16px;">
+      <div class="body-text">Postgres needs to clean them up.</div>
+      <div class="body-text muted">If it doesn't, bad things happen:</div>
+      <div class="center-row" style="justify-content: flex-start; gap: 16px; flex-wrap: wrap;">
+        <div class="pill conflict" style="font-size: 18px; padding: 10px 18px;">table bloat</div>
+        <div class="pill conflict" style="font-size: 18px; padding: 10px 18px;">slower scans</div>
+        <div class="pill conflict" style="font-size: 18px; padding: 10px 18px;">xid wraparound</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SVG BEFORE/AFTER ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">bloat.sql</span>
+    <span class="slide-num">13 / 20</span>
+  </div>
+  <div class="content">
+    <div class="label">// before &amp; after VACUUM</div>
+    <h2 style="font-size: 46px; margin-bottom: 20px;">Dead tuples take space.<br>VACUUM marks it reusable.</h2>
+    <div class="diagram-wrap" style="flex: 1; align-items: stretch; gap: 24px; flex-direction: row; display: flex;">
+      <!-- BEFORE -->
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--conflict); text-align: center; margin-bottom: 6px; letter-spacing: 0.04em;">BEFORE VACUUM</div>
+        <svg width="100%" viewBox="0 0 280 420" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrowB" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#6a7a98"/>
+            </marker>
+          </defs>
+          <!-- Page border -->
+          <rect x="10" y="10" width="260" height="400" rx="10" ry="10" fill="#141d2e" stroke="#36456a" stroke-width="2"/>
+          <text x="140" y="36" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98">heap page</text>
+          <!-- Row 1: live -->
+          <rect x="26" y="48" width="228" height="46" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="1.5"/>
+          <text x="140" y="77" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8">row 1  (live)</text>
+          <!-- Row 2: dead -->
+          <rect x="26" y="102" width="228" height="46" rx="6" fill="rgba(255,122,138,0.08)" stroke="#ff7a8a" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="140" y="131" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#ff7a8a">row 2  (dead)</text>
+          <!-- Row 3: live -->
+          <rect x="26" y="156" width="228" height="46" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="1.5"/>
+          <text x="140" y="185" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8">row 3  (live)</text>
+          <!-- Row 4: dead -->
+          <rect x="26" y="210" width="228" height="46" rx="6" fill="rgba(255,122,138,0.08)" stroke="#ff7a8a" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="140" y="239" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#ff7a8a">row 4  (dead)</text>
+          <!-- Row 5: dead -->
+          <rect x="26" y="264" width="228" height="46" rx="6" fill="rgba(255,122,138,0.08)" stroke="#ff7a8a" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="140" y="293" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#ff7a8a">row 5  (dead)</text>
+          <!-- Row 6: live -->
+          <rect x="26" y="318" width="228" height="46" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="1.5"/>
+          <text x="140" y="347" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8">row 6  (live)</text>
+          <!-- legend row 7: dead -->
+          <rect x="26" y="372" width="228" height="28" rx="6" fill="rgba(255,122,138,0.08)" stroke="#ff7a8a" stroke-width="1" stroke-dasharray="4,2"/>
+          <text x="140" y="391" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a">row 7  (dead)</text>
+        </svg>
+      </div>
+      <!-- Arrow -->
+      <div style="display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 60px;">
+        <div style="text-align: center;">
+          <div style="font-size: 36px; color: var(--accent);">→</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); margin-top: 6px;">VACUUM</div>
+        </div>
+      </div>
+      <!-- AFTER -->
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--branch); text-align: center; margin-bottom: 6px; letter-spacing: 0.04em;">AFTER VACUUM</div>
+        <svg width="100%" viewBox="0 0 280 420" xmlns="http://www.w3.org/2000/svg">
+          <!-- Page border -->
+          <rect x="10" y="10" width="260" height="400" rx="10" ry="10" fill="#141d2e" stroke="#36456a" stroke-width="2"/>
+          <text x="140" y="36" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98">heap page</text>
+          <!-- Row 1: live -->
+          <rect x="26" y="48" width="228" height="46" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="1.5"/>
+          <text x="140" y="77" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8">row 1  (live)</text>
+          <!-- Row 2: FREE -->
+          <rect x="26" y="102" width="228" height="46" rx="6" fill="rgba(74,144,194,0.07)" stroke="#4a90c2" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="140" y="131" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#4a90c2">free space</text>
+          <!-- Row 3: live -->
+          <rect x="26" y="156" width="228" height="46" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="1.5"/>
+          <text x="140" y="185" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8">row 3  (live)</text>
+          <!-- Row 4: FREE -->
+          <rect x="26" y="210" width="228" height="46" rx="6" fill="rgba(74,144,194,0.07)" stroke="#4a90c2" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="140" y="239" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#4a90c2">free space</text>
+          <!-- Row 5: FREE -->
+          <rect x="26" y="264" width="228" height="46" rx="6" fill="rgba(74,144,194,0.07)" stroke="#4a90c2" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="140" y="293" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#4a90c2">free space</text>
+          <!-- Row 6: live -->
+          <rect x="26" y="318" width="228" height="46" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="1.5"/>
+          <text x="140" y="347" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8">row 6  (live)</text>
+          <!-- Row 7: FREE -->
+          <rect x="26" y="372" width="228" height="28" rx="6" fill="rgba(74,144,194,0.07)" stroke="#4a90c2" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="140" y="391" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#4a90c2">free space</text>
+        </svg>
+      </div>
+    </div>
+    <!-- Legend -->
+    <div style="display: flex; gap: 24px; margin-top: 10px; align-items: center; justify-content: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 14px; height: 14px; border-radius: 3px; background: rgba(126,231,184,0.2); border: 1.5px solid #7ee7b8;"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--branch);">live tuple</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 14px; height: 14px; border-radius: 3px; background: rgba(255,122,138,0.1); border: 1.5px dashed #ff7a8a;"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--conflict);">dead tuple</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 14px; height: 14px; border-radius: 3px; background: rgba(74,144,194,0.1); border: 1.5px dashed #4a90c2;"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--accent);">reusable</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: VACUUM vs VACUUM FULL ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">vacuum_full.sql</span>
+    <span class="slide-num">13 / 20</span>
+  </div>
+  <div class="content">
+    <div class="label">// two modes — know the difference</div>
+    <h2 style="font-size: 48px; margin-bottom: 24px;">VACUUM vs VACUUM FULL</h2>
+    <div class="two-col" style="flex: 1;">
+      <!-- Regular VACUUM -->
+      <div class="col-card accent-border">
+        <div class="col-badge green">VACUUM</div>
+        <div class="col-title" style="color: var(--branch);">Regular</div>
+        <div class="col-item">runs online (no lock)</div>
+        <div class="col-item">marks dead tuples as reusable</div>
+        <div class="col-item">space stays in table file</div>
+        <div class="col-item">fast, low overhead</div>
+        <div class="col-item">safe to run anytime</div>
+        <div style="margin-top: auto; padding-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--text-dim);">
+          <span style="color: var(--conflict);">VACUUM</span> users;
+        </div>
+      </div>
+      <!-- VACUUM FULL -->
+      <div class="col-card conflict-border">
+        <div class="col-badge red">VACUUM FULL</div>
+        <div class="col-title" style="color: var(--conflict);">Full rewrite</div>
+        <div class="col-item">exclusive table lock</div>
+        <div class="col-item">rewrites entire table compacted</div>
+        <div class="col-item">returns space to OS</div>
+        <div class="col-item">slow on large tables</div>
+        <div class="col-item" style="color: var(--conflict);">blocks reads AND writes</div>
+        <div style="margin-top: auto; padding-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--text-dim);">
+          <span style="color: var(--conflict);">VACUUM FULL</span> users; <span style="color: var(--merge);">-- careful!</span>
+        </div>
+      </div>
+    </div>
+    <div class="warn-box" style="margin-top: 18px; padding: 16px 24px;">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--merge);">Rule:</span>
+      <span style="font-size: 20px; color: var(--text-muted); margin-left: 10px;">Use FULL only when you need to reclaim disk. Expect downtime or use pg_repack instead.</span>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: AUTOVACUUM ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">autovacuum.sql</span>
+    <span class="slide-num">13 / 20</span>
+  </div>
+  <div class="content">
+    <div class="label">// background worker</div>
+    <h2 style="font-size: 48px; margin-bottom: 16px;">Autovacuum does<br>this automatically.</h2>
+    <p class="lede" style="font-size: 22px; margin-bottom: 18px;">Runs in background. Triggered when dead tuples exceed a threshold. Default settings work for most DBs — but high-churn tables need tuning.</p>
+    <pre class="sm"><span class="com">-- defaults (postgresql.conf)</span>
+<span class="prop">autovacuum</span>                   = <span class="str">on</span>
+<span class="prop">autovacuum_vacuum_scale_factor</span> = <span class="num">0.2</span>   <span class="com">-- 20% dead tuples</span>
+<span class="prop">autovacuum_vacuum_threshold</span>   = <span class="num">50</span>    <span class="com">-- + 50 dead rows</span>
+<span class="prop">autovacuum_analyze_scale_factor</span>= <span class="num">0.1</span>   <span class="com">-- analyze at 10%</span>
+
+<span class="com">-- per-table override (high-churn tables)</span>
+<span class="kw">ALTER TABLE</span> events <span class="kw">SET</span> (
+  autovacuum_vacuum_scale_factor = <span class="num">0.01</span>,  <span class="com">-- 1% threshold</span>
+  autovacuum_vacuum_cost_delay   = <span class="num">2</span>       <span class="com">-- less throttle</span>
+);</pre>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+      <div class="pill branch" style="font-size: 17px; padding: 10px 18px;">autovacuum = on by default</div>
+      <div class="pill merge" style="font-size: 17px; padding: 10px 18px;">tune per-table for hot tables</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: WRAPAROUND HORROR ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">wraparound.sql</span>
+    <span class="slide-num">13 / 20</span>
+  </div>
+  <div class="content">
+    <div class="label" style="color: var(--conflict);">// the real horror</div>
+    <h2 style="font-size: 46px; color: var(--conflict); margin-bottom: 16px;">Transaction ID Wraparound</h2>
+    <p class="body-text" style="font-size: 22px; margin-bottom: 14px;">Every row stores the XID (transaction ID) that created it. XIDs are <span style="color: var(--merge); font-family: 'JetBrains Mono', monospace;">32-bit</span> — about 4 billion values.</p>
+    <svg viewBox="0 0 900 130" xmlns="http://www.w3.org/2000/svg" style="width: 100%; margin-bottom: 16px;">
+      <defs>
+        <marker id="arrowW" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#ffb454"/>
+        </marker>
+      </defs>
+      <!-- XID number line -->
+      <rect x="10" y="50" width="880" height="36" rx="8" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <!-- filled portion -->
+      <rect x="10" y="50" width="660" height="36" rx="8" fill="rgba(74,144,194,0.12)" stroke="none"/>
+      <!-- wraparound zone -->
+      <rect x="670" y="50" width="220" height="36" rx="4" fill="rgba(255,122,138,0.15)" stroke="#ff7a8a" stroke-width="1" stroke-dasharray="4,2"/>
+      <!-- labels -->
+      <text x="20" y="74" font-family="JetBrains Mono, monospace" font-size="14" fill="#4a90c2">XID 0</text>
+      <text x="320" y="74" font-family="JetBrains Mono, monospace" font-size="14" fill="#93a3bf">current xid</text>
+      <text x="680" y="74" font-family="JetBrains Mono, monospace" font-size="13" fill="#ff7a8a">wraparound zone</text>
+      <!-- current marker -->
+      <line x1="360" y1="50" x2="360" y2="86" stroke="#ffb454" stroke-width="2"/>
+      <polygon points="354,86 366,86 360,98" fill="#ffb454"/>
+      <!-- arrow to wrap -->
+      <path d="M880 68 Q890 20 10 68" fill="none" stroke="#ff7a8a" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowW)"/>
+      <text x="380" y="20" font-family="JetBrains Mono, monospace" font-size="13" fill="#ff7a8a">wraps around → old rows become "future" → invisible</text>
+    </svg>
+    <div class="warn-box">
+      <div class="warn-title">VACUUM freezes old XIDs</div>
+      <div class="warn-text" style="font-size: 20px;">
+        <span style="font-family: 'JetBrains Mono', monospace; color: var(--accent);">VACUUM FREEZE</span> replaces old XID with a special "frozen" marker — permanently visible to all transactions. Without this, Postgres will <span style="color: var(--conflict);">shut down</span> your DB to force a vacuum before wraparound occurs.
+      </div>
+    </div>
+    <div class="warn-box" style="margin-top: 12px; border-color: var(--merge); background: rgba(255,180,84,0.06); padding: 14px 24px;">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 17px; color: var(--merge);">Monitor:</span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 17px; color: var(--text-muted); margin-left: 8px;">age(datfrozenxid) in pg_database — keep it below 200M</span>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">vacuum_monitor.sql</span>
+    <span class="slide-num">13 / 20</span>
+  </div>
+  <div class="content">
+    <div class="label">// try it now</div>
+    <h2 style="font-size: 46px; margin-bottom: 20px;">See it yourself.</h2>
+    <p class="lede" style="font-size: 22px; margin-bottom: 16px;">Check dead tuple counts and last vacuum time for your tables:</p>
+    <pre class="sm"><span class="com">-- find tables with most dead tuples</span>
+<span class="kw">SELECT</span>
+  <span class="prop">relname</span>,
+  <span class="prop">n_dead_tup</span>,
+  <span class="prop">n_live_tup</span>,
+  <span class="prop">last_vacuum</span>,
+  <span class="prop">last_autovacuum</span>
+<span class="kw">FROM</span>   <span class="fn">pg_stat_user_tables</span>
+<span class="kw">ORDER BY</span> <span class="prop">n_dead_tup</span> <span class="kw">DESC</span>
+<span class="kw">LIMIT</span>  <span class="num">5</span>;</pre>
+    <pre class="sm"><span class="com">-- vacuum + update stats on a table</span>
+<span class="kw">VACUUM ANALYZE</span> users;
+
+<span class="com">-- check xid age (wraparound risk)</span>
+<span class="kw">SELECT</span> <span class="prop">datname</span>, <span class="fn">age</span>(<span class="prop">datfrozenxid</span>) <span class="kw">AS</span> xid_age
+<span class="kw">FROM</span>   pg_database
+<span class="hi"><span class="kw">ORDER BY</span> xid_age <span class="kw">DESC</span>;</span></pre>
+    <div style="display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px;">
+      <div class="pill accent" style="font-size: 16px; padding: 9px 16px;">n_dead_tup → bloat signal</div>
+      <div class="pill merge" style="font-size: 16px; padding: 9px 16px;">xid_age > 200M → act now</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">recap.sql</span>
+    <span class="slide-num">13 / 20</span>
+  </div>
+  <div class="content">
+    <div class="label">// recap</div>
+    <h2 style="font-size: 44px; margin-bottom: 20px;">VACUUM is not optional.</h2>
+    <ul class="recap-list">
+      <li><span class="key">MVCC</span> = dead tuples after every UPDATE/DELETE</li>
+      <li><span class="key">VACUUM</span> marks dead space reusable (no lock)</li>
+      <li><span class="key">VACUUM FULL</span> rewrites table compacted — exclusive lock</li>
+      <li><span class="key">autovacuum</span> should always be on — tune for hot tables</li>
+      <li>monitor <span class="key">n_dead_tup</span> in pg_stat_user_tables</li>
+      <li style="color: var(--conflict);"><span style="color: var(--conflict); font-family: 'JetBrains Mono', monospace;">xid wraparound</span> = real risk. age(datfrozenxid) > 200M → vacuum now</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next up</div>
+      <div class="cta-handle">WAL — the DB writes twice →</div>
+      <div style="font-size: 18px; color: var(--text-dim); margin-top: 6px; font-family: 'JetBrains Mono', monospace;">how Postgres guarantees durability</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

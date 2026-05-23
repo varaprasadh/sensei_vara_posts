@@ -1,0 +1,10 @@
+{
+  "name": "sensei-vara-publisher",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "queue": "node build_queue.js",
+    "publish": "node publish_next.js",
+    "refresh": "node refresh_token.js"
+  }
+}

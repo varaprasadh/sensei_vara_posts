@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>What git push actually does — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">push.git</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> the command you run 50 times a day</div>
+    <h1><code style="font-family:'JetBrains Mono', monospace; font-size: 84px;">git push</code>:<br>under the<br><span class="accent-text">hood</span>.</h1>
+    <div class="cover-tagline">4 steps you never<br>think about.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: USER VIEW ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">view.git</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> how we think about it</div>
+    <h2><em>"Send my commits"</em> &mdash;<br>feels <span style="color: var(--accent);">simple</span>.</h2>
+    <p class="lede">Run <code style="font-family:'JetBrains Mono', monospace; color: var(--text);">git push</code>, see the green progress bar, done. But there are actually 4 distinct phases happening.</p>
+<pre class="sm"><span class="com">$ git push</span>
+Enumerating objects: <span class="num">12</span>, done.
+Counting objects: <span class="num">100%</span> (<span class="num">12</span>/<span class="num">12</span>), done.
+Compressing objects: <span class="num">100%</span> (<span class="num">8</span>/<span class="num">8</span>), done.
+Writing objects: <span class="num">100%</span> (<span class="num">9</span>/<span class="num">9</span>), <span class="num">1.2 KiB</span> | <span class="num">1.2 MiB/s</span>, done.
+Total <span class="num">9</span> (delta <span class="num">3</span>), reused <span class="num">0</span> (delta <span class="num">0</span>)
+<span class="prop">remote:</span> ...
+To <span class="str">github.com:org/repo.git</span>
+   <span class="sha">e89df01..d4a1cc7</span>  <span class="prop">main -&gt; main</span></pre>
+    <p class="body-text muted">That output? It's 4 phases. Let's break them down.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: HANDSHAKE ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">handshake.git</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> step 1</div>
+    <h2>Open a <span style="color: var(--accent);">channel</span>.</h2>
+    <p class="lede">Git opens a transport (SSH, HTTPS, or git://) to the remote. Authenticates. Exchanges capabilities.</p>
+
+    <svg width="100%" viewBox="0 0 900 220" style="margin: 8px 0 20px;">
+      <defs>
+        <marker id="hs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#f1502f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- client box -->
+      <rect x="60" y="70" width="220" height="90" rx="10" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="170" y="108" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="18">client</text>
+      <text x="170" y="135" text-anchor="middle" fill="#8b949e" font-family="Inter, sans-serif" font-size="14">your laptop</text>
+
+      <!-- remote box -->
+      <rect x="620" y="70" width="220" height="90" rx="10" fill="#13181f" stroke="#79c0ff" stroke-width="2"/>
+      <text x="730" y="108" text-anchor="middle" fill="#79c0ff" font-family="JetBrains Mono, monospace" font-size="18">remote</text>
+      <text x="730" y="135" text-anchor="middle" fill="#8b949e" font-family="Inter, sans-serif" font-size="14">github / gitlab</text>
+
+      <!-- two arrows -->
+      <line x1="285" y1="100" x2="615" y2="100" stroke="#f1502f" stroke-width="2" marker-end="url(#hs)"/>
+      <line x1="615" y1="130" x2="285" y2="130" stroke="#f1502f" stroke-width="2" marker-end="url(#hs)"/>
+      <text x="450" y="92" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">SSH / HTTPS</text>
+      <text x="450" y="155" text-anchor="middle" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="14">capabilities</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px;">&bull; Auth (SSH key or token)<br>&bull; Negotiate protocol version<br>&bull; Exchange supported features (multi-ack, sideband, ...)</p>
+    <p class="body-text">Everything else happens over <span style="color: var(--accent);">this channel</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: NEGOTIATE REFS ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">negotiate.git</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> step 2</div>
+    <h2><span style="color: var(--accent);">What does the remote have?</span></h2>
+    <p class="lede">Both sides exchange ref tips. Your client figures out which commits the remote is missing.</p>
+<pre class="sm"><span class="com"># remote's tips:</span>
+<span class="prop">main</span>      &rarr; <span class="sha">e89df01</span>
+<span class="prop">develop</span>   &rarr; <span class="sha">b72cf81</span>
+
+<span class="com"># your tips:</span>
+<span class="prop">main</span>      &rarr; <span class="sha">d4a1cc7</span>   <span class="com">(3 commits ahead)</span>
+
+<span class="hi"><span class="com"># need to send:</span> <span class="sha">c91e3b4</span>, <span class="sha">f12a08d</span>, <span class="sha">d4a1cc7</span></span></pre>
+    <p class="body-text muted">No wasted bandwidth &mdash; only what they're <span style="color: var(--accent);">missing</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: PACKFILE ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">packfile.git</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> step 3</div>
+    <h2>Pack it into a <span style="color: var(--accent);">packfile</span>.</h2>
+    <p class="lede">All the commits, trees, and blobs the remote needs get bundled into one delta-compressed file.</p>
+<pre class="sm"><span class="com">objects to send:</span>
+- <span class="num">3</span> commits
+- <span class="num">5</span> trees
+- <span class="num">4</span> blobs
+        &darr; <span class="prop">delta compression</span>
+<span class="hi">packfile: <span class="num">1.2 KiB</span></span></pre>
+    <p class="body-text muted">Same packfile format git uses on disk (see next post).</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: SEND + UPDATE ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">update.git</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> step 4</div>
+    <h2>Send. Update <span style="color: var(--accent);">refs</span>.</h2>
+    <p class="lede">The remote receives the packfile, runs <code style="font-family:'JetBrains Mono', monospace; color: var(--text);">pre-receive</code> hooks, atomically updates its ref pointers, then runs <code style="font-family:'JetBrains Mono', monospace; color: var(--text);">post-receive</code> hooks.</p>
+<pre class="sm"><span class="com"># remote-side:</span>
+<span class="num">1.</span> Receive packfile
+<span class="num">2.</span> Verify objects, unpack
+<span class="num">3.</span> Run <span class="prop">pre-receive</span> hook    <span class="com">(CI gates, branch protection)</span>
+<span class="hi"><span class="num">4.</span> Update <span class="str">refs/heads/main</span> &rarr; <span class="sha">d4a1cc7</span></span>
+<span class="num">5.</span> Run <span class="prop">post-receive</span> hook   <span class="com">(deploy, notify Slack)</span></pre>
+    <p class="body-text muted">Branch protection and CI gates? They live in <span style="color: var(--accent);">step 4</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: REJECT ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">reject.git</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the most common error</div>
+    <h2>Why pushes get <span style="color: var(--accent);">rejected</span>.</h2>
+    <p class="lede">If the remote ref isn't an ancestor of your commit, git refuses. Otherwise you'd erase commits.</p>
+<pre class="sm"><span class="com">$ git push</span>
+ <span class="kw">! [rejected]</span>        <span class="prop">main -&gt; main</span> <span class="kw">(non-fast-forward)</span>
+<span class="com">hint: Updates were rejected because the tip of your current</span>
+<span class="com">hint: branch is behind its remote counterpart.</span></pre>
+    <p class="body-text muted">Fix: <code style="font-family:'JetBrains Mono', monospace; color: var(--text);">git pull --rebase</code> then push. Or if you rewrote history intentionally &mdash; <code style="font-family:'JetBrains Mono', monospace; color: var(--accent);">--force-with-lease</code> (see post 14).</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.git</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">git push</span> = <span style="color: var(--accent);">4 steps</span>: handshake &rarr; negotiate &rarr; packfile &rarr; update</li>
+      <li>only the <span style="color: var(--accent);">missing</span> commits get sent</li>
+      <li>server-side hooks run on every push (branch protection, CI)</li>
+      <li>non-fast-forward error = remote has commits you don't</li>
+      <li><span class="key">--force-with-lease</span> for intentional rewrites only</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Next: packfiles, GC, &amp; why your repo is <span style="color: var(--accent); font-family:'JetBrains Mono', monospace;">0.5 GB</span> 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

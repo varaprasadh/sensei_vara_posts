@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reflog: your safety net — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .ingredients { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 8px; }
+  .ingredient {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 22px 26px;
+    display: flex; gap: 22px; align-items: flex-start;
+  }
+  .ingredient .ix {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: 600;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .ingredient .ititle {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 6px;
+  }
+  .ingredient .idesc {
+    font-size: 20px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">reflog.git</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> the most overlooked safety net</div>
+    <h1>Reflog:<br>your <span class="accent-text">time<br>machine</span>.</h1>
+    <div class="cover-tagline">If you committed it,<br>you can get it back.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: SCENARIO ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">panic.git</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> 2am scenario</div>
+    <h2><em>"I lost my <span style="color: var(--accent);">commits</span>!"</em></h2>
+    <p class="lede">You ran <code style="font-family:'JetBrains Mono',monospace; color: var(--conflict);">git reset --hard</code>. Or deleted a branch. Or force-pushed. Panic.</p>
+<pre><span class="com">$ git reset --hard HEAD~5</span>
+<span class="com"># ... 5 commits later: oh no.</span></pre>
+    <p class="body-text muted">If you committed it, breathe. <span style="color: var(--accent);">They're still there.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: WHAT REFLOG IS ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">what.git</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> what reflog actually tracks</div>
+    <h2>Every move <span style="color: var(--accent);">HEAD</span> made.</h2>
+    <p class="lede">Reflog logs every time HEAD moved — commits, checkouts, resets, merges, rebases. Locally. Always.</p>
+
+    <svg width="100%" viewBox="0 0 900 280" style="margin: 8px 0 16px;">
+      <defs>
+        <marker id="ra1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#f1502f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- HEAD pointer label moving -->
+      <rect x="60" y="60" width="120" height="44" rx="8" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="120" y="89" text-anchor="middle" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="18">HEAD</text>
+
+      <!-- timeline of moves -->
+      <line x1="60" y1="180" x2="840" y2="180" stroke="#3a4150" stroke-width="2" stroke-dasharray="4 4"/>
+
+      <circle cx="120" cy="180" r="14" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="120" y="220" text-anchor="middle" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="13">commit</text>
+
+      <circle cx="280" cy="180" r="14" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="280" y="220" text-anchor="middle" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="13">checkout</text>
+
+      <circle cx="440" cy="180" r="14" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="440" y="220" text-anchor="middle" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="13">merge</text>
+
+      <circle cx="600" cy="180" r="14" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="600" y="220" text-anchor="middle" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="13">reset</text>
+
+      <circle cx="760" cy="180" r="14" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="760" y="220" text-anchor="middle" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="13">rebase</text>
+
+      <!-- arrows from HEAD label down to each -->
+      <line x1="120" y1="108" x2="120" y2="162" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <line x1="180" y1="82" x2="270" y2="170" stroke="#d2a8ff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.6"/>
+      <line x1="180" y1="82" x2="430" y2="170" stroke="#d2a8ff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.45"/>
+      <line x1="180" y1="82" x2="590" y2="170" stroke="#d2a8ff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.3"/>
+      <line x1="180" y1="82" x2="750" y2="170" stroke="#d2a8ff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.2"/>
+
+      <text x="450" y="265" text-anchor="middle" fill="#f1502f" font-family="Inter, sans-serif" font-size="14" font-style="italic">every move logged →</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px;">Lives at <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">.git/logs/HEAD</code>. Not in your remote. Not in <code style="font-family:'JetBrains Mono',monospace; color: var(--merge);">git log</code>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: GIT REFLOG ANNOTATED ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">git reflog</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the output, line by line</div>
+    <h2>Read it like a <span style="color: var(--accent);">log</span>.</h2>
+<pre class="sm"><span class="com">$ git reflog</span>
+<span class="sha">d4a1cc7</span> <span class="prop">HEAD@{0}</span>: reset: moving to HEAD~5
+<span class="sha">e89df01</span> <span class="prop">HEAD@{1}</span>: commit: add tests
+<span class="sha">f12a08d</span> <span class="prop">HEAD@{2}</span>: commit: implement search
+<span class="sha">7e2dc1f</span> <span class="prop">HEAD@{3}</span>: merge feature/api
+<span class="sha">99c4ab2</span> <span class="prop">HEAD@{4}</span>: checkout: moving from main to feature/api
+<span class="sha">b72cf81</span> <span class="prop">HEAD@{5}</span>: commit: add readme</pre>
+
+    <div class="center-row" style="justify-content: flex-start; gap: 18px; margin: 4px 0 12px;">
+      <span class="pill staged" style="font-size: 17px; padding: 10px 16px;">SHA</span>
+      <span class="arrow">·</span>
+      <span class="pill accent" style="font-size: 17px; padding: 10px 16px;">HEAD@{N}</span>
+      <span class="arrow">·</span>
+      <span class="pill" style="font-size: 17px; padding: 10px 16px; color: var(--text-muted);">what happened</span>
+    </div>
+
+    <p class="body-text muted" style="font-size: 22px;">Last move = <code style="font-family:'JetBrains Mono',monospace; color: var(--accent);">HEAD@{0}</code>. Go back N steps with <code style="font-family:'JetBrains Mono',monospace; color: var(--accent);">HEAD@{N}</code>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: RECOVERING LOST COMMITS ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">reset.git</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the recovery move</div>
+    <h2><span style="color: var(--accent);">Reset</span> back to<br>before the mistake.</h2>
+<pre><span class="com"># I want to undo that --hard reset</span>
+<span class="hi"><span class="com">$</span> git reset --hard <span class="prop">HEAD@{1}</span></span>
+<span class="com"># back to e89df01 (one move ago)</span></pre>
+    <p class="body-text muted">Or grab the SHA directly: <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">git reset --hard e89df01</code>.</p>
+    <p class="body-text" style="margin-top: 8px;">Your "lost" commits aren't lost. They're <span style="color: var(--head);">orphaned</span>. <span style="color: var(--accent);">Reflog finds them.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: RECOVER DELETED BRANCHES ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">branch.git</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> branch deleted? same trick</div>
+    <h2>Recover a deleted <span style="color: var(--accent);">branch</span>.</h2>
+<pre class="sm"><span class="com">$ git branch -D feature/api</span>
+Deleted branch feature/api (was <span class="sha">f12a08d</span>).
+
+<span class="com"># minutes later: I needed that</span>
+<span class="hi"><span class="com">$</span> git branch feature/api <span class="sha">f12a08d</span></span>
+<span class="com"># branch is back, pointing at the same tip</span></pre>
+    <p class="body-text muted">Branches = pointers. Recreating one = <span style="color: var(--accent);">writing the SHA back</span>.</p>
+    <p class="body-text muted" style="font-size: 22px;">Lost the SHA? <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">git reflog</code> remembers — that "was f12a08d" line is also in there.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: LIMITS ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">limits.git</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the small print</div>
+    <h2>What reflog <span style="color: var(--accent);">can't</span> save.</h2>
+    <p class="lede">It's powerful, not magical. Three things to know.</p>
+
+    <div class="ingredients">
+      <div class="ingredient">
+        <div class="ix">01</div>
+        <div>
+          <div class="ititle">Local only</div>
+          <p class="idesc">Reflog is on YOUR machine, not the remote. Force-pushed something? Their reflog won't help you.</p>
+        </div>
+      </div>
+      <div class="ingredient">
+        <div class="ix">02</div>
+        <div>
+          <div class="ititle">Expires</div>
+          <p class="idesc"><code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">git gc</code> prunes unreachable commits after ~90 days (configurable).</p>
+        </div>
+      </div>
+      <div class="ingredient">
+        <div class="ix">03</div>
+        <div>
+          <div class="ititle">Uncommitted work</div>
+          <p class="idesc">Files you never <code style="font-family:'JetBrains Mono',monospace; color: var(--branch);">git add</code>-ed and <code style="font-family:'JetBrains Mono',monospace; color: var(--branch);">git commit</code>-ed don't have a reflog entry. Save often.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP + HOOK ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.git</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">reflog</span> — log of every HEAD movement, local</li>
+      <li><span class="key">HEAD@{N}</span> — N moves ago</li>
+      <li><span class="key">reset --hard HEAD@{N}</span> to undo</li>
+      <li>Works for branches too — cherry-pick the SHA back</li>
+      <li>It's local, and it expires (~90 days)</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Next: <code style="font-family:'JetBrains Mono', monospace; color: var(--accent);">stash</code>, properly 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

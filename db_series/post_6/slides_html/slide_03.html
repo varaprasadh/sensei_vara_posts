@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>SELECT * is a smell — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:            #0b1220;
+    --bg-elev:       #141d2e;
+    --bg-code:       #0e1626;
+    --border:        #243049;
+    --border-strong: #36456a;
+    --text:          #e6edf3;
+    --text-muted:    #93a3bf;
+    --text-dim:      #6a7a98;
+    --accent:        #4a90c2;
+    --accent-soft:   rgba(74, 144, 194, 0.15);
+    --branch:        #7ee7b8;
+    --merge:         #ffb454;
+    --conflict:      #ff7a8a;
+    --staged:        #c8a8ff;
+    --head:          #ffb454;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-conflict { background: rgba(255, 122, 138, 0.12); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-branch { background: rgba(126, 231, 184, 0.12); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Post-6 specific */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .col-label { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .cost-bar { height: 36px; border-radius: 6px; display: flex; align-items: center; padding: 0 14px; font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+
+<style>
+  html, body { margin: 0 !important; padding: 0 !important; background: #0a0e14 !important; }
+  body { display: block !important; gap: 0 !important; }
+  .slide { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">projection.sql</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">// </span>wide row problem</div>
+    <h2 style="font-size:44px; margin-bottom:20px;">15 columns fetched. App uses <span style="color:var(--branch);">2</span>.</h2>
+    <svg viewBox="0 0 920 540" width="920" height="540" style="max-width:100%; overflow:visible;">
+      <!-- Postgres side label -->
+      <text x="60" y="34" font-family="JetBrains Mono, monospace" font-size="16" fill="#6a7a98" letter-spacing="2">POSTGRES</text>
+      <!-- Row box -->
+      <rect x="40" y="50" width="840" height="90" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="60" y="37" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98"></text>
+      <!-- Column cells — 15 total, 2 mint, 13 dim -->
+      <!-- col 1: id (mint/needed) -->
+      <rect x="42" y="52" width="56" height="86" rx="8" fill="rgba(126,231,184,0.13)" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="70" y="99" font-family="JetBrains Mono, monospace" font-size="13" fill="#7ee7b8" text-anchor="middle">id</text>
+      <!-- col 2: email (mint/needed) -->
+      <rect x="100" y="52" width="72" height="86" rx="8" fill="rgba(126,231,184,0.13)" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="136" y="99" font-family="JetBrains Mono, monospace" font-size="13" fill="#7ee7b8" text-anchor="middle">email</text>
+      <!-- cols 3-15: dim/unused -->
+      <rect x="174" y="52" width="60" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="204" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">name</text>
+      <rect x="236" y="52" width="64" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="268" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">avatar</text>
+      <rect x="302" y="52" width="66" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="335" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">bio</text>
+      <rect x="370" y="52" width="62" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="401" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">phone</text>
+      <rect x="434" y="52" width="70" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="469" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">address</text>
+      <rect x="506" y="52" width="66" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="539" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">city</text>
+      <rect x="574" y="52" width="62" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="605" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">country</text>
+      <rect x="638" y="52" width="68" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="672" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">created</text>
+      <rect x="708" y="52" width="68" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="742" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">updated</text>
+      <rect x="778" y="52" width="52" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="804" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">role</text>
+      <rect x="832" y="52" width="44" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="854" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">plan</text>
+
+      <!-- Needed label -->
+      <text x="70" y="170" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8" text-anchor="middle">needed</text>
+      <text x="136" y="170" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8" text-anchor="middle">needed</text>
+
+      <!-- Wasted label across unused cols -->
+      <text x="515" y="170" font-family="JetBrains Mono, monospace" font-size="14" fill="#36456a" text-anchor="middle">⟵ 13 columns wasted — shipped anyway ⟶</text>
+
+      <!-- Arrow from row to app -->
+      <line x1="460" y1="200" x2="460" y2="300" stroke="#4a90c2" stroke-width="2" marker-end="url(#arr)"/>
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#4a90c2"/>
+        </marker>
+        <marker id="arr-conflict" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#ff7a8a"/>
+        </marker>
+        <marker id="arr-branch" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#7ee7b8"/>
+        </marker>
+      </defs>
+      <!-- App box -->
+      <rect x="200" y="300" width="520" height="80" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="460" y="336" font-family="Inter, sans-serif" font-size="20" fill="#e6edf3" text-anchor="middle" font-weight="600">your application</text>
+      <text x="460" y="362" font-family="JetBrains Mono, monospace" font-size="15" fill="#6a7a98" text-anchor="middle">uses: id, email — discards the rest</text>
+
+      <!-- Conflict annotation: wasted bytes -->
+      <line x1="460" y1="385" x2="460" y2="460" stroke="#36456a" stroke-width="1" stroke-dasharray="5,4"/>
+      <rect x="310" y="460" width="300" height="52" rx="8" fill="rgba(255,122,138,0.1)" stroke="#ff7a8a" stroke-width="1.2"/>
+      <text x="460" y="492" font-family="JetBrains Mono, monospace" font-size="16" fill="#ff7a8a" text-anchor="middle">13/15 columns → garbage collected</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>async functions ALWAYS return a Promise — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a140d;
+    --bg-elev: #122019;
+    --bg-code: #0c1810;
+    --border: #1f3024;
+    --border-strong: #2f4a37;
+    --text: #e8f0e8;
+    --text-muted: #9bb3a0;
+    --text-dim: #6c8275;
+    --accent: #68a063;          /* node green */
+    --accent-soft: rgba(104, 160, 99, 0.15);
+    --branch: #c8f573;          /* neon lime — highlight */
+    --merge: #ffd166;           /* gold — numbers / refs */
+    --conflict: #ff6b6b;        /* red — errors */
+    --staged: #93dcff;          /* sky — special */
+    --head: #ffd166;            /* gold for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 170, 130, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 170, 130, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-err { background: rgba(255, 107, 107, 0.12); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-lime { background: rgba(200, 245, 115, 0.10); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .annot {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--branch);
+    margin-top: -14px;
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+  .annot.red { color: var(--conflict); }
+  .annot.gold { color: var(--merge); }
+
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .badge.ok { background: rgba(104, 160, 99, 0.2); color: var(--accent); border: 1px solid var(--accent); }
+  .badge.err { background: rgba(255, 107, 107, 0.2); color: var(--conflict); border: 1px solid var(--conflict); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">async.js</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> node.js series · post 7</div>
+    <h1>Every <code style="font-size:0.9em; color:var(--staged);">async</code> fn<br>returns a<br><span class="accent-text">Promise</span>.</h1>
+    <div class="cover-tagline">No exceptions. JS wraps it for you.<br>Here's exactly what that means.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">async.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the moment you type async</div>
+    <h2>You lose control<br>of the <span style="color:var(--accent);">return value</span>.</h2>
+    <p class="lede">Add <code style="font-family:'JetBrains Mono',monospace; color:var(--staged);">async</code> to a function. JS takes over. Whatever you return — <strong>it wraps it</strong>.</p>
+    <div class="center-row" style="margin-top: 20px;">
+      <div class="pill staged"><code>async fn</code></div>
+      <span class="arrow">→</span>
+      <div class="pill accent"><code>Promise&lt;T&gt;</code></div>
+      <span class="arrow" style="color:var(--text-dim);">always</span>
+    </div>
+    <p class="body-text muted" style="margin-top: 24px;">Most devs know this. But the rules it implies? Those trip everyone up.</p>
+    <p class="body-text" style="font-size: 22px;">4 rules. Know all 4. The confusion evaporates.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: RULE 1 — return wraps ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">async.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> rule 1 of 4</div>
+    <h2><span style="color:var(--staged);">return 42</span><br>= <span style="color:var(--accent);">Promise&lt;42&gt;</span></h2>
+    <p class="lede">JS auto-wraps with <code style="font-family:'JetBrains Mono',monospace;">Promise.resolve()</code>. Caller MUST <code style="font-family:'JetBrains Mono',monospace;">.then()</code> or <code style="font-family:'JetBrains Mono',monospace;">await</code> to get <code style="font-family:'JetBrains Mono',monospace;">42</code>.</p>
+<pre><span class="kw">async</span> <span class="kw">function</span> <span class="fn">fn</span>() {
+  <span class="kw">return</span> <span class="num">42</span>;        <span class="com">// JS wraps → Promise.resolve(42)</span>
+}
+
+<span class="kw">const</span> <span class="var">p</span> = <span class="fn">fn</span>();
+<span class="hi"><span class="prop">console</span>.<span class="fn">log</span>(<span class="var">p</span>);    <span class="com">// Promise { 42 }  ← NOT 42</span></span>
+<span class="com">// to get 42:</span>
+<span class="var">p</span>.<span class="fn">then</span>(<span class="var">v</span> =&gt; <span class="prop">console</span>.<span class="fn">log</span>(<span class="var">v</span>)); <span class="com">// 42</span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: RULE 2 — throw = reject ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">async.js</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> rule 2 of 4</div>
+    <h2><span style="color:var(--conflict);">throw</span> = rejected<br><span style="color:var(--accent);">Promise</span></h2>
+    <p class="lede">No uncaught exception. The error becomes a rejection. You handle it with <code style="font-family:'JetBrains Mono',monospace;">.catch()</code> or <code style="font-family:'JetBrains Mono',monospace;">try/await</code>.</p>
+<pre><span class="kw">async</span> <span class="kw">function</span> <span class="fn">fn</span>() {
+  <span class="hi-err"><span class="kw">throw</span> <span class="kw">new</span> <span class="fn">Error</span>(<span class="str">'something broke'</span>);</span>
+}
+
+<span class="fn">fn</span>().<span class="fn">catch</span>(<span class="var">err</span> =&gt; <span class="prop">console</span>.<span class="fn">log</span>(<span class="var">err</span>.<span class="prop">message</span>));
+<span class="com">// → 'something broke'</span>
+
+<span class="com">// without .catch():</span>
+<span class="hi-err"><span class="fn">fn</span>();  <span class="com">// UnhandledPromiseRejection ← next post</span></span></pre>
+    <p class="body-text" style="font-size: 20px; color: var(--staged);">Sky note: skip the <code style="font-family:'JetBrains Mono',monospace;">.catch()</code> → unhandled rejection trap. Next post.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: RULE 3 — no double-wrap ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">promise.js</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> rule 3 of 4</div>
+    <h2>Return a Promise?<br><span style="color:var(--branch);">No double-wrap.</span></h2>
+    <p class="lede">Async + returning a Promise doesn't nest them. JS flattens it. <code style="font-family:'JetBrains Mono',monospace;">Promise&lt;Promise&lt;5&gt;&gt;</code> is never a thing.</p>
+<pre><span class="kw">async</span> <span class="kw">function</span> <span class="fn">fn</span>() {
+  <span class="kw">return</span> <span class="prop">Promise</span>.<span class="fn">resolve</span>(<span class="num">5</span>); <span class="com">// returns a Promise</span>
+}
+
+<span class="hi-lime"><span class="fn">fn</span>().<span class="fn">then</span>(<span class="var">v</span> =&gt; <span class="prop">console</span>.<span class="fn">log</span>(<span class="var">v</span>)); <span class="com">// → 5, not Promise{5}</span></span></pre>
+    <div class="annot">^ result is Promise&lt;5&gt;, not Promise&lt;Promise&lt;5&gt;&gt;</div>
+    <p class="body-text muted" style="font-size: 22px;">This is called <strong style="color:var(--branch);">Promise flattening</strong> (or "assimilation"). Async inherits it from <code style="font-family:'JetBrains Mono',monospace;">.then()</code>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: RULE 4 — await needs async context ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">top_level_await.mjs</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> rule 4 of 4</div>
+    <h2><span style="color:var(--staged);">await</span> needs<br>an <span style="color:var(--accent);">async</span> context</h2>
+<pre class="sm"><span class="com">// BAD — SyntaxError</span>
+<span class="hi-err"><span class="kw">function</span> <span class="fn">sync</span>() {
+  <span class="kw">const</span> <span class="var">x</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api'</span>); <span class="com">// ✗ SyntaxError</span>
+}</span>
+
+<span class="com">// GOOD — works</span>
+<span class="hi"><span class="kw">async</span> <span class="kw">function</span> <span class="fn">good</span>() {
+  <span class="kw">const</span> <span class="var">x</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api'</span>); <span class="com">// ✓</span>
+}</span>
+
+<span class="com">// ESM top-level await (.mjs or "type":"module")</span>
+<span class="kw">const</span> <span class="var">data</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api'</span>); <span class="com">// ✓ ESM only</span></pre>
+    <p class="body-text muted" style="font-size: 22px; margin-top: 8px;">The fix is always the same: make the caller <span style="color:var(--staged);">async</span> too. This is "async creep" — it spreads up the call chain.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">async.js</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ node async.js</span> — see it yourself</div>
+    <h2>Run this.<br><span style="color:var(--accent);">See the Promise.</span></h2>
+<pre class="sm"><span class="kw">async</span> <span class="kw">function</span> <span class="fn">f</span>() { <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="prop">console</span>.<span class="fn">log</span>(<span class="fn">f</span>());
+<span class="hi"><span class="com">// → Promise { 1 }    ← it's a Promise, not 1</span></span>
+
+(<span class="kw">async</span> () =&gt; {
+  <span class="prop">console</span>.<span class="fn">log</span>(<span class="kw">await</span> <span class="fn">f</span>());
+<span class="hi">  <span class="com">// → 1               ← await unwraps it</span></span>
+})();
+
+<span class="com">// or with .then()</span>
+<span class="fn">f</span>().<span class="fn">then</span>(<span class="var">v</span> =&gt; <span class="prop">console</span>.<span class="fn">log</span>(<span class="var">v</span>));
+<span class="hi"><span class="com">// → 1               ← .then() also unwraps</span></span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">async.js</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2 style="font-size: 46px; margin-bottom: 20px;">Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">async</span> = auto Promise wrap, always</li>
+      <li><span class="key">return x</span> = <code style="font-family:'JetBrains Mono',monospace; color:var(--accent);">Promise.resolve(x)</code></li>
+      <li><span class="key">throw err</span> = <code style="font-family:'JetBrains Mono',monospace; color:var(--conflict);">Promise.reject(err)</code></li>
+      <li><span class="key">return Promise</span> = no double-wrap (flattened)</li>
+      <li><span class="key">await</span> only inside async (or ESM top-level)</li>
+      <li>"async creep" — async spreads up the call chain</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: the <span style="color:var(--staged);">unhandled rejection</span> trap →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

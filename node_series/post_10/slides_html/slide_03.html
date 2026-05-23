@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>await in a loop = sequential — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a140d;
+    --bg-elev: #122019;
+    --bg-code: #0c1810;
+    --border: #1f3024;
+    --border-strong: #2f4a37;
+    --text: #e8f0e8;
+    --text-muted: #9bb3a0;
+    --text-dim: #6c8275;
+    --accent: #68a063;          /* node green */
+    --accent-soft: rgba(104, 160, 99, 0.15);
+    --branch: #c8f573;          /* neon lime — highlight */
+    --merge: #ffd166;           /* gold — numbers / refs */
+    --conflict: #ff6b6b;        /* red — errors */
+    --staged: #93dcff;          /* sky — special */
+    --head: #ffd166;            /* gold for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 170, 130, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 170, 130, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 18px 22px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: rgba(255, 107, 107, 0.15); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-lime { background: rgba(200, 245, 115, 0.12); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-content .red-text { color: var(--conflict); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+  .recap-list .key.red { color: var(--conflict); }
+  .recap-list .key.lime { color: var(--branch); }
+  .recap-list .key.gold { color: var(--merge); }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+
+<style>
+  html, body { margin: 0 !important; padding: 0 !important; background: #0a0e14 !important; }
+  body { display: block !important; gap: 0 !important; }
+  .slide { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">loop.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the bug — sequential await</div>
+    <h2>This looks fine.<br><span style="color:var(--conflict)">It's not.</span></h2>
+<pre><span class="com">// 100 urls × 50ms each = 5 seconds 🐌</span>
+<span class="kw">for</span> (<span class="kw">const</span> <span class="var">url</span> <span class="kw">of</span> <span class="var">urls</span>) {
+<span class="hi">  <span class="kw">const</span> <span class="var">r</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="var">url</span>);        <span class="com">// ← BLOCKS here</span></span>
+  <span class="var">results</span>.<span class="fn">push</span>(<span class="kw">await</span> <span class="var">r</span>.<span class="fn">json</span>());
+}</pre>
+
+    <!-- SVG timeline: sequential bars -->
+    <svg width="100%" viewBox="0 0 880 160" style="margin: 4px 0 0;">
+      <text x="0" y="18" fill="#6c8275" font-family="JetBrains Mono, monospace" font-size="12">timeline (each bar = 1 fetch, ~50ms)</text>
+      <!-- 20 bars to represent 100, each sequential -->
+      <g transform="translate(0,28)">
+        <!-- row of 20 sequential bars, each slightly offset -->
+        <rect x="0"   y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.85"/>
+        <rect x="44"  y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.82"/>
+        <rect x="88"  y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.79"/>
+        <rect x="132" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.76"/>
+        <rect x="176" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.73"/>
+        <rect x="220" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.70"/>
+        <rect x="264" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.67"/>
+        <rect x="308" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.64"/>
+        <rect x="352" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.61"/>
+        <rect x="396" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.58"/>
+        <rect x="440" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.55"/>
+        <rect x="484" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.52"/>
+        <rect x="528" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.49"/>
+        <rect x="572" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.46"/>
+        <rect x="616" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.43"/>
+        <rect x="660" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.40"/>
+        <rect x="704" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.37"/>
+        <rect x="748" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.34"/>
+        <rect x="792" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.31"/>
+        <rect x="836" y="8" width="40" height="20" rx="3" fill="#ff6b6b" opacity="0.28"/>
+        <text x="0"   y="54" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="11">url[0]</text>
+        <text x="836" y="54" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="11">url[99]</text>
+        <text x="380" y="100" text-anchor="middle" fill="#ff6b6b" font-family="Inter, sans-serif" font-size="14" font-weight="600">wait for each → wait for each → wait... ≈ 5000ms total</text>
+      </g>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+</body>
+</html>

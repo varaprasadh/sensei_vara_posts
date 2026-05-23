@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>JSONB — when to embrace, when to regret — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;          /* postgres blue */
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;          /* mint — success / index */
+    --merge: #ffb454;           /* amber — highlight / sql kw */
+    --conflict: #ff7a8a;        /* coral — errors */
+    --staged: #c8a8ff;          /* lavender — refs */
+    --head: #ffb454;            /* amber for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 18px 22px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-warn { background: rgba(255, 122, 138, 0.1); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .cta-sub { font-size: 18px; color: var(--text-muted); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .card-row { display: flex; flex-direction: column; gap: 18px; margin: 8px 0; }
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex; align-items: flex-start; gap: 18px;
+  }
+  .card.good { border-color: var(--branch); }
+  .card.bad { border-color: var(--conflict); }
+  .card-icon { font-size: 26px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+  .card-text { font-size: 22px; line-height: 1.45; color: var(--text); }
+  .card-text .sub { font-size: 18px; color: var(--text-muted); display: block; margin-top: 4px; }
+
+  .op-grid { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0; }
+  .op-badge {
+    background: var(--bg-code);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    color: var(--merge);
+  }
+  .op-badge .op-label { font-size: 14px; color: var(--text-dim); display: block; font-family: 'Inter', sans-serif; margin-top: 4px; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">jsonb.sql</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">-- #</span> post 19 · db series</div>
+    <h1>JSONB is a tool.<br>Not a <span class="accent-text">schema</span>.</h1>
+    <div class="cover-tagline">When to embrace it. When to walk away.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">jsonb.sql</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> the trap most devs fall into</div>
+    <h2>Postgres has the <span style="color: var(--accent);">best</span><br>JSONB in any RDBMS.</h2>
+    <p class="lede">That doesn't mean you should put everything in it.</p>
+
+    <div style="margin: 10px 0 20px;">
+      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+        <div style="background: var(--bg-code); border: 1px solid var(--conflict); border-radius: 10px; padding: 18px 24px; flex: 1;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--conflict); margin-bottom: 8px;">the trap</div>
+          <div style="font-size: 22px; color: var(--text);">Best tool for X → use it for everything</div>
+          <div style="font-size: 18px; color: var(--text-muted); margin-top: 6px;">Every column becomes a JSONB key</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="background: var(--bg-code); border: 1px solid var(--branch); border-radius: 10px; padding: 18px 24px; flex: 1;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--branch); margin-bottom: 8px;">the truth</div>
+          <div style="font-size: 22px; color: var(--text);">JSONB shines at genuine uncertainty</div>
+          <div style="font-size: 18px; color: var(--text-muted); margin-top: 6px;">Known fields → real columns, always</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="body-text muted" style="font-size: 22px; margin: 0;">The feature is powerful. The misuse is common. Know the difference.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: WHAT IT IS ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">jsonb.sql</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> what JSONB actually is</div>
+    <h2>Binary-encoded JSON.<br><span style="color: var(--accent);">Indexable. Queryable.</span></h2>
+<pre class="sm"><span class="com">-- store arbitrary JSON</span>
+<span class="kw">INSERT INTO</span> events(payload)
+<span class="kw">VALUES</span> (<span class="str">'{"type":"click","x":12}'</span>::<span class="prop">jsonb</span>);
+
+<span class="com">-- path access operators</span>
+<span class="kw">SELECT</span> payload<span class="fn">->></span><span class="str">'type'</span>  <span class="com">-- text: "click"</span>
+<span class="kw">FROM</span>   events;
+
+<span class="com">-- nested path</span>
+<span class="kw">SELECT</span> payload<span class="fn">-></span><span class="str">'user'</span><span class="fn">->></span><span class="str">'email'</span> <span class="kw">FROM</span> events;</pre>
+    <div class="op-grid">
+      <div class="op-badge"><span class="fn">-&gt;</span><span class="op-label">get as jsonb</span></div>
+      <div class="op-badge"><span class="fn">-&gt;&gt;</span><span class="op-label">get as text</span></div>
+      <div class="op-badge"><span class="fn">@&gt;</span><span class="op-label">contains</span></div>
+      <div class="op-badge"><span class="fn">?</span><span class="op-label">key exists</span></div>
+      <div class="op-badge"><span class="fn">#&gt;&gt;</span><span class="op-label">path as text</span></div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: GIN INDEX ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">gin_index.sql</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> the GIN index — why JSONB is fast</div>
+    <h2>GIN turns containment<br>into an <span style="color: var(--branch);">index scan</span>.</h2>
+<pre class="sm"><span class="com">-- one line to index the whole column</span>
+<span class="hi"><span class="kw">CREATE INDEX ON</span> events <span class="kw">USING</span> <span class="prop">GIN</span> (payload);</span>
+
+<span class="com">-- now this uses the index instead of seqscan</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> events
+<span class="kw">WHERE</span>  payload <span class="fn">@&gt;</span> <span class="str">'{"type":"click"}'</span>;
+
+<span class="com">-- path_ops variant — smaller, faster for @> only</span>
+<span class="kw">CREATE INDEX ON</span> events
+  <span class="kw">USING</span> <span class="prop">GIN</span> (payload <span class="prop">jsonb_path_ops</span>);</pre>
+
+    <div style="display:flex; gap:14px; margin-top: 4px;">
+      <div style="background: var(--bg-code); border: 1px solid var(--branch); border-radius: 10px; padding: 14px 20px; flex: 1;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--branch); margin-bottom: 6px;">GIN default</div>
+        <div style="font-size: 18px; color: var(--text-muted);">supports @&gt;, ?, ?|, ?&amp;</div>
+      </div>
+      <div style="background: var(--bg-code); border: 1px solid var(--accent); border-radius: 10px; padding: 14px 20px; flex: 1;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--accent); margin-bottom: 6px;">jsonb_path_ops</div>
+        <div style="font-size: 18px; color: var(--text-muted);">@&gt; only — 2–4× smaller</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: WHEN TO EMBRACE ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">embrace.sql</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> when JSONB is the right call</div>
+    <h2>Use it for <span style="color: var(--branch);">genuine</span><br>schemalessness.</h2>
+
+    <div class="card-row" style="margin-top: 12px;">
+      <div class="card good">
+        <div class="card-icon" style="color: var(--branch);">✓</div>
+        <div class="card-text">
+          Audit / event payloads
+          <span class="sub">Shape varies per event type. You append, rarely filter.</span>
+        </div>
+      </div>
+      <div class="card good">
+        <div class="card-icon" style="color: var(--branch);">✓</div>
+        <div class="card-text">
+          Sparse user-defined fields
+          <span class="sub">SaaS custom attributes — different keys per tenant, mostly absent.</span>
+        </div>
+      </div>
+      <div class="card good">
+        <div class="card-icon" style="color: var(--branch);">✓</div>
+        <div class="card-text">
+          External API responses
+          <span class="sub">Third-party payloads you need verbatim. Schema is theirs, not yours.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: WHEN TO REGRET ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">regret.sql</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> when JSONB punishes you</div>
+    <h2>The wrong tool creates<br><span style="color: var(--conflict);">the wrong pain</span>.</h2>
+
+    <div class="card-row" style="margin-top: 4px; gap: 12px;">
+      <div class="card bad">
+        <div class="card-icon" style="color: var(--conflict);">✗</div>
+        <div class="card-text" style="font-size: 20px;">
+          Filtering on it constantly → <span style="color: var(--merge); font-family: 'JetBrains Mono', monospace;">make it a column</span>
+        </div>
+      </div>
+      <div class="card bad">
+        <div class="card-icon" style="color: var(--conflict);">✗</div>
+        <div class="card-text" style="font-size: 20px;">
+          Need FK into it → <span style="color: var(--conflict);">impossible</span>. Can't reference a JSON key.
+        </div>
+      </div>
+      <div class="card bad">
+        <div class="card-icon" style="color: var(--conflict);">✗</div>
+        <div class="card-text" style="font-size: 20px;">
+          JSONB as your whole schema → debugging nightmare
+        </div>
+      </div>
+    </div>
+
+<pre class="xs" style="margin-top: 14px;"><span class="com">-- antipattern: everything in JSONB</span>
+<span class="hi-warn"><span class="kw">SELECT</span> data<span class="fn">->></span><span class="str">'user_id'</span>, data<span class="fn">->></span><span class="str">'email'</span></span>
+<span class="hi-warn"><span class="kw">FROM</span>   users <span class="kw">WHERE</span> data<span class="fn">->></span><span class="str">'status'</span> = <span class="str">'active'</span>;</span>
+<span class="com">-- no types, no FK, no index on status</span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">path_ops.sql</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> try it yourself</div>
+    <h2>Copy-paste into <span style="color: var(--accent);">psql</span>.</h2>
+<pre class="sm"><span class="com">-- query nested path + containment filter</span>
+<span class="kw">SELECT</span> payload<span class="fn">-></span><span class="str">'user'</span><span class="fn">->></span><span class="str">'email'</span>
+<span class="kw">FROM</span>   events
+<span class="hi"><span class="kw">WHERE</span>  payload <span class="fn">@&gt;</span> <span class="str">'{"action":"signup"}'</span>;</span>
+
+<span class="com">-- add the GIN index to make it fast</span>
+<span class="kw">CREATE INDEX</span> idx_events_payload
+  <span class="kw">ON</span> events <span class="kw">USING</span> <span class="prop">GIN</span> (payload <span class="prop">jsonb_path_ops</span>);
+
+<span class="com">-- verify it hits the index</span>
+<span class="kw">EXPLAIN ANALYZE</span>
+  <span class="kw">SELECT</span> * <span class="kw">FROM</span> events
+  <span class="kw">WHERE</span> payload <span class="fn">@&gt;</span> <span class="str">'{"action":"signup"}'</span>;</pre>
+
+    <div style="background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 16px 22px; margin-top: 4px;">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--text-dim); margin-bottom: 6px;">sample output</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--branch);">alice@example.com</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--branch);">bob@example.com</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--text-dim); margin-top: 8px;">(2 rows) — Bitmap Index Scan on idx_events_payload</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.sql</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> tl;dr</div>
+    <h2 style="font-size: 50px; margin-bottom: 20px;">Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">JSONB</span> — binary-encoded JSON, stored decomposed</li>
+      <li><span class="key">GIN</span> — enables containment &amp; key-existence index scans</li>
+      <li>Use for <span class="key">genuine schemalessness</span> — events, sparse attrs, external payloads</li>
+      <li>Queried/filtered constantly → <span class="key">promote to a column</span></li>
+      <li>No FKs into JSONB — referential integrity impossible</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: N+1 — the bug that scales linearly with users →</div>
+      <div class="cta-sub">post 20 · DB series</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

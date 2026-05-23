@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Embeddings, explained — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-elev: #161b22;
+    --bg-code: #1c2128;
+    --border: #30363d;
+    --border-strong: #484f58;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f78166;
+    --accent-2: #d2a8ff;
+    --green: #7ee787;
+    --blue: #79c0ff;
+    --yellow: #ffd866;
+    --pink: #ff7b72;
+    --purple: #d2a8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #050810;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+  .controls {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+    display: flex;
+    gap: 8px;
+  }
+  .controls button {
+    background: #161b22;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .controls button:hover { background: #21262d; }
+
+  .slide {
+    width: 1080px;
+    height: 1080px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    padding: 70px 80px;
+  }
+
+  .slide::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 50px;
+    position: relative;
+    z-index: 1;
+  }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+    min-height: 0;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative;
+    z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 {
+    font-size: 80px;
+    font-weight: 800;
+    line-height: 1.05;
+    margin: 0 0 24px;
+    letter-spacing: -0.02em;
+  }
+  h2 {
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0 0 24px;
+    letter-spacing: -0.015em;
+  }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.05em;
+  }
+  .lede {
+    font-size: 26px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    margin: 0 0 30px;
+    max-width: 92%;
+  }
+  .body-text {
+    font-size: 24px;
+    line-height: 1.55;
+    color: var(--text);
+    margin: 0 0 20px;
+  }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--pink); }
+  .fn { color: var(--purple); }
+  .str { color: var(--green); }
+  .num { color: var(--blue); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--blue); }
+  .prop { color: var(--accent); }
+  .hi { background: rgba(247, 129, 102, 0.15); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  /* Cover */
+  .cover-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cover-content h1 {
+    font-size: 110px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline {
+    font-size: 30px;
+    color: var(--text-muted);
+    margin-top: 32px;
+    font-weight: 400;
+  }
+
+  /* Pill flow */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.green { border-color: var(--green); color: var(--green); }
+  .pill.blue { border-color: var(--blue); color: var(--blue); }
+  .pill.purple { border-color: var(--purple); color: var(--purple); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+
+  .center-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin: 16px 0 24px;
+    flex-wrap: wrap;
+  }
+
+  /* Examples row */
+  .example-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .example {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 26px;
+    display: grid;
+    grid-template-columns: 1.4fr auto 1fr;
+    align-items: center;
+    gap: 18px;
+  }
+  .example .word {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .example .arrow {
+    color: var(--text-dim);
+    font-size: 20px;
+  }
+  .example .count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    color: var(--accent);
+    text-align: right;
+  }
+
+  /* Equation pills */
+  .equation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 22px;
+    margin-bottom: 22px;
+  }
+  .equation .op {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Recap */
+  .recap-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .recap-list li {
+    font-size: 24px;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text {
+    font-size: 24px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Ingredients grid */
+  .ingredients {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .ingredient {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+  }
+  .ingredient .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .ingredient .name {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .ingredient .desc {
+    font-size: 18px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Scatter plot caption */
+  .caption {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    margin-bottom: 14px;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">embed.js</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label">// the trick behind RAG and search</div>
+    <h1>Embeddings:<br>words as<br><span class="accent-text">numbers</span>.</h1>
+    <div class="cover-tagline">How machines measure meaning.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: SETUP ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">text2vec.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// the basic idea</div>
+    <h2>Text in.<br><span style="color: var(--accent);">Numbers</span> out.</h2>
+    <p class="lede">Each piece of text becomes a fixed-length array of floats. That's it.</p>
+    <div class="center-row" style="margin-top: 10px;">
+      <span class="pill green">"hello world"</span>
+      <span class="arrow">→</span>
+      <span class="pill purple">embed()</span>
+      <span class="arrow">→</span>
+      <span class="pill accent">[0.12, -0.44, 0.78, ...]</span>
+    </div>
+    <div class="center-row">
+      <span class="pill blue">1536 dimensions</span>
+    </div>
+    <p class="body-text muted" style="text-align:center;">No magic. Just a function that maps text to a vector.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SAME SHAPE ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">shape.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// shape stays constant</div>
+    <h2>Every text →<br><span style="color: var(--accent);">same shape</span>.</h2>
+    <p class="lede">Input length varies. Output length never does.</p>
+    <div class="example-row">
+      <div class="example">
+        <div class="word">"hi"</div>
+        <span class="arrow">→</span>
+        <div class="count">1536 floats</div>
+      </div>
+      <div class="example">
+        <div class="word">"the quick brown fox..."</div>
+        <span class="arrow">→</span>
+        <div class="count">1536 floats</div>
+      </div>
+      <div class="example">
+        <div class="word">an entire paragraph</div>
+        <span class="arrow">→</span>
+        <div class="count">1536 floats</div>
+      </div>
+      <div class="example">
+        <div class="word">a 500-page book chapter</div>
+        <span class="arrow">→</span>
+        <div class="count">1536 floats</div>
+      </div>
+    </div>
+    <p class="caption">// different content. same shape. always.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: MEANING → DISTANCE ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">space.js</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// the magic</div>
+    <h2>Meaning becomes<br><span style="color: var(--accent);">distance</span>.</h2>
+    <p class="lede">Similar meanings cluster together in vector space.</p>
+
+    <svg width="100%" viewBox="0 0 900 480" style="margin: 0 0 8px;">
+      <!-- subtle grid -->
+      <defs>
+        <pattern id="gridP" width="60" height="60" patternUnits="userSpaceOnUse">
+          <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#30363d" stroke-width="0.5" opacity="0.5"/>
+        </pattern>
+      </defs>
+      <rect x="40" y="20" width="820" height="420" fill="url(#gridP)" stroke="#30363d" stroke-width="1" rx="10"/>
+
+      <!-- axes -->
+      <line x1="40" y1="430" x2="860" y2="430" stroke="#484f58" stroke-width="1"/>
+      <line x1="40" y1="20" x2="40" y2="430" stroke="#484f58" stroke-width="1"/>
+      <text x="855" y="455" text-anchor="end" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="13" font-style="italic">dim 1 →</text>
+      <text x="20" y="30" text-anchor="start" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="13" font-style="italic">↑ dim 2</text>
+
+      <!-- banana (top-left, alone, pink) -->
+      <circle cx="130" cy="90" r="11" fill="#ff7b72" stroke="#0d1117" stroke-width="2"/>
+      <text x="148" y="96" fill="#ff7b72" font-family="JetBrains Mono, monospace" font-size="18">"banana"</text>
+
+      <!-- royal cluster (top-right, accent) -->
+      <circle cx="700" cy="110" r="11" fill="#f78166" stroke="#0d1117" stroke-width="2"/>
+      <text x="718" y="116" fill="#f78166" font-family="JetBrains Mono, monospace" font-size="18">"king"</text>
+      <circle cx="760" cy="150" r="11" fill="#f78166" stroke="#0d1117" stroke-width="2"/>
+      <text x="778" y="156" fill="#f78166" font-family="JetBrains Mono, monospace" font-size="18">"queen"</text>
+
+      <!-- man/woman (just below royals, accent-2 / purple) -->
+      <circle cx="680" cy="220" r="11" fill="#d2a8ff" stroke="#0d1117" stroke-width="2"/>
+      <text x="698" y="226" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="18">"man"</text>
+      <circle cx="745" cy="255" r="11" fill="#d2a8ff" stroke="#0d1117" stroke-width="2"/>
+      <text x="763" y="261" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="18">"woman"</text>
+
+      <!-- cat/dog (middle-left, blue) -->
+      <circle cx="220" cy="230" r="11" fill="#79c0ff" stroke="#0d1117" stroke-width="2"/>
+      <text x="238" y="236" fill="#79c0ff" font-family="JetBrains Mono, monospace" font-size="18">"cat"</text>
+      <circle cx="280" cy="260" r="11" fill="#79c0ff" stroke="#0d1117" stroke-width="2"/>
+      <text x="298" y="266" fill="#79c0ff" font-family="JetBrains Mono, monospace" font-size="18">"dog"</text>
+
+      <!-- run/walk (bottom, green) -->
+      <circle cx="360" cy="380" r="11" fill="#7ee787" stroke="#0d1117" stroke-width="2"/>
+      <text x="378" y="386" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="18">"run"</text>
+      <circle cx="430" cy="395" r="11" fill="#7ee787" stroke="#0d1117" stroke-width="2"/>
+      <text x="448" y="401" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="18">"walk"</text>
+
+      <!-- table (bottom-right, alone, pink) -->
+      <circle cx="800" cy="395" r="11" fill="#ff7b72" stroke="#0d1117" stroke-width="2"/>
+      <text x="700" y="401" fill="#ff7b72" font-family="JetBrains Mono, monospace" font-size="18">"table"</text>
+
+      <!-- faint cluster circles -->
+      <ellipse cx="730" cy="130" rx="80" ry="55" fill="none" stroke="#f78166" stroke-width="1" stroke-dasharray="4 4" opacity="0.4"/>
+      <ellipse cx="712" cy="238" rx="80" ry="50" fill="none" stroke="#d2a8ff" stroke-width="1" stroke-dasharray="4 4" opacity="0.4"/>
+      <ellipse cx="250" cy="245" rx="75" ry="50" fill="none" stroke="#79c0ff" stroke-width="1" stroke-dasharray="4 4" opacity="0.4"/>
+      <ellipse cx="395" cy="388" rx="75" ry="40" fill="none" stroke="#7ee787" stroke-width="1" stroke-dasharray="4 4" opacity="0.4"/>
+    </svg>
+
+    <p class="caption">// vector space (shown in 2D — real ones have 1536+ dims)</p>
+    <p class="body-text muted" style="text-align:center; font-size: 22px;">Similar meaning = <span style="color:var(--accent);">nearby in space</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: VECTOR MATH ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">vector_math.js</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// the classic example</div>
+    <h2>Vector <span style="color: var(--accent);">math</span> = semantics.</h2>
+    <p class="lede">Directions in vector space carry meaning. You can do algebra on them.</p>
+    <div class="equation">
+      <span class="pill accent">embed("king")</span>
+      <span class="op">−</span>
+      <span class="pill blue">embed("man")</span>
+      <span class="op">+</span>
+      <span class="pill purple">embed("woman")</span>
+      <span class="op">≈</span>
+      <span class="pill green">embed("queen")</span>
+    </div>
+<pre><span class="com">// cosine similarity: how close are two vectors?</span>
+<span class="kw">function</span> <span class="fn">cosine</span>(<span class="var">a</span>, <span class="var">b</span>) {
+  <span class="kw">let</span> dot = <span class="num">0</span>, na = <span class="num">0</span>, nb = <span class="num">0</span>;
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; a.length; i++) {
+    dot += a[i] * b[i];
+    na  += a[i] ** <span class="num">2</span>;
+    nb  += b[i] ** <span class="num">2</span>;
+  }
+  <span class="kw">return</span> dot / (<span class="fn">Math</span>.<span class="fn">sqrt</span>(na) * <span class="fn">Math</span>.<span class="fn">sqrt</span>(nb));
+}
+<span class="com">// → 1.0 = identical, 0 = unrelated, -1 = opposite</span></pre>
+    <p class="body-text muted" style="text-align:center; font-size: 20px;">Words have direction. Direction has meaning.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: IN CODE ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">api.js</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// in your code</div>
+    <h2>Calling <span style="color: var(--accent);">embed()</span>.</h2>
+    <p class="lede">Most providers give you this in a single API call.</p>
+<pre><span class="com">// one call. one vector back.</span>
+<span class="kw">const</span> vec = <span class="kw">await</span> embeddings.<span class="fn">create</span>({
+  <span class="prop">model</span>: <span class="str">"text-embedding-3-small"</span>,
+  <span class="prop">input</span>: <span class="str">"hello world"</span>
+});
+
+vec.data[<span class="num">0</span>].embedding.length  <span class="com">// → 1536</span>
+vec.data[<span class="num">0</span>].embedding[<span class="num">0</span>]       <span class="com">// → 0.0123...</span></pre>
+    <p class="body-text muted" style="font-size: 22px;">Most providers (OpenAI, Cohere, Voyage, Anthropic via 3rd-party) offer this in one line.</p>
+    <p class="body-text muted" style="font-size: 20px;">Store the vectors in a DB. Compare on the fly. That's the whole loop.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: USES ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">uses.js</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// what they unlock</div>
+    <h2>4 things they're <span style="color: var(--accent);">good for</span>.</h2>
+    <p class="lede">Once text is a vector, distance is a superpower.</p>
+    <div class="ingredients">
+      <div class="ingredient">
+        <div class="num">01 — semantic search</div>
+        <div class="name">Find docs by meaning</div>
+        <div class="desc">Match "how do I cancel?" with "refund policy" — no keyword overlap needed.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">02 — classification</div>
+        <div class="name">Group by similarity</div>
+        <div class="desc">Spam vs. ham, topic tagging, sentiment — by nearest-neighbor in vector space.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">03 — clustering</div>
+        <div class="name">Auto-organize a corpus</div>
+        <div class="desc">Drop 10k support tickets in. Get themes out. No labels required.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">04 — recommendation</div>
+        <div class="name">"Similar to this"</div>
+        <div class="desc">Find articles, products, songs nearest a seed item — out of the box.</div>
+      </div>
+    </div>
+    <p class="body-text muted" style="font-size: 20px; text-align:center;">One representation. Many downstream tasks.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.js</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">embedding</span> — text → fixed-length number array</li>
+      <li>Same shape, regardless of input length</li>
+      <li>Similar meanings → similar vectors → nearby in space</li>
+      <li>Measure closeness with <span class="key">cosine similarity</span></li>
+      <li>Powers semantic search, classification, clustering, recs</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Next: <span style="color:var(--accent);">RAG</span> — embeddings put to work 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>4 Ways Your First Agent Breaks — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117; --bg-elev: #161b22; --bg-code: #1c2128;
+    --border: #30363d; --border-strong: #484f58;
+    --text: #e6edf3; --text-muted: #8b949e; --text-dim: #6e7681;
+    --accent: #f78166; --green: #7ee787; --blue: #79c0ff; --yellow: #ffd866; --pink: #ff7b72; --purple: #d2a8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #050810; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: #161b22; color: #e6edf3; border: 1px solid #30363d; padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide { width: 1080px; height: 1080px; background: var(--bg); position: relative; overflow: hidden; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); display: flex; flex-direction: column; padding: 70px 80px; }
+  .slide::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(110, 118, 129, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(110, 118, 129, 0.04) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab { margin-left: 16px; background: var(--bg-elev); border: 1px solid var(--border); border-bottom: none; padding: 6px 16px; border-radius: 6px 6px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-muted); }
+  .slide-num { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-dim); }
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+  .footer { display: flex; justify-content: space-between; align-items: center; padding-top: 30px; border-top: 1px solid var(--border); margin-top: 30px; position: relative; z-index: 1; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-dim); }
+  .footer .handle { color: var(--text-muted); } .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 52px; font-weight: 700; line-height: 1.1; margin: 0 0 20px; letter-spacing: -0.015em; }
+  .label { font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--accent); margin-bottom: 18px; letter-spacing: 0.05em; }
+  .lede { font-size: 24px; line-height: 1.45; color: var(--text-muted); margin: 0 0 28px; max-width: 95%; }
+  .body-text { font-size: 22px; line-height: 1.55; color: var(--text); margin: 0 0 18px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre { background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px; padding: 22px 26px; margin: 0 0 18px; font-family: 'JetBrains Mono', monospace; font-size: 18px; line-height: 1.55; overflow: hidden; color: var(--text); }
+  pre.sm { font-size: 16px; padding: 16px 18px; line-height: 1.5; margin-bottom: 0; }
+  .kw { color: var(--pink); } .fn { color: var(--purple); } .str { color: var(--green); } .num { color: var(--blue); } .com { color: var(--text-dim); font-style: italic; } .var { color: var(--blue); } .prop { color: var(--accent); }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 100px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .break-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .br-panel { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 22px 24px; display: flex; flex-direction: column; }
+  .br-panel.problem { border-color: rgba(255, 123, 114, 0.5); }
+  .br-panel.fix { border-color: rgba(126, 231, 135, 0.5); }
+  .br-panel .ptitle { font-family: 'JetBrains Mono', monospace; font-size: 16px; margin-bottom: 12px; letter-spacing: 0.04em; }
+  .br-panel.problem .ptitle { color: var(--pink); }
+  .br-panel.fix .ptitle { color: var(--green); }
+  .br-panel .desc { font-size: 18px; color: var(--text-muted); line-height: 1.5; margin-top: 12px; }
+
+  .break-num { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--accent); margin-right: 14px; padding: 4px 12px; border: 1px solid var(--accent); border-radius: 6px; }
+
+  .loop-flow { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 26px; margin-bottom: 22px; display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; background: var(--bg-code); border: 1px solid var(--border-strong); border-radius: 8px; padding: 12px 18px; font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--text); white-space: nowrap; }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.green { border-color: var(--green); color: var(--green); }
+  .pill.blue { border-color: var(--blue); color: var(--blue); }
+  .pill.purple { border-color: var(--purple); color: var(--purple); }
+  .arrow { color: var(--text-dim); font-size: 22px; font-family: 'JetBrains Mono', monospace; }
+
+  .ingredients { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .ingredient { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
+  .ingredient .num { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--accent); margin-bottom: 6px; }
+  .ingredient .name { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .ingredient .desc { font-size: 16px; color: var(--text-muted); line-height: 1.45; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li { font-size: 24px; line-height: 1.6; color: var(--text); margin-bottom: 16px; padding-left: 36px; position: relative; }
+  .recap-list li::before { content: "→"; position: absolute; left: 0; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta { margin-top: auto; padding: 26px; background: var(--bg-elev); border: 1px solid var(--accent); border-radius: 12px; text-align: center; }
+  .cta-text { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle { font-family: 'JetBrains Mono', monospace; font-size: 30px; color: var(--accent); font-weight: 600; }
+
+  @media print { body { background: white; padding: 0; gap: 0; } .controls { display: none; } .slide { box-shadow: none; border-radius: 0; page-break-after: always; } }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">agent.js</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label">// 4 failure modes, 4 fixes</div>
+    <h1>Your first<br>agent will<br><span class="accent-text">break</span>.</h1>
+    <div class="cover-tagline">Here's how — and how to fix each one.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: SETUP ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">setup.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// the loop, quickly</div>
+    <h2>Every agent runs <span style="color: var(--accent);">this loop</span>.</h2>
+    <p class="lede">Send goal → model picks tool → you run it → repeat. Simple. And full of traps.</p>
+    <div class="loop-flow">
+      <span class="pill blue">goal</span>
+      <span class="arrow">→</span>
+      <span class="pill purple">model</span>
+      <span class="arrow">→</span>
+      <span class="pill green">tool</span>
+      <span class="arrow">→</span>
+      <span class="pill accent">result</span>
+      <span class="arrow">↻</span>
+    </div>
+    <p class="body-text">These 4 failures hit <span style="color: var(--accent);">everyone</span> on their first build:</p>
+    <ul style="list-style: none; padding: 0; margin: 0; font-size: 22px; line-height: 1.8;">
+      <li><span style="color: var(--pink); font-family: 'JetBrains Mono', monospace;">01</span> &nbsp; infinite loop</li>
+      <li><span style="color: var(--pink); font-family: 'JetBrains Mono', monospace;">02</span> &nbsp; hallucinated tool name</li>
+      <li><span style="color: var(--pink); font-family: 'JetBrains Mono', monospace;">03</span> &nbsp; context blowup</li>
+      <li><span style="color: var(--pink); font-family: 'JetBrains Mono', monospace;">04</span> &nbsp; silent tool failure</li>
+    </ul>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: BREAK 1 — INFINITE LOOP ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">loop.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="break-num">01</span>// infinite loop</div>
+    <h2>The agent <span style="color: var(--pink);">never stops</span>.</h2>
+    <p class="lede">Model keeps calling tools. Forever. Burning tokens and your wallet.</p>
+    <div class="break-pair">
+      <div class="br-panel problem">
+        <div class="ptitle">// the problem</div>
+<pre class="sm">turn 1: <span class="fn">search</span>(<span class="str">"weather"</span>)
+turn 2: <span class="fn">search</span>(<span class="str">"weather today"</span>)
+turn 3: <span class="fn">search</span>(<span class="str">"current weather"</span>)
+turn 4: <span class="fn">search</span>(<span class="str">"weather now"</span>)
+<span class="com">// ... 47 more turns</span></pre>
+        <div class="desc">Model is "verifying" itself. Or never sees a stop condition.</div>
+      </div>
+      <div class="br-panel fix">
+        <div class="ptitle">// the fix</div>
+<pre class="sm"><span class="kw">const</span> <span class="var">MAX_ITER</span> = <span class="num">10</span>;
+
+<span class="kw">while</span> (<span class="var">step</span> &lt; <span class="var">MAX_ITER</span>) {
+  <span class="kw">if</span> (<span class="var">done</span>) <span class="kw">break</span>;
+  <span class="var">step</span>++;
+}</pre>
+        <div class="desc">Hard cap on iterations. Plus a clear "done" signal in your system prompt.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: BREAK 2 — HALLUCINATED TOOL ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">ghost.js</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="break-num">02</span>// hallucinated tool name</div>
+    <h2>It calls a tool that <span style="color: var(--pink);">doesn't exist</span>.</h2>
+    <p class="lede">Your registry has <code style="color:var(--green); font-family:'JetBrains Mono', monospace;">get_data</code>. Model confidently calls <code style="color:var(--pink); font-family:'JetBrains Mono', monospace;">fetchData()</code>.</p>
+    <div class="break-pair">
+      <div class="br-panel problem">
+        <div class="ptitle">// the problem</div>
+<pre class="sm"><span class="com">// registry:</span>
+[<span class="str">"get_data"</span>, <span class="str">"send_email"</span>]
+
+<span class="com">// model calls:</span>
+<span class="fn">fetchData</span>({ <span class="prop">id</span>: <span class="num">42</span> })
+<span class="com">// → TypeError: not a function</span></pre>
+        <div class="desc">Crashes — or worse, your runner silently skips it and the agent stalls.</div>
+      </div>
+      <div class="br-panel fix">
+        <div class="ptitle">// the fix</div>
+<pre class="sm"><span class="kw">if</span> (!<span class="var">tools</span>[<span class="var">call</span>.<span class="prop">name</span>]) {
+  <span class="kw">return</span> {
+    <span class="prop">error</span>: <span class="str">`Unknown tool: </span>
+<span class="str">    ${call.name}. Available:</span>
+<span class="str">    ${Object.keys(tools)}`</span>
+  };
+}</pre>
+        <div class="desc">Validate names. Return the list back to the model — it'll retry with the right one.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: BREAK 3 — CONTEXT BLOWUP ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">overflow.js</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="break-num">03</span>// context blowup</div>
+    <h2>The window <span style="color: var(--pink);">overflows</span>.</h2>
+    <p class="lede">History grows every turn. Tool results too. Eventually you hit the token limit.</p>
+    <div class="break-pair">
+      <div class="br-panel problem">
+        <div class="ptitle">// the problem</div>
+<pre class="sm">turn  1: <span class="num">2k</span> tokens
+turn  5: <span class="num">8k</span> tokens
+turn 10: <span class="num">28k</span> tokens
+turn 20: <span class="num">95k</span> tokens
+turn 25: <span class="num">⚠ context_length_</span>
+         <span class="num">  exceeded</span></pre>
+        <div class="desc">Big tool outputs (HTML pages, query results) explode it fast.</div>
+      </div>
+      <div class="br-panel fix">
+        <div class="ptitle">// the fix</div>
+<pre class="sm"><span class="com">// summarize older turns</span>
+<span class="kw">if</span> (<span class="var">history</span>.<span class="prop">length</span> &gt; <span class="num">20</span>) {
+  <span class="var">history</span> = [
+    <span class="fn">summarize</span>(<span class="var">old</span>),
+    ...<span class="var">recent10</span>
+  ];
+}</pre>
+        <div class="desc">Summarize, sliding-window, or store old turns in a vector DB (RAG).</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: BREAK 4 — SILENT TOOL FAILURE ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">silent.js</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="break-num">04</span>// silent tool failure</div>
+    <h2>Tool throws.<br>Agent <span style="color: var(--pink);">doesn't know</span>.</h2>
+    <p class="lede">Your fetch() 500s. Your try/catch swallows it. Model thinks the call succeeded.</p>
+    <div class="break-pair">
+      <div class="br-panel problem">
+        <div class="ptitle">// the problem</div>
+<pre class="sm"><span class="kw">try</span> {
+  <span class="kw">return</span> <span class="kw">await</span> <span class="fn">api</span>(...);
+} <span class="kw">catch</span> (e) {
+  <span class="kw">return</span> <span class="kw">null</span>;
+  <span class="com">// model: "Cool, success!"</span>
+}</pre>
+        <div class="desc">Model proceeds with "no data" as if it were real. Hallucinates the rest.</div>
+      </div>
+      <div class="br-panel fix">
+        <div class="ptitle">// the fix</div>
+<pre class="sm"><span class="kw">try</span> {
+  <span class="kw">return</span> { <span class="prop">ok</span>: <span class="kw">true</span>, <span class="prop">data</span>: ... };
+} <span class="kw">catch</span> (e) {
+  <span class="kw">return</span> {
+    <span class="prop">ok</span>: <span class="kw">false</span>,
+    <span class="prop">error</span>: e.<span class="prop">message</span>
+  };
+}</pre>
+        <div class="desc">Surface errors back as data. Model sees them, adapts, or asks for help.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: FIX KIT ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">kit.js</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// the fix kit</div>
+    <h2>Wire these in <span style="color: var(--accent);">day one</span>.</h2>
+    <p class="lede">Cheap to add early. Expensive to retrofit after you've shipped.</p>
+    <div class="ingredients">
+      <div class="ingredient">
+        <div class="num">01 — iteration cap</div>
+        <div class="name">Hard stop at N turns</div>
+        <div class="desc">10–20 is usually enough. Log when you hit it — it's a smell.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">02 — tool registry validator</div>
+        <div class="name">Reject unknown names</div>
+        <div class="desc">Return the available list back so the model self-corrects.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">03 — context budget</div>
+        <div class="name">Summarize or slide</div>
+        <div class="desc">Cap turn count or token count. Drop oldest, summarize the rest.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">04 — structured errors</div>
+        <div class="name">Surface, don't swallow</div>
+        <div class="desc">Always return { ok, data } or { ok, error }. Never silent null.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: OUTRO ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.js</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">infinite loop</span> — cap iterations, define "done"</li>
+      <li><span class="key">ghost tools</span> — validate names, return list back</li>
+      <li><span class="key">context blowup</span> — summarize, slide, or RAG it</li>
+      <li><span class="key">silent failures</span> — wrap every tool with { ok, error }</li>
+      <li>Defensive plumbing &gt; clever prompting.</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Next: streaming — why ChatGPT types token by token 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

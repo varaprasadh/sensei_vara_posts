@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Git's 3 Trees — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* post 3 extras */
+  .file-list {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 19px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .file-list .row { display: flex; align-items: center; gap: 14px; }
+  .file-list .name { color: var(--text); }
+  .file-list .meta { color: var(--text-dim); font-size: 16px; margin-left: auto; }
+  .file-list .edit { color: var(--branch); font-size: 16px; }
+  .callout {
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    color: var(--text-muted);
+    margin: 0 0 8px;
+    padding-left: 16px;
+    border-left: 3px solid var(--branch);
+  }
+  .callout.staged { border-color: var(--staged); }
+  .callout.head { border-color: var(--head); }
+
+  .scenario-grid {
+    display: grid; grid-template-columns: 1fr; gap: 18px;
+  }
+  .scenario {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 26px;
+  }
+  .scenario .q {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 19px;
+    color: var(--text);
+    margin: 0 0 8px;
+  }
+  .scenario .a {
+    font-size: 19px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.55;
+  }
+  .scenario .a .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cmd-list { list-style: none; padding: 0; margin: 0; }
+  .cmd-list li {
+    display: flex; align-items: baseline; gap: 18px;
+    padding: 16px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 22px;
+    line-height: 1.4;
+  }
+  .cmd-list li:last-child { border-bottom: none; }
+  .cmd-list .cmd {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    min-width: 230px;
+    font-size: 20px;
+  }
+  .cmd-list .desc { color: var(--text-muted); font-size: 21px; }
+  .cmd-list .desc .b { color: var(--branch); font-family: 'JetBrains Mono', monospace; }
+  .cmd-list .desc .s { color: var(--staged); font-family: 'JetBrains Mono', monospace; }
+  .cmd-list .desc .h { color: var(--head); font-family: 'JetBrains Mono', monospace; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">stage.git</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> the mental model that fixes 'wait, what state am I in?'</div>
+    <h1>Git's<br><span class="accent-text">3 trees</span>.</h1>
+    <div class="cover-tagline">Where your code lives<br>at any moment.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: WORKING DIR ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">workdir.git</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tree 1</div>
+    <h2>The <span style="color: var(--branch);">working</span> directory.</h2>
+    <p class="lede">What you see when you <code style="font-family:'JetBrains Mono',monospace; color: var(--branch);">ls</code>. Your actual editable files.</p>
+
+    <div class="file-list">
+      <div class="row"><span class="name">app.js</span> <span class="edit">M  +5 / -2</span> <span class="meta">2.1 kb</span></div>
+      <div class="row"><span class="name">routes/todo.js</span> <span class="edit">M  +12</span> <span class="meta">1.4 kb</span></div>
+      <div class="row"><span class="name">README.md</span> <span class="meta" style="color: var(--text-dim);">unchanged</span></div>
+      <div class="row"><span class="name">package.json</span> <span class="meta" style="color: var(--text-dim);">unchanged</span></div>
+      <div class="row"><span class="name">styles.css</span> <span class="edit" style="color: var(--staged);">?? untracked</span> <span class="meta">new</span></div>
+    </div>
+
+    <p class="callout">Files you can touch in your editor. <span style="color: var(--branch);">Save → it changes here.</span></p>
+    <p class="body-text muted" style="font-size: 22px;">This tree is just your folder. Git doesn't own it. You do.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: INDEX / STAGING ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">git add</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tree 2</div>
+    <h2>The <span style="color: var(--staged);">index</span> (staging).</h2>
+    <p class="lede">What <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">git add</code> parks for the next commit. A holding area between working dir and HEAD.</p>
+
+<pre><span class="com">$ git add app.js</span>
+<span class="com"># app.js now lives in the index too</span>
+
+<span class="com">$ git status</span>
+Changes to be committed:
+  <span style="color: var(--staged);">modified:   app.js</span>
+
+Changes not staged for commit:
+  <span style="color: var(--conflict);">modified:   routes/todo.js</span></pre>
+
+    <p class="callout staged">Think of it as <span style="color: var(--staged);">a draft of your next commit</span>. You decide what goes in.</p>
+    <p class="body-text muted" style="font-size: 22px;">Stored at <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">.git/index</code>. A literal file. Snapshot-in-progress.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: HEAD ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">HEAD</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tree 3</div>
+    <h2><span style="color: var(--head);">HEAD</span>: the last commit.</h2>
+    <p class="lede">A snapshot of your project as of the most recent commit. Frozen.</p>
+
+<pre><span class="com">$ git log -1 --stat</span>
+<span class="sha">commit 7e2dc1f</span> <span style="color: var(--head);">(HEAD -&gt; main)</span>
+Author: alice
+Date:   <span class="num">2026-05-20</span>
+
+    <span class="str">"add todo list endpoint"</span>
+
+ app.js         | <span class="num">8</span> <span class="str">+++++</span><span class="kw">---</span>
+ routes/todo.js | <span class="num">12</span> <span class="str">++++++++++++</span>
+<span class="com"># files exactly as they were when committed</span></pre>
+
+    <p class="callout head">Read-only snapshot. <span style="color: var(--head);">The "before" picture</span> every diff compares against.</p>
+    <p class="body-text muted" style="font-size: 22px;"><code style="font-family:'JetBrains Mono',monospace; color: var(--head);">HEAD</code> = pointer to the commit you're currently on.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: ALL 3 IN ONE DIAGRAM ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">trees.git</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> see them side by side</div>
+    <h2>Three trees. <span style="color: var(--accent);">One file</span>.</h2>
+    <p class="lede">Same <code style="font-family:'JetBrains Mono',monospace; color: var(--accent);">app.js</code>. Three versions. Three places.</p>
+
+    <svg width="100%" viewBox="0 0 900 460" style="margin: 8px 0 12px;">
+      <defs>
+        <marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#f1502f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- column headers -->
+      <text x="150" y="40" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">working dir</text>
+      <text x="450" y="40" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">index</text>
+      <text x="750" y="40" text-anchor="middle" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">HEAD</text>
+
+      <text x="150" y="62" text-anchor="middle" fill="#8b949e" font-family="Inter, sans-serif" font-size="13">what you edit</text>
+      <text x="450" y="62" text-anchor="middle" fill="#8b949e" font-family="Inter, sans-serif" font-size="13">what's staged</text>
+      <text x="750" y="62" text-anchor="middle" fill="#8b949e" font-family="Inter, sans-serif" font-size="13">last commit</text>
+
+      <!-- working dir card -->
+      <rect x="60" y="90" width="180" height="240" rx="10" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="150" y="120" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="15">app.js</text>
+      <line x1="80" y1="135" x2="220" y2="135" stroke="#252b35" stroke-width="1"/>
+      <text x="80" y="160" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">1  fn todo() {</text>
+      <text x="80" y="178" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="11">2  + edit 1</text>
+      <text x="80" y="196" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="11">3  + edit 2</text>
+      <text x="80" y="214" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="11">4  + edit 3</text>
+      <text x="80" y="232" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="11">5  + edit 4</text>
+      <text x="80" y="250" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="11">6  + edit 5</text>
+      <text x="80" y="268" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">7  }</text>
+      <text x="150" y="310" text-anchor="middle" fill="#7ee787" font-family="Inter, sans-serif" font-size="13" font-style="italic">edited · 5 new lines</text>
+
+      <!-- index card -->
+      <rect x="360" y="90" width="180" height="240" rx="10" fill="#13181f" stroke="#ffd866" stroke-width="2"/>
+      <text x="450" y="120" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="15">app.js</text>
+      <line x1="380" y1="135" x2="520" y2="135" stroke="#252b35" stroke-width="1"/>
+      <text x="380" y="160" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">1  fn todo() {</text>
+      <text x="380" y="178" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="11">2  + edit 1</text>
+      <text x="380" y="196" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="11">3  + edit 2</text>
+      <text x="380" y="214" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="11">4  + edit 3</text>
+      <text x="380" y="232" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">5  }</text>
+      <text x="450" y="310" text-anchor="middle" fill="#ffd866" font-family="Inter, sans-serif" font-size="13" font-style="italic">staged · 3 of 5 lines</text>
+
+      <!-- HEAD card -->
+      <rect x="660" y="90" width="180" height="240" rx="10" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="750" y="120" text-anchor="middle" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="15">app.js</text>
+      <line x1="680" y1="135" x2="820" y2="135" stroke="#252b35" stroke-width="1"/>
+      <text x="680" y="160" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">1  fn todo() {</text>
+      <text x="680" y="178" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">2  }</text>
+      <text x="750" y="310" text-anchor="middle" fill="#d2a8ff" font-family="Inter, sans-serif" font-size="13" font-style="italic">last commit · original</text>
+
+      <!-- arrows between columns: HEAD -> index (checkout), index -> workdir (checkout), workdir -> index (add), index -> HEAD (commit) -->
+      <!-- workdir -> index : git add (top arrow) -->
+      <line x1="244" y1="180" x2="354" y2="180" stroke="#f1502f" stroke-width="2" marker-end="url(#aw)"/>
+      <text x="299" y="170" text-anchor="middle" fill="#f1502f" font-family="JetBrains Mono, monospace" font-size="13">git add</text>
+
+      <!-- index -> HEAD : git commit (top arrow) -->
+      <line x1="544" y1="180" x2="654" y2="180" stroke="#f1502f" stroke-width="2" marker-end="url(#aw)"/>
+      <text x="599" y="170" text-anchor="middle" fill="#f1502f" font-family="JetBrains Mono, monospace" font-size="13">git commit</text>
+
+      <!-- HEAD -> workdir : git checkout (bottom curve) -->
+      <path d="M 670 260 Q 450 410 230 260" fill="none" stroke="#79c0ff" stroke-width="2" marker-end="url(#aw)"/>
+      <text x="450" y="395" text-anchor="middle" fill="#79c0ff" font-family="JetBrains Mono, monospace" font-size="13">git checkout</text>
+
+      <!-- caption -->
+      <text x="450" y="445" text-anchor="middle" fill="#8b949e" font-family="Inter, sans-serif" font-size="15" font-style="italic">same file, three places</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: COMMANDS = ARROWS ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">commands.git</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> what each verb actually moves</div>
+    <h2>Commands = <span style="color: var(--accent);">arrows</span>.</h2>
+    <p class="lede">Every git verb is just a move between two trees. That's all.</p>
+
+    <ul class="cmd-list">
+      <li>
+        <span class="cmd">git add &lt;f&gt;</span>
+        <span class="desc"><span class="b">working dir</span> → <span class="s">index</span></span>
+      </li>
+      <li>
+        <span class="cmd">git commit</span>
+        <span class="desc"><span class="s">index</span> → <span class="h">HEAD</span> <span style="color: var(--text-dim);">(new commit)</span></span>
+      </li>
+      <li>
+        <span class="cmd">git checkout &lt;f&gt;</span>
+        <span class="desc"><span class="h">HEAD</span> → <span class="b">working dir</span> <span style="color: var(--text-dim);">(file restore)</span></span>
+      </li>
+      <li>
+        <span class="cmd">git reset &lt;f&gt;</span>
+        <span class="desc"><span class="h">HEAD</span> → <span class="s">index</span> <span style="color: var(--text-dim);">(un-stage)</span></span>
+      </li>
+      <li>
+        <span class="cmd">git reset --hard</span>
+        <span class="desc"><span class="h">HEAD</span> → <span class="s">index</span> + <span class="b">working dir</span> <span style="color: var(--conflict);">(nuke local)</span></span>
+      </li>
+    </ul>
+
+    <p class="body-text muted" style="font-size: 21px; margin-top: 14px;">Learn the trees. <span style="color: var(--accent);">The commands name themselves.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: WHY THIS MATTERS ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">why.git</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> debugging "where am I?"</div>
+    <h2>When this clicks, <span style="color: var(--accent);">everything</span> clicks.</h2>
+    <p class="lede">Three scenarios where the 3-tree model is the whole answer.</p>
+
+    <div class="scenario-grid">
+      <div class="scenario">
+        <p class="q">"Why didn't my change get committed?"</p>
+        <p class="a">It wasn't in the <span class="key">index</span>. <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">git add</code> first, then commit.</p>
+      </div>
+      <div class="scenario">
+        <p class="q">"Where did my changes go after a reset?"</p>
+        <p class="a">Depends on <span class="key">--soft</span> / <span class="key">--mixed</span> / <span class="key">--hard</span>. Different combos of trees move.</p>
+      </div>
+      <div class="scenario">
+        <p class="q">"How do I undo a stage?"</p>
+        <p class="a">Move file <span class="key">index → HEAD</span> with <code style="font-family:'JetBrains Mono',monospace; color: var(--accent);">git restore --staged &lt;f&gt;</code>.</p>
+      </div>
+    </div>
+
+    <p class="body-text muted" style="font-size: 21px; margin-top: 18px;">Every "wait, what happened?" → ask <span style="color: var(--accent);">which tree?</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP + HOOK ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.git</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">working dir</span> — what you edit</li>
+      <li><span class="key">index</span> — what's staged for next commit</li>
+      <li><span class="key">HEAD</span> — the last commit's snapshot</li>
+      <li>every git verb moves files between these 3</li>
+      <li>confused about state? Picture the trees</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Next: branches are just <span style="color: var(--accent); font-family:'JetBrains Mono', monospace;">pointers</span> 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

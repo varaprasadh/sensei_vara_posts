@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>console.log isn't free — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a140d;
+    --bg-elev: #122019;
+    --bg-code: #0c1810;
+    --border: #1f3024;
+    --border-strong: #2f4a37;
+    --text: #e8f0e8;
+    --text-muted: #9bb3a0;
+    --text-dim: #6c8275;
+    --accent: #68a063;          /* node green */
+    --accent-soft: rgba(104, 160, 99, 0.15);
+    --branch: #c8f573;          /* neon lime — highlight */
+    --merge: #ffd166;           /* gold — numbers / refs */
+    --conflict: #ff6b6b;        /* red — errors */
+    --staged: #93dcff;          /* sky — special */
+    --head: #ffd166;            /* gold for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 170, 130, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 170, 130, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 52px; font-weight: 700; line-height: 1.1; margin: 0 0 20px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 28px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 18px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin: 0 0 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 19px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 20px 24px; line-height: 1.6; }
+  pre.lime { border-color: var(--branch); }
+  pre.gold { border-color: var(--merge); }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-red { background: rgba(255, 107, 107, 0.1); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-lime { background: rgba(200, 245, 115, 0.1); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-content .conflict-text { color: var(--conflict); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 24px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 14px 0 22px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 23px; line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .finale-arc {
+    display: flex; flex-direction: column; gap: 6px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 20px 26px;
+    margin: 0 0 18px;
+  }
+  .arc-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .arc-line .k { color: var(--accent); }
+  .arc-line .sep { color: var(--text-dim); margin: 0 4px; }
+
+  .perf-bar-wrap { display: flex; flex-direction: column; gap: 14px; margin: 10px 0 20px; }
+  .perf-row { display: flex; align-items: center; gap: 14px; }
+  .perf-label { font-family: 'JetBrains Mono', monospace; font-size: 17px; color: var(--text-muted); width: 120px; flex-shrink: 0; text-align: right; }
+  .perf-bar-bg { flex: 1; background: var(--bg-code); border-radius: 6px; height: 28px; overflow: hidden; }
+  .perf-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #000; font-weight: 600; }
+  .perf-val { font-family: 'JetBrains Mono', monospace; font-size: 16px; width: 80px; flex-shrink: 0; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">perf.js</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> post 20 / 20 — series finale</div>
+    <h1><span style="color:var(--staged);font-family:'JetBrains Mono',monospace;font-size:72px;">console.log</span><br>isn't <span class="conflict-text">free</span>.</h1>
+    <div class="cover-tagline">And other prod-perf truths.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">perf.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> what most devs assume</div>
+    <h2>One log line.<br><span style="color:var(--conflict);">20% slower API</span>.</h2>
+    <p class="lede">A <code style="font-family:'JetBrains Mono',monospace;color:var(--staged);">console.log</code> in your hot path can slow your API by 20%. Most devs think it's free.</p>
+    <pre>app.<span class="prop">get</span>(<span class="str">'/users'</span>, <span class="kw">async</span> (req, res) => {
+  <span class="hi-red"><span class="fn">console</span>.<span class="prop">log</span>(<span class="str">'GET /users'</span>, req.<span class="prop">query</span>);  <span class="com">// ← killer</span></span>
+  <span class="kw">const</span> <span class="var">users</span> = <span class="kw">await</span> <span class="fn">db</span>.<span class="prop">query</span>(<span class="str">'SELECT * FROM users'</span>);
+  res.<span class="prop">json</span>(users);
+});</pre>
+    <p class="body-text muted">This runs on <span style="color:var(--conflict);">every request</span>. At 1k req/s, that's a lot of blocked I/O.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: WHY IT COSTS ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">console.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> why it costs</div>
+    <h2>Sync write.<br><span style="color:var(--conflict);">Blocks the loop.</span></h2>
+
+    <svg width="100%" viewBox="0 0 920 300" style="margin: 0 0 16px;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#68a063" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- HTTP handler box -->
+      <rect x="30" y="100" width="180" height="70" rx="8" fill="#122019" stroke="#68a063" stroke-width="1.5"/>
+      <text x="120" y="132" text-anchor="middle" fill="#e8f0e8" font-family="JetBrains Mono, monospace" font-size="15">HTTP handler</text>
+      <text x="120" y="153" text-anchor="middle" fill="#9bb3a0" font-family="JetBrains Mono, monospace" font-size="13">route fn</text>
+
+      <!-- console.log box — red -->
+      <rect x="270" y="100" width="200" height="70" rx="8" fill="#1a0d0d" stroke="#ff6b6b" stroke-width="2"/>
+      <text x="370" y="128" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="15">console.log()</text>
+      <text x="370" y="150" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">JSON.stringify + write</text>
+
+      <!-- stdout box -->
+      <rect x="530" y="100" width="180" height="70" rx="8" fill="#122019" stroke="#2f4a37" stroke-width="1.5"/>
+      <text x="620" y="132" text-anchor="middle" fill="#9bb3a0" font-family="JetBrains Mono, monospace" font-size="15">stdout fd</text>
+      <text x="620" y="153" text-anchor="middle" fill="#6c8275" font-family="Inter, sans-serif" font-size="13">OS buffer / TTY</text>
+
+      <!-- BLOCKED label -->
+      <rect x="268" y="185" width="204" height="30" rx="5" fill="rgba(255,107,107,0.15)" stroke="#ff6b6b" stroke-width="1"/>
+      <text x="370" y="205" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="13">BLOCKS until flush</text>
+
+      <!-- arrows -->
+      <line x1="210" y1="135" x2="268" y2="135" stroke="#68a063" stroke-width="2" marker-end="url(#arr)"/>
+      <line x1="470" y1="135" x2="528" y2="135" stroke="#ff6b6b" stroke-width="2" marker-end="url(#arr-red)"/>
+
+      <!-- latency bump visual -->
+      <text x="750" y="80" text-anchor="middle" fill="#6c8275" font-family="Inter, sans-serif" font-size="13">req latency</text>
+      <polyline points="720,220 740,220 758,180 776,220 800,220" fill="none" stroke="#ff6b6b" stroke-width="2.5"/>
+      <text x="758" y="165" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="12">+log</text>
+      <polyline points="830,220 850,220 870,220 890,220 910,220" fill="none" stroke="#68a063" stroke-width="2.5"/>
+      <text x="870" y="175" text-anchor="middle" fill="#68a063" font-family="JetBrains Mono, monospace" font-size="12">no log</text>
+    </svg>
+
+    <div class="center-row">
+      <div class="pill conflict">sync write to stdout</div>
+      <span class="arrow">+</span>
+      <div class="pill conflict">JSON.stringify</div>
+      <span class="arrow">+</span>
+      <div class="pill conflict">TTY unbuffered</div>
+    </div>
+    <p class="body-text muted" style="font-size:22px;">In containers stdout may be unbuffered → every log is a full write syscall.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: DEEP CLONE GOTCHA ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">prod.js</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> gotcha #1 — deep clone</div>
+    <h2>Stop cloning<br>with <span style="color:var(--conflict);">JSON.parse</span>.</h2>
+    <p class="lede">Slow. Loses <code style="font-family:'JetBrains Mono',monospace;">Date</code>, <code style="font-family:'JetBrains Mono',monospace;">Map</code>, <code style="font-family:'JetBrains Mono',monospace;">Set</code>, <code style="font-family:'JetBrains Mono',monospace;">undefined</code>. Throws on circular refs.</p>
+    <pre><span class="com">// BAD — expensive + lossy</span>
+<span class="hi-red"><span class="kw">const</span> <span class="var">clone</span> = <span class="fn">JSON</span>.<span class="prop">parse</span>(<span class="fn">JSON</span>.<span class="prop">stringify</span>(obj));</span>
+<span class="com">// Date → string, Map → {}, Set → {}</span></pre>
+    <pre class="lime"><span class="com">// GOOD — Node 17+, native C++, handles it all</span>
+<span class="hi-lime"><span class="kw">const</span> <span class="var">clone</span> = <span class="fn">structuredClone</span>(obj);</span>
+<span class="com">// preserves Date, Map, Set, ArrayBuffer...</span></pre>
+    <p class="body-text muted" style="font-size:21px;"><span style="color:var(--branch);font-family:'JetBrains Mono',monospace;">structuredClone</span> is ~2–5× faster on large objects. Built-in since Node 17.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: REGEX IN LOOPS ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">prod.js</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> gotcha #2 — regex in loops</div>
+    <h2>Regex compiles<br><span style="color:var(--conflict);">every iteration</span>.</h2>
+    <p class="lede">JS engines recompile regex literals inside loops. Hoist it out.</p>
+    <pre><span class="com">// BAD — recompiled N times</span>
+<span class="hi-red"><span class="kw">for</span> (<span class="kw">const</span> <span class="var">s</span> <span class="kw">of</span> items) {
+  <span class="kw">if</span> (s.<span class="fn">match</span>(<span class="str">/foo_\d+/</span>)) { ... }  <span class="com">// ← bad</span>
+}</span></pre>
+    <pre class="lime"><span class="com">// GOOD — compiled once, reused</span>
+<span class="hi-lime"><span class="kw">const</span> <span class="var">re</span> = <span class="str">/foo_\d+/</span>;</span>
+<span class="kw">for</span> (<span class="kw">const</span> <span class="var">s</span> <span class="kw">of</span> items) {
+  <span class="hi-lime"><span class="kw">if</span> (<span class="var">re</span>.<span class="fn">test</span>(s)) { ... }  <span class="com">// fast</span></span>
+}</pre>
+    <p class="body-text muted" style="font-size:21px;">Also: <span style="color:var(--branch);font-family:'JetBrains Mono',monospace;">.test()</span> is faster than <span style="color:var(--conflict);font-family:'JetBrains Mono',monospace;">.match()</span> when you only need a bool.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: NEW DATE IN HOT PATHS ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">prod.js</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> gotcha #3 — new Date() in hot paths</div>
+    <h2><span style="color:var(--conflict);">new Date()</span> costs.<br>Use <span style="color:var(--branch);">Date.now()</span>.</h2>
+    <p class="lede">Each <code style="font-family:'JetBrains Mono',monospace;">new Date()</code> allocates an object on the heap. Adds up fast in hot loops.</p>
+
+    <div class="center-row" style="margin: 10px 0 18px;">
+      <div class="pill conflict" style="font-size:16px;">new Date()</div>
+      <span class="arrow">→</span>
+      <div class="pill" style="font-size:15px;color:var(--text-dim);">heap alloc + GC pressure</div>
+      <span class="arrow">→</span>
+      <div class="pill conflict" style="font-size:16px;">~µs × 1M = real ms</div>
+    </div>
+    <div class="center-row" style="margin: 0 0 18px;">
+      <div class="pill branch" style="font-size:16px;">Date.now()</div>
+      <span class="arrow">→</span>
+      <div class="pill" style="font-size:15px;color:var(--text-dim);">returns a number</div>
+      <span class="arrow">→</span>
+      <div class="pill branch" style="font-size:16px;">no alloc, fast</div>
+    </div>
+
+    <pre><span class="com">// BAD — allocates object every call</span>
+<span class="hi-red"><span class="kw">const</span> <span class="var">ts</span> = <span class="kw">new</span> <span class="fn">Date</span>().<span class="fn">getTime</span>();</span>
+
+<span class="com">// GOOD — number, no GC</span>
+<span class="hi-lime"><span class="kw">const</span> <span class="var">ts</span> = <span class="fn">Date</span>.<span class="prop">now</span>();</span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: USE A REAL LOGGER ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">console.js</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> fix — use pino</div>
+    <h2>Replace <span style="color:var(--conflict);">console.log</span><br>with <span style="color:var(--merge);">pino</span>.</h2>
+    <p class="lede">Pino batches writes, formats async, emits NDJSON. Way cheaper.</p>
+    <pre class="sm gold"><span class="kw">import</span> pino <span class="kw">from</span> <span class="str">'pino'</span>;
+<span class="kw">const</span> <span class="var">log</span> = <span class="fn">pino</span>();
+
+<span class="com">// async, batched, structured</span>
+<span class="hi"><span class="var">log</span>.<span class="prop">info</span>({ <span class="prop">userId</span>: <span class="num">42</span> }, <span class="str">'GET /users'</span>);</span></pre>
+
+    <div class="perf-bar-wrap">
+      <div class="perf-row">
+        <div class="perf-label">pino</div>
+        <div class="perf-bar-bg">
+          <div class="perf-bar" style="width:88%;background:var(--branch);">360k logs/s</div>
+        </div>
+        <div class="perf-val" style="color:var(--branch);">fast</div>
+      </div>
+      <div class="perf-row">
+        <div class="perf-label">winston</div>
+        <div class="perf-bar-bg">
+          <div class="perf-bar" style="width:30%;background:var(--merge);">90k/s</div>
+        </div>
+        <div class="perf-val" style="color:var(--merge);">ok</div>
+      </div>
+      <div class="perf-row">
+        <div class="perf-label">console</div>
+        <div class="perf-bar-bg">
+          <div class="perf-bar" style="width:18%;background:var(--conflict);">55k/s</div>
+        </div>
+        <div class="perf-val" style="color:var(--conflict);">slow</div>
+      </div>
+    </div>
+    <p class="body-text muted" style="font-size:20px;">Drop-in swap. Structured logs → searchable in Datadog / CloudWatch. No excuses.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: SERIES FINALE ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">finale.js</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> 20 posts. you made it.</div>
+    <h2 style="font-size:44px;margin-bottom:16px;">You now know <span style="color:var(--accent);">Node</span>.</h2>
+
+    <div class="finale-arc">
+      <div class="arc-line"><span class="k">V8 + libuv</span><span class="sep">→</span>event loop phases<span class="sep">→</span>call stack<span class="sep">→</span>microtasks vs macrotasks</div>
+      <div class="arc-line"><span class="k">nextTick</span><span class="sep">→</span>callbacks<span class="sep">→</span>promises<span class="sep">→</span>async/await<span class="sep">→</span>unhandled rejections</div>
+      <div class="arc-line"><span class="k">Promise.all/race/any</span><span class="sep">→</span>await loops<span class="sep">→</span>CJS vs ESM<span class="sep">→</span>require.cache</div>
+      <div class="arc-line"><span class="k">node_modules</span><span class="sep">→</span>package.json exports<span class="sep">→</span>streams<span class="sep">→</span>backpressure</div>
+      <div class="arc-line"><span class="k">Buffers</span><span class="sep">→</span>Worker Threads<span class="sep">→</span>memory leaks<span class="sep">→</span><span style="color:var(--conflict);">console.log isn't free</span></div>
+    </div>
+
+    <p class="body-text" style="font-size:21px;margin-bottom:14px;">Node isn't magic anymore. You see the machine.</p>
+
+    <div class="cta">
+      <div class="cta-text">Save &amp; share if this helped you ♡<br><span style="font-size:18px;color:var(--text-muted);">New series soon —</span></div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

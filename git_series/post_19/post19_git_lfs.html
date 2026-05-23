@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Git LFS — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* 2x2 ingredients grid */
+  .ingredients { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 8px 0 18px; }
+  .ing {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .ing .ing-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .ing .ing-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .ing .ing-body {
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--text-muted);
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">lfs.git</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> the extension you've ignored</div>
+    <h1>LFS — for the<br><span class="accent-text">big stuff</span>.</h1>
+    <div class="cover-tagline">Stop committing binaries<br>to history.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: THE PROBLEM ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">bloat.git</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the original sin</div>
+    <h2><span style="color: var(--accent);">Binaries</span> bloat history.</h2>
+    <p class="lede">Add a 50 MB asset, change it 20 times, your <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">.git/</code> is now 1 GB+ — forever. Cloning the repo means downloading all old versions.</p>
+
+    <svg width="100%" viewBox="0 0 900 280" style="margin: 8px 0 16px;">
+      <!-- bar chart: .git folder growth over commits -->
+      <text x="20" y="30" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="14">.git/ size as you edit one 50 MB file</text>
+
+      <!-- baseline -->
+      <line x1="60" y1="230" x2="860" y2="230" stroke="#3a4150" stroke-width="1"/>
+
+      <!-- bars: commit 1..10, growing -->
+      <g>
+        <rect x="80"  y="218" width="60" height="12"  fill="#7ee787"/>
+        <rect x="160" y="206" width="60" height="24"  fill="#7ee787"/>
+        <rect x="240" y="182" width="60" height="48"  fill="#ffd866"/>
+        <rect x="320" y="158" width="60" height="72"  fill="#ffd866"/>
+        <rect x="400" y="122" width="60" height="108" fill="#ffd866"/>
+        <rect x="480" y="86"  width="60" height="144" fill="#f1502f"/>
+        <rect x="560" y="62"  width="60" height="168" fill="#f1502f"/>
+        <rect x="640" y="38"  width="60" height="192" fill="#f1502f"/>
+        <rect x="720" y="26"  width="60" height="204" fill="#ff7b72"/>
+        <rect x="800" y="14"  width="60" height="216" fill="#ff7b72"/>
+      </g>
+
+      <text x="110" y="252" text-anchor="middle" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="12">c1</text>
+      <text x="430" y="252" text-anchor="middle" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="12">c5</text>
+      <text x="830" y="252" text-anchor="middle" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="12">c10</text>
+
+      <text x="110" y="210" text-anchor="middle" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="13">50 MB</text>
+      <text x="830" y="8"   text-anchor="middle" fill="#ff7b72" font-family="JetBrains Mono, monospace" font-size="14">1 GB+</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px;">Affects: <span style="color: var(--text);">game assets, design files (Sketch/Figma exports), ML model weights, PDFs, video, mp3</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: HOW LFS WORKS ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">how.git</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the trick</div>
+    <h2>Replace files with<br><span style="color: var(--accent);">pointers</span>.</h2>
+    <p class="lede">LFS swaps the large file in git with a tiny text pointer. The real content lives on a separate storage server.</p>
+
+    <svg width="100%" viewBox="0 0 900 320" style="margin: 8px 0 16px;">
+      <defs>
+        <marker id="aL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#f1502f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- LEFT column: small repo -->
+      <text x="170" y="34" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="15">your repo (small)</text>
+      <rect x="60" y="60" width="220" height="220" rx="12" fill="#13181f" stroke="#7ee787" stroke-width="1.5"/>
+      <!-- folder label -->
+      <text x="170" y="92" text-anchor="middle" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="13">.git/</text>
+      <!-- tiny pointer file icon -->
+      <rect x="120" y="120" width="100" height="120" rx="6" fill="#0f1419" stroke="#ffd866" stroke-width="1.5"/>
+      <text x="170" y="155" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="13">pointer</text>
+      <text x="170" y="175" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="13">.txt</text>
+      <line x1="135" y1="190" x2="205" y2="190" stroke="#3a4150" stroke-width="1"/>
+      <line x1="135" y1="202" x2="195" y2="202" stroke="#3a4150" stroke-width="1"/>
+      <line x1="135" y1="214" x2="200" y2="214" stroke="#3a4150" stroke-width="1"/>
+      <text x="170" y="262" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="14">~ 130 bytes</text>
+
+      <!-- arrow -->
+      <line x1="300" y1="170" x2="600" y2="170" stroke="#f1502f" stroke-width="2.5" marker-end="url(#aL)" stroke-dasharray="6 4"/>
+      <text x="450" y="158" text-anchor="middle" fill="#f1502f" font-family="JetBrains Mono, monospace" font-size="15">lfs server</text>
+      <text x="450" y="195" text-anchor="middle" fill="#8b949e" font-family="Inter, sans-serif" font-size="13" font-style="italic">resolves on checkout</text>
+
+      <!-- RIGHT column: LFS storage huge -->
+      <text x="730" y="34" text-anchor="middle" fill="#ff7b72" font-family="JetBrains Mono, monospace" font-size="15">LFS storage (huge)</text>
+      <rect x="620" y="60" width="220" height="220" rx="12" fill="#13181f" stroke="#ff7b72" stroke-width="1.5"/>
+      <!-- big binary blob -->
+      <rect x="660" y="100" width="140" height="160" rx="8" fill="#1a1320" stroke="#ff7b72" stroke-width="1.5"/>
+      <text x="730" y="138" text-anchor="middle" fill="#ff7b72" font-family="JetBrains Mono, monospace" font-size="13">model.bin</text>
+      <!-- noise lines representing binary -->
+      <text x="730" y="170" text-anchor="middle" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">7f45 4c46 0201</text>
+      <text x="730" y="186" text-anchor="middle" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">01 00 00 00 00</text>
+      <text x="730" y="202" text-anchor="middle" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">3e 00 01 00 00</text>
+      <text x="730" y="218" text-anchor="middle" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">b0 4f 40 00 00</text>
+      <text x="730" y="234" text-anchor="middle" fill="#6e7681" font-family="JetBrains Mono, monospace" font-size="11">40 00 38 00 0d</text>
+      <text x="730" y="290" text-anchor="middle" fill="#ff7b72" font-family="JetBrains Mono, monospace" font-size="14">50 MB</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px; text-align: center;">Repo stays small. <span style="color: var(--accent);">Files still work.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: THE POINTER FILE ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pointer.git</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> what's actually in the repo</div>
+    <h2>A <span style="color: var(--accent);">pointer</span> is 3 lines.</h2>
+    <p class="lede">That's it. The whole file as git sees it.</p>
+<pre><span class="com">$ cat assets/model.bin</span>
+<span class="prop">version</span> <span class="str">https://git-lfs.github.com/spec/v1</span>
+<span class="hi"><span class="prop">oid</span> sha256:<span class="sha">a7f3e91b8d4c2f1e6a9b8c7d5e4f3a2b1c0d9e8f...</span></span>
+<span class="prop">size</span>    <span class="num">52428800</span>   <span class="com"># 50 MB</span></pre>
+    <p class="body-text muted">That's all that's in git. The actual <span style="color: var(--conflict);">50 MB binary</span> lives on the LFS server, fetched on checkout.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: SETUP ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">setup.git</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> 5-minute install</div>
+    <h2><span style="color: var(--accent);">3 commands</span> to turn it on.</h2>
+<pre class="sm"><span class="com"># one-time, per user/machine</span>
+$ <span class="kw">git lfs install</span>
+
+<span class="com"># in the repo: track patterns</span>
+$ <span class="kw">git lfs track</span> <span class="str">"*.psd"</span> <span class="str">"*.bin"</span> <span class="str">"*.mp4"</span>
+<span class="com"># adds a .gitattributes entry</span>
+
+$ <span class="kw">git add</span> .gitattributes
+$ <span class="kw">git add</span> assets/model.bin
+$ <span class="kw">git commit</span> -m <span class="str">"track big files via LFS"</span>
+$ <span class="kw">git push</span>
+<span class="com"># pointer goes to git, file goes to LFS server</span></pre>
+    <p class="body-text muted" style="font-size: 22px;">After this, every matching file <span style="color: var(--accent);">flows through LFS</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: CLONE BEHAVIOR ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">clone.git</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the clone behavior</div>
+    <h2>Pull <span style="color: var(--accent);">pointers</span> first,<br>files <span style="color: var(--accent);">on demand</span>.</h2>
+    <p class="lede">By default, clone fetches pointer files + LFS objects for the current checkout. Old versions stay on the server.</p>
+<pre class="sm"><span class="com"># default: get pointers + current files</span>
+$ <span class="kw">git clone</span> <span class="str">https://github.com/team/repo</span>
+
+<span class="com"># pointers only (skip file downloads, fast)</span>
+$ <span class="var">GIT_LFS_SKIP_SMUDGE</span>=<span class="num">1</span> <span class="kw">git clone</span> <span class="str">https://github.com/team/repo</span>
+
+<span class="com"># fetch a specific old version's LFS objects later</span>
+$ <span class="kw">git lfs pull</span> --include=<span class="str">"assets/model.bin"</span></pre>
+    <p class="body-text muted" style="font-size: 22px;">Big repos clone fast. <span style="color: var(--accent);">Small files come on demand.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: WHEN LFS IS WRONG ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">wrong.git</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> don't use it for...</div>
+    <h2><span style="color: var(--accent);">Not</span> a silver bullet.</h2>
+    <p class="lede">LFS has costs. Skip it when these apply.</p>
+
+    <div class="ingredients">
+      <div class="ing">
+        <div class="ing-num">01</div>
+        <div class="ing-title">small files</div>
+        <div class="ing-body">&lt; 1 MB? Regular git is fine. LFS adds friction and another server in the loop.</div>
+      </div>
+      <div class="ing">
+        <div class="ing-num">02</div>
+        <div class="ing-title">frequently edited</div>
+        <div class="ing-body">Every edit = new LFS object. Bandwidth + storage costs balloon fast.</div>
+      </div>
+      <div class="ing">
+        <div class="ing-num">03</div>
+        <div class="ing-title">public OSS repos</div>
+        <div class="ing-body">LFS storage costs $$$. Every fork eats into your quota — surprise bills.</div>
+      </div>
+      <div class="ing">
+        <div class="ing-num">04</div>
+        <div class="ing-title">alternatives</div>
+        <div class="ing-body">S3/CDN + scripts, sparse checkout, partial clone, submodules.</div>
+      </div>
+    </div>
+
+    <p class="body-text muted" style="font-size: 21px;">If git wasn't going to bloat anyway, <span style="color: var(--accent);">you probably don't need LFS</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.git</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li>LFS = <span class="key">pointer file in git</span> + actual content on a server</li>
+      <li>track with <span class="key">git lfs track "*.psd"</span> → <span class="key">.gitattributes</span></li>
+      <li>clones are small; binaries fetched on demand</li>
+      <li>skip for tiny files or frequently-edited assets</li>
+      <li>storage costs $$$ — watch your bill</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Final post: rewriting history (<code style="font-family:'JetBrains Mono', monospace; color: var(--accent);">filter-repo</code>, <code style="font-family:'JetBrains Mono', monospace; color: var(--accent);">BFG</code>) 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

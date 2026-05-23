@@ -1,0 +1,54 @@
+name: publish-next-carousel
+
+on:
+  schedule:
+    # every 6 hours at minute 0 (UTC)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (print URLs + caption, no API calls)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ig-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Rebuild queue (picks up new series + preserves state)
+        run: node publisher/build_queue.js
+
+      - name: Publish next pending post
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          IMAGE_BRANCH: ${{ github.ref_name }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: node publisher/publish_next.js
+
+      - name: Commit queue state
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet publisher/queue.json; then
+            git add publisher/queue.json
+            git commit -m "publish: advance queue $(date -u +%FT%TZ)"
+            git push
+          else
+            echo "no queue changes to commit"
+          fi

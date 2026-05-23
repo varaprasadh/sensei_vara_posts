@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WAL — The DB Writes Twice — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;
+    --merge: #ffb454;
+    --conflict: #ff7a8a;
+    --staged: #c8a8ff;
+    --head: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">wal.sql</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">-- #</span> write-ahead logging</div>
+    <h1>Postgres writes<br><span class="accent-text">twice</span>.</h1>
+    <div class="cover-tagline">And that's how it never loses your data.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pg_wal/</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> the puzzle</div>
+    <h2>COMMIT returns<br>in <span style="color: var(--branch);">1 ms</span>.</h2>
+    <p class="lede">A full disk fsync of a data page would take <span style="color: var(--conflict);">100× longer</span>.<br>So… how?</p>
+    <div style="background: var(--bg-elev); border: 1px solid var(--border-strong); border-radius: 12px; padding: 32px 36px; margin-top: 8px;">
+      <div style="font-size: 28px; color: var(--text); line-height: 1.6; font-weight: 600;">
+        Postgres doesn't fsync the page on COMMIT.<br>
+        It fsyncs the <span style="color: var(--merge); font-family: 'JetBrains Mono', monospace;">WAL</span> instead.
+      </div>
+      <div style="font-size: 22px; color: var(--text-muted); margin-top: 18px; line-height: 1.5;">
+        WAL = Write-Ahead Log.<br>
+        A sequential append-only file that records every change <span style="color: var(--accent);">before</span> it hits the heap.
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: THE FLOW SVG ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">checkpoint</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> what actually happens on INSERT</div>
+    <h2>Two destinations.<br>One <span style="color: var(--accent);">fast</span>, one slow.</h2>
+
+    <svg width="100%" viewBox="0 0 920 460" style="margin: 6px 0 10px;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#7ee7b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#ffb454" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#6a7a98" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- INSERT box -->
+      <rect x="30" y="185" width="140" height="60" rx="10" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="100" y="220" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">INSERT</text>
+
+      <!-- arrow from INSERT to split -->
+      <line x1="170" y1="215" x2="230" y2="215" stroke="#4a90c2" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- split point dot -->
+      <circle cx="242" cy="215" r="7" fill="#4a90c2"/>
+
+      <!-- upper path: WAL append -->
+      <line x1="242" y1="208" x2="242" y2="115" stroke="#7ee7b8" stroke-width="2"/>
+      <line x1="242" y1="115" x2="380" y2="115" stroke="#7ee7b8" stroke-width="2" marker-end="url(#arr-green)"/>
+
+      <!-- WAL box -->
+      <rect x="380" y="82" width="200" height="66" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="2"/>
+      <text x="480" y="112" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="17" font-weight="600">WAL append</text>
+      <text x="480" y="135" text-anchor="middle" fill="#93a3bf" font-family="Inter, sans-serif" font-size="13">sequential · fast</text>
+
+      <!-- arrow WAL → COMMIT -->
+      <line x1="580" y1="115" x2="680" y2="115" stroke="#7ee7b8" stroke-width="2" marker-end="url(#arr-green)"/>
+
+      <!-- COMMIT box -->
+      <rect x="680" y="82" width="180" height="66" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="2.5"/>
+      <text x="770" y="108" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="17" font-weight="700">COMMIT</text>
+      <text x="770" y="130" text-anchor="middle" fill="#7ee7b8" font-family="Inter, sans-serif" font-size="13">returns ✓</text>
+
+      <!-- lower path: shared buffer -->
+      <line x1="242" y1="222" x2="242" y2="315" stroke="#ffb454" stroke-width="2"/>
+      <line x1="242" y1="315" x2="380" y2="315" stroke="#ffb454" stroke-width="2" marker-end="url(#arr-amber)"/>
+
+      <!-- Shared buffer box -->
+      <rect x="380" y="282" width="200" height="66" rx="10" fill="#141d2e" stroke="#ffb454" stroke-width="2"/>
+      <text x="480" y="311" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600">shared_buffers</text>
+      <text x="480" y="334" text-anchor="middle" fill="#93a3bf" font-family="Inter, sans-serif" font-size="13">dirty page in RAM</text>
+
+      <!-- arrow shared buffer → disk (later) -->
+      <line x1="580" y1="315" x2="680" y2="315" stroke="#6a7a98" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr-dim)"/>
+
+      <!-- Disk box -->
+      <rect x="680" y="282" width="200" height="66" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="2"/>
+      <text x="780" y="311" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="16">heap page</text>
+      <text x="780" y="334" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13">disk — flushed LATER</text>
+
+      <!-- labels on arrows -->
+      <text x="310" y="100" text-anchor="middle" fill="#7ee7b8" font-family="Inter, sans-serif" font-size="13" font-style="italic">① WAL first</text>
+      <text x="310" y="336" text-anchor="middle" fill="#ffb454" font-family="Inter, sans-serif" font-size="13" font-style="italic">② buffer</text>
+
+      <!-- checkpointer label -->
+      <text x="730" y="370" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13" font-style="italic">checkpointer flushes later</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 21px; margin: 0;">COMMIT only waits for <span style="color: var(--branch); font-family:'JetBrains Mono',monospace;">WAL fsync</span>. The dirty page hits disk <span style="color: var(--merge);">whenever the checkpointer gets to it</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: WHY WAL IS FAST ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">lsn</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> why it's fast</div>
+    <h2>Sequential I/O<br>beats <span style="color: var(--conflict);">random</span> I/O.</h2>
+
+    <svg width="100%" viewBox="0 0 920 320" style="margin: 8px 0 16px;">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- WAL: sequential strip -->
+      <text x="30" y="74" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600">WAL (sequential append)</text>
+      <rect x="30" y="88" width="780" height="52" rx="6" fill="#141d2e" stroke="#7ee7b8" stroke-width="1.5"/>
+      <!-- blocks in WAL -->
+      <rect x="36" y="94" width="70" height="40" rx="4" fill="#1a2e20" stroke="#7ee7b8" stroke-width="1"/>
+      <text x="71" y="119" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">rec 1</text>
+      <rect x="112" y="94" width="70" height="40" rx="4" fill="#1a2e20" stroke="#7ee7b8" stroke-width="1"/>
+      <text x="147" y="119" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">rec 2</text>
+      <rect x="188" y="94" width="70" height="40" rx="4" fill="#1a2e20" stroke="#7ee7b8" stroke-width="1"/>
+      <text x="223" y="119" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">rec 3</text>
+      <rect x="264" y="94" width="70" height="40" rx="4" fill="#1a2e20" stroke="#7ee7b8" stroke-width="1"/>
+      <text x="299" y="119" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">rec 4</text>
+      <text x="370" y="119" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="20">→ → → → → →</text>
+      <!-- append arrow -->
+      <text x="810" y="85" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">append</text>
+      <text x="824" y="122" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="22">→</text>
+      <text x="30" y="162" fill="#7ee7b8" font-family="Inter, sans-serif" font-size="14" font-style="italic">Always at end of file. No seek. One stream.</text>
+
+      <!-- Page writes: random scatter -->
+      <text x="30" y="210" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600">Heap pages (random I/O)</text>
+      <!-- scatter boxes -->
+      <rect x="30" y="224" width="52" height="52" rx="6" fill="#2e141d" stroke="#ff7a8a" stroke-width="1.5"/>
+      <text x="56" y="254" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="12">pg 7</text>
+      <rect x="200" y="224" width="52" height="52" rx="6" fill="#2e141d" stroke="#ff7a8a" stroke-width="1.5"/>
+      <text x="226" y="254" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="12">pg 91</text>
+      <rect x="400" y="224" width="52" height="52" rx="6" fill="#2e141d" stroke="#ff7a8a" stroke-width="1.5"/>
+      <text x="426" y="254" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="12">pg 3</text>
+      <rect x="640" y="224" width="52" height="52" rx="6" fill="#2e141d" stroke="#ff7a8a" stroke-width="1.5"/>
+      <text x="666" y="254" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="12">pg 44</text>
+      <!-- scattered arrows -->
+      <path d="M 82 250 Q 140 230 195 250" stroke="#ff7a8a" stroke-width="1.5" fill="none" marker-end="url(#arr2)" stroke-dasharray="4 3"/>
+      <path d="M 252 250 Q 325 280 395 250" stroke="#ff7a8a" stroke-width="1.5" fill="none" marker-end="url(#arr2)" stroke-dasharray="4 3"/>
+      <path d="M 452 250 Q 540 215 635 250" stroke="#ff7a8a" stroke-width="1.5" fill="none" marker-end="url(#arr2)" stroke-dasharray="4 3"/>
+      <text x="30" y="300" fill="#ff7a8a" font-family="Inter, sans-serif" font-size="14" font-style="italic">Scattered across disk. Seek penalty every time.</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px; margin: 0;">WAL appends to <span style="color: var(--branch); font-family:'JetBrains Mono',monospace;">one spot</span>. Pages scatter everywhere. Sequential &gt;&gt; random — especially on spinning disk.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: CRASH RECOVERY ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pg_wal/recovery</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> crash recovery</div>
+    <h2>Crash. Reboot.<br><span style="color: var(--branch);">Replay</span>. Done.</h2>
+
+    <svg width="100%" viewBox="0 0 920 350" style="margin: 4px 0 10px;">
+      <defs>
+        <marker id="tarr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="tarr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#7ee7b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Timeline axis -->
+      <line x1="40" y1="160" x2="880" y2="160" stroke="#243049" stroke-width="2" marker-end="url(#tarr)"/>
+      <text x="870" y="188" fill="#6a7a98" font-family="Inter, sans-serif" font-size="14">time →</text>
+
+      <!-- checkpoint dot -->
+      <circle cx="120" cy="160" r="10" fill="#4a90c2"/>
+      <text x="120" y="145" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="13">checkpoint</text>
+      <line x1="120" y1="155" x2="120" y2="130" stroke="#4a90c2" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <!-- write events on timeline -->
+      <circle cx="240" cy="160" r="7" fill="#7ee7b8"/>
+      <text x="240" y="198" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="12">WAL+buf</text>
+      <circle cx="340" cy="160" r="7" fill="#7ee7b8"/>
+      <text x="340" y="198" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="12">WAL+buf</text>
+      <circle cx="440" cy="160" r="7" fill="#7ee7b8"/>
+      <text x="440" y="198" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="12">WAL+buf</text>
+
+      <!-- CRASH -->
+      <line x1="560" y1="80" x2="560" y2="240" stroke="#ff7a8a" stroke-width="3" stroke-dasharray="8 4"/>
+      <text x="560" y="70" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="20" font-weight="700">CRASH</text>
+      <text x="560" y="268" text-anchor="middle" fill="#ff7a8a" font-family="Inter, sans-serif" font-size="13">pages lost from RAM</text>
+
+      <!-- reboot arrow -->
+      <line x1="620" y1="160" x2="680" y2="160" stroke="#93a3bf" stroke-width="2" marker-end="url(#tarr)"/>
+      <text x="650" y="148" text-anchor="middle" fill="#93a3bf" font-family="Inter, sans-serif" font-size="13">reboot</text>
+
+      <!-- replay block -->
+      <rect x="680" y="110" width="180" height="100" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="2"/>
+      <text x="770" y="148" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="16" font-weight="700">replay WAL</text>
+      <text x="770" y="170" text-anchor="middle" fill="#93a3bf" font-family="Inter, sans-serif" font-size="13">from last</text>
+      <text x="770" y="188" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="13">checkpoint</text>
+
+      <!-- WAL arrow to replay block -->
+      <line x1="620" y1="115" x2="678" y2="130" stroke="#7ee7b8" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#tarr-g)"/>
+      <text x="590" y="108" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">WAL on disk</text>
+      <text x="590" y="126" fill="#7ee7b8" font-family="Inter, sans-serif" font-size="12" font-style="italic">(survived crash)</text>
+
+      <!-- consistent label -->
+      <text x="870" y="145" text-anchor="end" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">consistent ✓</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px; margin: 0;">Lost work? Only what <span style="color: var(--conflict);">wasn't WAL-fsynced</span> before crash. Every fsynced COMMIT is durable.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: BONUS USES ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">wal_level</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> WAL does more than durability</div>
+    <h2>WAL is also<br>your <span style="color: var(--staged);">superpower</span>.</h2>
+    <p class="lede">Durability is just the start. The same log file enables two more killer features.</p>
+
+    <div style="display: flex; flex-direction: column; gap: 22px; margin-top: 8px;">
+      <!-- Replication pill -->
+      <div style="background: var(--bg-elev); border: 1px solid var(--border-strong); border-radius: 12px; padding: 26px 30px; display: flex; align-items: flex-start; gap: 22px;">
+        <div style="flex-shrink:0; width: 52px; height: 52px; border-radius: 50%; background: rgba(74,144,194,0.15); border: 2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size: 24px;">🔁</div>
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--accent); font-weight: 700; margin-bottom: 6px;">Streaming Replication</div>
+          <div style="font-size: 22px; color: var(--text-muted); line-height: 1.45;">Primary ships WAL records to replica in real time. Replica replays them. <span style="color: var(--text);">Zero extra overhead</span> — same log you already write.</div>
+        </div>
+      </div>
+
+      <!-- PITR pill -->
+      <div style="background: var(--bg-elev); border: 1px solid var(--border-strong); border-radius: 12px; padding: 26px 30px; display: flex; align-items: flex-start; gap: 22px;">
+        <div style="flex-shrink:0; width: 52px; height: 52px; border-radius: 50%; background: rgba(200,168,255,0.15); border: 2px solid var(--staged); display:flex; align-items:center; justify-content:center; font-size: 24px;">⏪</div>
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--staged); font-weight: 700; margin-bottom: 6px;">Point-in-Time Recovery</div>
+          <div style="font-size: 22px; color: var(--text-muted); line-height: 1.45;">Archive WAL + base backup. Replay up to any LSN or timestamp. Dropped a table at 3 PM? <span style="color: var(--text);">Restore to 2:59 PM.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">wal.sql</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> see it yourself</div>
+    <h2>Inspect WAL<br>right <span style="color: var(--accent);">now</span>.</h2>
+<pre class="sm"><span class="com">-- current WAL position (LSN = Log Sequence Number)</span>
+<span class="kw">SELECT</span> <span class="fn">pg_current_wal_lsn</span>();
+<span class="com">--  pg_current_wal_lsn</span>
+<span class="com">-- --------------------</span>
+<span class="com">--  0/1A3F5E8          ← hex offset into WAL stream</span>
+
+<span class="com">-- what replication level is WAL writing?</span>
+<span class="kw">SHOW</span> <span class="prop">wal_level</span>;
+<span class="com">-- replica    ← minimal | replica | logical</span></pre>
+
+<pre class="sm"><span class="com"># on the server — WAL segment files (16 MB each)</span>
+<span class="str">$ ls $PGDATA/pg_wal/</span>
+<span class="num">000000010000000000000001</span>
+<span class="num">000000010000000000000002</span>
+<span class="num">000000010000000000000003</span>
+<span class="com"># filename = timeline + log segment number</span></pre>
+
+    <p class="body-text muted" style="font-size: 21px; margin: 0;">Run two <code style="font-family:'JetBrains Mono',monospace; color:var(--accent);">SELECT pg_current_wal_lsn()</code> with writes in between — watch the LSN advance.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pg_wal/recap</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">WAL</span> — changes appended to log <em>before</em> pages are flushed</li>
+      <li><span class="key">COMMIT</span> — fsyncs WAL only, not the heap page</li>
+      <li><span class="key">sequential</span> — WAL appends fast; random page writes happen later</li>
+      <li><span class="key">crash → replay</span> — replay WAL from last checkpoint → consistent</li>
+      <li><span class="key">replication + PITR</span> — both ship or archive the same WAL stream</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: isolation levels — what "repeatable read" actually means →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,421 @@
+{
+  "1": {
+    "title": "Node = V8 + libuv + bindings",
+    "variants": {
+      "mystery_hook": "Everyone says \"Node is just JavaScript.\"\nIt's not.\nUnder the hood there are three separate engines doing three different jobs.\nOnce you see them, `require('fs')` never looks the same. ⬇️",
+      "direct_value": "Node.js is V8 (JS engine) + libuv (async I/O) + bindings (C++ bridge). Each one has a distinct job. Here's how the three parts divide the work — with a real diagram. ⬇️",
+      "short_punchy": "Node isn't one thing.\nIt's three.\nSwipe to see the split. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#programming",
+      "#coding",
+      "#v8",
+      "#buildinpublic"
+    ]
+  },
+  "2": {
+    "title": "The event loop — phases, not just \"a loop\"",
+    "variants": {
+      "mystery_hook": "\"The event loop\" is the most-said phrase in Node.\nAnd the most misunderstood.\nIt's not one loop. It's six phases in a fixed order.\nMiss one and your async code misfires. ⬇️",
+      "direct_value": "The event loop has 6 phases: timers → pending callbacks → idle → poll → check → close. Each runs a different queue. Here's what each phase processes — with real examples per phase. ⬇️",
+      "short_punchy": "6 phases. Fixed order.\nYour async code depends on all of them. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#async",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#eventloop",
+      "#buildinpublic"
+    ]
+  },
+  "3": {
+    "title": "Call stack vs event queue",
+    "variants": {
+      "mystery_hook": "Your code looks synchronous.\nIt isn't.\nThere are two completely separate execution tracks in Node.\nKnowing which track you're on changes how you write every async function. ⬇️",
+      "direct_value": "Call stack vs event queue: how synchronous code and async callbacks occupy different execution tracks. How V8 pops the stack before the event loop can fire. Visualized frame by frame. ⬇️",
+      "short_punchy": "Stack runs first.\nQueue waits.\nThat's the whole async model. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#js",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#programming",
+      "#coding",
+      "#devtips",
+      "#v8"
+    ]
+  },
+  "4": {
+    "title": "Microtasks vs macrotasks",
+    "variants": {
+      "mystery_hook": "`Promise.resolve()` and `setTimeout(fn, 0)` both look instant.\nOne runs before the other — every single time.\nThe order isn't random. There's a rule. ⬇️",
+      "direct_value": "Microtasks (Promises, queueMicrotask) always drain before macrotasks (setTimeout, setImmediate, I/O). Here's the execution order with code you can run and predict before running. ⬇️",
+      "short_punchy": "Promise fires before setTimeout.\nEvery time.\nHere's why. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#async",
+      "#js",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#webdev",
+      "#programming",
+      "#devtips",
+      "#coding"
+    ]
+  },
+  "5": {
+    "title": "`process.nextTick` — the queue jumper",
+    "variants": {
+      "mystery_hook": "There's a Node API that cuts every queue.\nPromises, timers, I/O — it beats them all.\nIt's also the easiest way to starve your entire event loop. ⬇️",
+      "direct_value": "`process.nextTick` runs before Promises, before I/O, before anything. Useful for consistent async behavior. Dangerous when called recursively. Here's both sides with real footgun examples. ⬇️",
+      "short_punchy": "`nextTick` wins every race.\nThat's the feature. That's the footgun. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#async",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#coding",
+      "#buildinpublic"
+    ]
+  },
+  "6": {
+    "title": "Callbacks → Promises → async/await",
+    "variants": {
+      "mystery_hook": "async/await didn't replace Promises.\nAnd Promises didn't replace callbacks.\nEach one is a transformation of the one before it.\nUnderstanding the chain changes how you debug all three. ⬇️",
+      "direct_value": "Callbacks → Promises → async/await: each layer is syntactic sugar over the previous. What `promisify` does under the hood. What `async/await` desugars to. With side-by-side code. ⬇️",
+      "short_punchy": "3 syntaxes. One async model.\nSave the translation. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#async",
+      "#js",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#programming",
+      "#devtips",
+      "#coding"
+    ]
+  },
+  "7": {
+    "title": "`async` functions ALWAYS return a Promise",
+    "variants": {
+      "mystery_hook": "You wrote `async function getUser()`.\nYou think it sometimes returns a user.\nIt never does.\nIt always returns a Promise. Even when you return a string. ⬇️",
+      "direct_value": "`async` functions wrap every return value in `Promise.resolve()`. Throw inside → rejected Promise. No throw → resolved Promise. Here's what that means for error handling and the callers you forget to `await`. ⬇️",
+      "short_punchy": "`async` wraps everything.\nNo exceptions.\n`typeof` won't save you. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#async",
+      "#js",
+      "#typescript",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#webdev",
+      "#devtips",
+      "#programming"
+    ]
+  },
+  "8": {
+    "title": "The unhandled rejection trap",
+    "variants": {
+      "mystery_hook": "Node 14: unhandled Promise rejection → a warning and life goes on.\nNode 15: unhandled Promise rejection → your process dies.\nOne version upgrade. One silent crash path.\nHere's how to catch it before it catches you. ⬇️",
+      "direct_value": "Unhandled rejections crash Node 15+ by default. What triggers them, how `process.on('unhandledRejection')` works, why `void asyncFn()` is dangerous, and the 3-line pattern that protects every async entrypoint. ⬇️",
+      "short_punchy": "Missed a `.catch()`?\nNode 15+ crashes.\nSave the fix. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#async",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#coding",
+      "#npm"
+    ]
+  },
+  "9": {
+    "title": "`Promise.all` vs `allSettled` vs `race` vs `any`",
+    "variants": {
+      "mystery_hook": "You know `Promise.all`.\nYou use it wrong.\nOne rejection kills everything.\nThere are 3 other combinators. Each one handles failure differently. ⬇️",
+      "direct_value": "`Promise.all` (fail fast) vs `allSettled` (collect everything) vs `race` (first settled) vs `any` (first resolved). Decision tree: which one to use for fan-out, health checks, timeouts, and fallbacks. ⬇️",
+      "short_punchy": "4 combinators. 4 different failure modes.\nPick the right one. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#async",
+      "#js",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#typescript"
+    ]
+  },
+  "10": {
+    "title": "`await` in a loop = sequential",
+    "variants": {
+      "mystery_hook": "You wrote a `for` loop with `await` inside.\nCongratulations — you just made Node synchronous.\nHere's how to actually run those requests in parallel. ⬇️",
+      "direct_value": "`await` inside `for...of` → sequential. `Promise.all` + `.map()` → parallel. `Promise.allSettled` for partial failures. `p-limit` for concurrency caps. Side by side with timing benchmarks. ⬇️",
+      "short_punchy": "`for await` = one at a time.\n`Promise.all` = all at once.\nBenchmark included. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#async",
+      "#js",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#webdev",
+      "#programming",
+      "#devtips",
+      "#performance"
+    ]
+  },
+  "11": {
+    "title": "CommonJS vs ESM — dual-package hell",
+    "variants": {
+      "mystery_hook": "You added `\"type\": \"module\"` to your `package.json`.\nSuddenly 3 deps broke.\nYou removed it.\nNow a different dep broke.\nThis isn't a config problem. It's a module system war. ⬇️",
+      "direct_value": "CJS vs ESM: what changes, what breaks, why you can't `require()` an ESM package, what dual-package means, and the 3 escape hatches (`createRequire`, `.cjs`, `.mjs`). With a working interop example. ⬇️",
+      "short_punchy": "Two module systems. One runtime.\nThey don't like each other. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#js",
+      "#npm",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#programming",
+      "#devtips",
+      "#typescript"
+    ]
+  },
+  "12": {
+    "title": "`require.cache` — modules are cached forever",
+    "variants": {
+      "mystery_hook": "You changed a config file.\nYou called `require('./config')` again.\nYou got the old values.\nNode didn't re-read the file.\nIt cached it on first load and never looked again. ⬇️",
+      "direct_value": "`require.cache` stores every module by resolved path. First `require()` runs the file. Every subsequent `require()` returns the cached export. How to bust it, when to bust it, when NOT to. ⬇️",
+      "short_punchy": "`require()` runs once.\nEvery other call is a cache hit.\nSave this. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#js",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#coding",
+      "#npm"
+    ]
+  },
+  "13": {
+    "title": "`node_modules` resolution",
+    "variants": {
+      "mystery_hook": "`require('react')` has no path in it.\nHow does Node find the file?\nIt doesn't guess. There's a deterministic algorithm.\nAnd it explains every \"module not found\" you've ever seen. ⬇️",
+      "direct_value": "Node's module resolution: walks up from `__dirname`, checks each `node_modules/`, respects `main` then `exports` then `index.js`. How hoisting works. Why two versions of the same package can coexist. ⬇️",
+      "short_punchy": "No path. Node still finds it.\nHere's the algorithm. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#npm",
+      "#js",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#coding"
+    ]
+  },
+  "14": {
+    "title": "The `package.json` fields you ignored",
+    "variants": {
+      "mystery_hook": "You read `name`, `version`, `scripts`.\nYou skipped 4 other fields that control whether your package works for TypeScript users, tree-shakers, and bundlers.\nMost packages get these wrong. ⬇️",
+      "direct_value": "`exports` (subpath control), `types` (TS entry), `sideEffects` (tree-shaking), `engines` (Node version). What each one does, what breaks without it, and the minimal correct config for a modern package. ⬇️",
+      "short_punchy": "4 fields. Most devs skip all 4.\nDon't. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#npm",
+      "#typescript",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#buildinpublic"
+    ]
+  },
+  "15": {
+    "title": "Streams — the four kinds",
+    "variants": {
+      "mystery_hook": "You read a 2 GB file with `fs.readFile`.\nNode loaded all 2 GB into RAM.\nThere's a better way.\nIt's been in Node since v0.9. ⬇️",
+      "direct_value": "Node has 4 stream types: Readable (source), Writable (sink), Duplex (both), Transform (modify in transit). Each one's interface, when to use which, and why streams beat buffers for large data. ⬇️",
+      "short_punchy": "4 stream types. One purpose: don't hold it all in RAM.\nSwipe. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#streams",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#programming",
+      "#devtips",
+      "#coding",
+      "#performance"
+    ]
+  },
+  "16": {
+    "title": "Backpressure — why naive piping breaks",
+    "variants": {
+      "mystery_hook": "You piped a fast Readable into a slow Writable.\nIt worked — until it didn't.\nMemory climbed. Process crashed.\nNobody told you streams can push back. ⬇️",
+      "direct_value": "Backpressure: when `.write()` returns `false`, the Readable should pause. `pipe()` handles this automatically. Manual streaming often doesn't. Here's the pattern that prevents memory bloat. ⬇️",
+      "short_punchy": "Fast source. Slow sink.\nNo backpressure → OOM.\nSave the fix. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#streams",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#performance",
+      "#coding"
+    ]
+  },
+  "17": {
+    "title": "`Buffer` — the byte primitive you ignored",
+    "variants": {
+      "mystery_hook": "Everything in Node that touches a file, a network socket, or a crypto operation hands you a `Buffer`.\nMost devs immediately call `.toString()` and move on.\nHere's what you lost. ⬇️",
+      "direct_value": "`Buffer` is a fixed-size chunk of raw memory outside V8's heap. Allocations, encodings (utf8/hex/base64), slicing, copying, and the `Buffer.from` vs `Buffer.alloc` safety difference. ⬇️",
+      "short_punchy": "`Buffer` is raw bytes.\n`.toString()` is just one encoding.\nThere are 6. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#backend",
+      "#js",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#coding",
+      "#crypto"
+    ]
+  },
+  "18": {
+    "title": "The single-threaded lie",
+    "variants": {
+      "mystery_hook": "\"Node is single-threaded.\"\nEverybody says it.\nNode ships with `worker_threads`, `cluster`, and `child_process`.\nPick one. But know which one actually unblocks the event loop. ⬇️",
+      "direct_value": "Worker Threads (shared memory, JS), Cluster (fork process per CPU, one port), child_process (arbitrary subprocess). Which one to reach for: CPU-bound → Worker; traffic → Cluster; external tool → child_process. ⬇️",
+      "short_punchy": "Single-threaded by default.\nParallelism when you need it.\n3 tools. Different jobs. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#coding",
+      "#performance",
+      "#scaling"
+    ]
+  },
+  "19": {
+    "title": "Memory leaks in Node — 4 common shapes",
+    "variants": {
+      "mystery_hook": "Your server's RSS is 150 MB on deploy.\nIt's 1.2 GB after 3 days.\nRestart fixes it. Restarting isn't fixing it.\nThere are 4 shapes every Node leak takes. ⬇️",
+      "direct_value": "4 Node memory leak patterns: global accumulation, uncleaned event listeners, closure captures, and cached Maps/Sets that never evict. How to spot each with `--inspect` + Chrome DevTools heap snapshots. ⬇️",
+      "short_punchy": "Memory climbs. Restart helps.\nThat's not a fix.\n4 shapes. Swipe. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#debugging",
+      "#performance",
+      "#coding"
+    ]
+  },
+  "20": {
+    "title": "`console.log` isn't free (SERIES FINALE)",
+    "variants": {
+      "mystery_hook": "You left `console.log` in prod \"just to debug.\"\nOn a hot path it's serializing objects to string, writing to stdout synchronously, blocking the event loop.\nOne liner. Real latency. ⬇️",
+      "direct_value": "`console.log` in Node is synchronous to stderr/stdout, JSON-serializes objects, and blocks. On hot paths: real microsecond cost. Better options: `pino`, log levels, conditional logging. Finale of a 20-post Node series. ⬇️",
+      "short_punchy": "`console.log` blocks.\nIn prod, on hot paths, that adds up.\nSave the swap. →"
+    },
+    "tags": [
+      "#nodejs",
+      "#javascript",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#buildinpublic",
+      "#webdev",
+      "#devtips",
+      "#programming",
+      "#performance",
+      "#npm"
+    ]
+  }
+}

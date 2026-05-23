@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SELECT * is a smell — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:            #0b1220;
+    --bg-elev:       #141d2e;
+    --bg-code:       #0e1626;
+    --border:        #243049;
+    --border-strong: #36456a;
+    --text:          #e6edf3;
+    --text-muted:    #93a3bf;
+    --text-dim:      #6a7a98;
+    --accent:        #4a90c2;
+    --accent-soft:   rgba(74, 144, 194, 0.15);
+    --branch:        #7ee7b8;
+    --merge:         #ffb454;
+    --conflict:      #ff7a8a;
+    --staged:        #c8a8ff;
+    --head:          #ffb454;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-conflict { background: rgba(255, 122, 138, 0.12); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-branch { background: rgba(126, 231, 184, 0.12); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Post-6 specific */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .col-label { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .cost-bar { height: 36px; border-radius: 6px; display: flex; align-items: center; padding: 0 14px; font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">query.sql</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content">
+    <div class="cover-content">
+      <div class="label"><span class="prompt">postgres@db:~$ </span>post #6</div>
+      <h1><span style="color:var(--conflict);">SELECT *</span><br>is a<br><span style="color:var(--merge);">smell.</span></h1>
+      <div class="cover-tagline">projection, I/O, and the columns you're paying for without knowing it.</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">projection.sql</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">// </span>the hidden tax</div>
+    <h2>Every column you don't need is a <span style="color:var(--conflict);">cost</span> you pay anyway.</h2>
+    <p class="body-text muted">You wrote <code style="color:var(--conflict); font-family:'JetBrains Mono',monospace;">SELECT *</code>. Postgres shipped every byte to your app.</p>
+    <div style="display:flex; flex-direction:column; gap:18px; margin-top:16px;">
+      <div style="display:flex; align-items:center; gap:20px; padding:22px 26px; background:var(--bg-elev); border:1px solid var(--border-strong); border-radius:12px;">
+        <span style="font-size:44px;">📡</span>
+        <div>
+          <div style="font-size:22px; font-weight:700; color:var(--conflict);">Extra bytes on the wire</div>
+          <div style="font-size:19px; color:var(--text-muted); margin-top:4px;">Network I/O × every row × every query</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:22px 26px; background:var(--bg-elev); border:1px solid var(--border-strong); border-radius:12px;">
+        <span style="font-size:44px;">🧠</span>
+        <div>
+          <div style="font-size:22px; font-weight:700; color:var(--merge);">Planner has to track all columns</div>
+          <div style="font-size:19px; color:var(--text-muted); margin-top:4px;">More memory per row in the executor</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; padding:22px 26px; background:var(--bg-elev); border:1px solid var(--border-strong); border-radius:12px;">
+        <span style="font-size:44px;">🚫</span>
+        <div>
+          <div style="font-size:22px; font-weight:700; color:var(--staged);">Index-only scans blocked</div>
+          <div style="font-size:19px; color:var(--text-muted); margin-top:4px;">Index can't satisfy <code style="font-family:'JetBrains Mono',monospace;">*</code> — heap fetch required</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SVG WIDE ROW ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">projection.sql</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">// </span>wide row problem</div>
+    <h2 style="font-size:44px; margin-bottom:20px;">15 columns fetched. App uses <span style="color:var(--branch);">2</span>.</h2>
+    <svg viewBox="0 0 920 540" width="920" height="540" style="max-width:100%; overflow:visible;">
+      <!-- Postgres side label -->
+      <text x="60" y="34" font-family="JetBrains Mono, monospace" font-size="16" fill="#6a7a98" letter-spacing="2">POSTGRES</text>
+      <!-- Row box -->
+      <rect x="40" y="50" width="840" height="90" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="60" y="37" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98"></text>
+      <!-- Column cells — 15 total, 2 mint, 13 dim -->
+      <!-- col 1: id (mint/needed) -->
+      <rect x="42" y="52" width="56" height="86" rx="8" fill="rgba(126,231,184,0.13)" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="70" y="99" font-family="JetBrains Mono, monospace" font-size="13" fill="#7ee7b8" text-anchor="middle">id</text>
+      <!-- col 2: email (mint/needed) -->
+      <rect x="100" y="52" width="72" height="86" rx="8" fill="rgba(126,231,184,0.13)" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="136" y="99" font-family="JetBrains Mono, monospace" font-size="13" fill="#7ee7b8" text-anchor="middle">email</text>
+      <!-- cols 3-15: dim/unused -->
+      <rect x="174" y="52" width="60" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="204" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">name</text>
+      <rect x="236" y="52" width="64" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="268" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">avatar</text>
+      <rect x="302" y="52" width="66" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="335" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">bio</text>
+      <rect x="370" y="52" width="62" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="401" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">phone</text>
+      <rect x="434" y="52" width="70" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="469" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">address</text>
+      <rect x="506" y="52" width="66" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="539" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">city</text>
+      <rect x="574" y="52" width="62" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="605" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">country</text>
+      <rect x="638" y="52" width="68" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="672" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">created</text>
+      <rect x="708" y="52" width="68" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="742" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">updated</text>
+      <rect x="778" y="52" width="52" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="804" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">role</text>
+      <rect x="832" y="52" width="44" height="86" rx="8" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="854" y="99" font-family="JetBrains Mono, monospace" font-size="11" fill="#36456a" text-anchor="middle">plan</text>
+
+      <!-- Needed label -->
+      <text x="70" y="170" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8" text-anchor="middle">needed</text>
+      <text x="136" y="170" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8" text-anchor="middle">needed</text>
+
+      <!-- Wasted label across unused cols -->
+      <text x="515" y="170" font-family="JetBrains Mono, monospace" font-size="14" fill="#36456a" text-anchor="middle">⟵ 13 columns wasted — shipped anyway ⟶</text>
+
+      <!-- Arrow from row to app -->
+      <line x1="460" y1="200" x2="460" y2="300" stroke="#4a90c2" stroke-width="2" marker-end="url(#arr)"/>
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#4a90c2"/>
+        </marker>
+        <marker id="arr-conflict" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#ff7a8a"/>
+        </marker>
+        <marker id="arr-branch" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#7ee7b8"/>
+        </marker>
+      </defs>
+      <!-- App box -->
+      <rect x="200" y="300" width="520" height="80" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="460" y="336" font-family="Inter, sans-serif" font-size="20" fill="#e6edf3" text-anchor="middle" font-weight="600">your application</text>
+      <text x="460" y="362" font-family="JetBrains Mono, monospace" font-size="15" fill="#6a7a98" text-anchor="middle">uses: id, email — discards the rest</text>
+
+      <!-- Conflict annotation: wasted bytes -->
+      <line x1="460" y1="385" x2="460" y2="460" stroke="#36456a" stroke-width="1" stroke-dasharray="5,4"/>
+      <rect x="310" y="460" width="300" height="52" rx="8" fill="rgba(255,122,138,0.1)" stroke="#ff7a8a" stroke-width="1.2"/>
+      <text x="460" y="492" font-family="JetBrains Mono, monospace" font-size="16" fill="#ff7a8a" text-anchor="middle">13/15 columns → garbage collected</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: CODE — INDEX-ONLY SCAN ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">index_only_scan.sql</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">// </span>index-only scan: name your columns</div>
+    <h2 style="font-size:40px; margin-bottom:18px;">Index can't satisfy <span style="color:var(--conflict);">*</span> — heap fetch required.</h2>
+    <pre class="sm"><span class="com">-- BAD: forces heap fetch</span>
+<span class="kw">EXPLAIN</span> <span class="kw">SELECT</span> <span style="color:var(--conflict);">*</span> <span class="kw">FROM</span> <span class="prop">users</span> <span class="kw">WHERE</span> <span class="prop">id</span> = <span class="num">42</span>;
+
+<span class="com">  Index Scan on users</span>
+<span class="com">    Index Cond: (id = 42)</span>
+<span class="hi-conflict">    Heap Fetches: 1                      ← hits the heap</span></pre>
+    <pre class="sm"><span class="com">-- GOOD: index covers (id, email) → index-only</span>
+<span class="kw">EXPLAIN</span> <span class="kw">SELECT</span> <span class="prop">id</span>, <span class="prop">email</span> <span class="kw">FROM</span> <span class="prop">users</span> <span class="kw">WHERE</span> <span class="prop">id</span> = <span class="num">42</span>;
+
+<span class="com">  Index Only Scan on users</span>
+<span class="com">    Index Cond: (id = 42)</span>
+<span class="hi-branch">    Heap Fetches: 0                      ← never touches heap</span></pre>
+    <p class="body-text muted" style="font-size:20px; margin:0;">Index <code style="color:var(--branch); font-family:'JetBrains Mono',monospace;">CREATE INDEX ON users(id) INCLUDE (email)</code> makes this possible. <code style="color:var(--conflict); font-family:'JetBrains Mono',monospace;">SELECT *</code> kills it.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: TOAST ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">toast.sql</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">// </span>TOAST — the hidden sidecar</div>
+    <h2 style="font-size:42px; margin-bottom:16px;"><span style="color:var(--merge);">TOAST</span>: big columns live in a <span style="color:var(--staged);">side table</span>.</h2>
+    <p class="body-text muted" style="font-size:20px; margin-bottom:18px;">Column &gt; ~2 KB → Postgres offloads it. Inline row stores a pointer. <code style="color:var(--conflict); font-family:'JetBrains Mono',monospace;">SELECT *</code> dereferences every pointer.</p>
+    <svg viewBox="0 0 880 330" width="880" height="330" style="max-width:100%;">
+      <defs>
+        <marker id="tarr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#c8a8ff"/>
+        </marker>
+      </defs>
+      <!-- Main heap row -->
+      <rect x="30" y="60" width="420" height="90" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="240" y="42" font-family="JetBrains Mono, monospace" font-size="14" fill="#6a7a98" text-anchor="middle" letter-spacing="2">MAIN HEAP ROW (users)</text>
+      <!-- Cells in main row -->
+      <rect x="42" y="72" width="64" height="66" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="1.2"/>
+      <text x="74" y="109" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8" text-anchor="middle">id</text>
+      <rect x="110" y="72" width="80" height="66" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="1.2"/>
+      <text x="150" y="109" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8" text-anchor="middle">email</text>
+      <rect x="196" y="72" width="72" height="66" rx="6" fill="rgba(106,122,152,0.07)" stroke="#243049" stroke-width="1"/>
+      <text x="232" y="109" font-family="JetBrains Mono, monospace" font-size="13" fill="#36456a" text-anchor="middle">name</text>
+      <!-- big bio column — toasted -->
+      <rect x="272" y="72" width="88" height="66" rx="6" fill="rgba(200,168,255,0.1)" stroke="#c8a8ff" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="316" y="101" font-family="JetBrains Mono, monospace" font-size="12" fill="#c8a8ff" text-anchor="middle">bio</text>
+      <text x="316" y="119" font-family="JetBrains Mono, monospace" font-size="11" fill="#6a7a98" text-anchor="middle">→ ptr</text>
+      <!-- dots -->
+      <text x="380" y="113" font-family="JetBrains Mono, monospace" font-size="20" fill="#36456a">…</text>
+
+      <!-- Arrow to TOAST table -->
+      <line x1="360" y1="138" x2="600" y2="200" stroke="#c8a8ff" stroke-width="1.8" stroke-dasharray="7,4" marker-end="url(#tarr)"/>
+
+      <!-- TOAST table -->
+      <rect x="600" y="200" width="250" height="110" rx="10" fill="#141d2e" stroke="#c8a8ff" stroke-width="1.5"/>
+      <text x="725" y="190" font-family="JetBrains Mono, monospace" font-size="14" fill="#c8a8ff" text-anchor="middle" letter-spacing="1">pg_toast_XXXX</text>
+      <text x="725" y="235" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98" text-anchor="middle">chunk_id | chunk_seq</text>
+      <text x="725" y="258" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98" text-anchor="middle">chunk_data (2KB each)</text>
+      <text x="725" y="281" font-family="JetBrains Mono, monospace" font-size="13" fill="#c8a8ff" text-anchor="middle">N chunks per large value</text>
+
+      <!-- Warning label -->
+      <rect x="30" y="175" width="420" height="52" rx="8" fill="rgba(255,122,138,0.08)" stroke="#ff7a8a" stroke-width="1.2"/>
+      <text x="240" y="200" font-family="JetBrains Mono, monospace" font-size="14" fill="#ff7a8a" text-anchor="middle">SELECT * deref's every TOAST ptr</text>
+      <text x="240" y="220" font-family="JetBrains Mono, monospace" font-size="14" fill="#6a7a98" text-anchor="middle">even if app never reads bio</text>
+    </svg>
+    <p class="body-text muted" style="font-size:19px; margin-top:8px;">Name your columns → TOAST pointers for unused fields never dereferenced.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: COST VISUAL ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">cost.sql</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">// </span>the math is embarrassing</div>
+    <h2 style="font-size:44px; margin-bottom:24px;">1 million rows. <span style="color:var(--conflict);">SELECT *</span> vs <span style="color:var(--branch);">SELECT id, email</span>.</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; flex:1;">
+      <!-- SELECT * column -->
+      <div style="background:rgba(255,122,138,0.07); border:1px solid rgba(255,122,138,0.3); border-radius:12px; padding:28px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--conflict); margin-bottom:18px; letter-spacing:0.05em;">SELECT *</div>
+        <div style="font-size:52px; font-weight:800; color:var(--conflict); line-height:1; margin-bottom:10px;">~15 GB</div>
+        <div style="font-size:18px; color:var(--text-muted); margin-bottom:20px;">transferred over network</div>
+        <div style="font-size:16px; color:var(--text-dim); line-height:1.7;">
+          15 cols × avg 1 KB/row<br>
+          × 1,000,000 rows<br>
+          = <span style="color:var(--conflict);">15,000,000 KB</span>
+        </div>
+        <div style="margin-top:20px; padding:12px; background:rgba(255,122,138,0.08); border-radius:8px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--conflict);">+ heap fetches on every query</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--conflict); margin-top:4px;">+ TOAST chunks dereffed</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--conflict); margin-top:4px;">+ buffer cache polluted</div>
+        </div>
+      </div>
+      <!-- SELECT id, email column -->
+      <div style="background:rgba(126,231,184,0.07); border:1px solid rgba(126,231,184,0.3); border-radius:12px; padding:28px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--branch); margin-bottom:18px; letter-spacing:0.05em;">SELECT id, email</div>
+        <div style="font-size:52px; font-weight:800; color:var(--branch); line-height:1; margin-bottom:10px;">~2 GB</div>
+        <div style="font-size:18px; color:var(--text-muted); margin-bottom:20px;">transferred over network</div>
+        <div style="font-size:16px; color:var(--text-dim); line-height:1.7;">
+          2 cols × avg 1 KB/row<br>
+          × 1,000,000 rows<br>
+          = <span style="color:var(--branch);">2,000,000 KB</span>
+        </div>
+        <div style="margin-top:20px; padding:12px; background:rgba(126,231,184,0.08); border-radius:8px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--branch);">+ index-only scan eligible</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--branch); margin-top:4px;">+ TOAST never touched</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--branch); margin-top:4px;">+ cache stays hot</div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:16px; font-family:'JetBrains Mono',monospace; font-size:18px; color:var(--text-muted);">
+      <span style="color:var(--conflict);">7.5×</span> more data for <span style="color:var(--conflict);">zero extra business value</span>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">explain.sql</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">// </span>see it yourself</div>
+    <h2 style="font-size:42px; margin-bottom:18px;">Run this. Watch <span style="color:var(--branch);">Heap Fetches</span> drop.</h2>
+    <pre class="sm"><span class="com">-- needs: CREATE INDEX ON users(id) INCLUDE (email);</span>
+
+<span class="kw">EXPLAIN</span> (<span class="prop">ANALYZE</span>, <span class="prop">BUFFERS</span>)
+<span class="kw">SELECT</span> <span style="color:var(--conflict);">*</span> <span class="kw">FROM</span> <span class="prop">users</span> <span class="kw">WHERE</span> <span class="prop">id</span> = <span class="num">1</span>;
+
+<span class="hi-conflict">  →  Heap Fetches: 1   Buffers: shared hit=4</span></pre>
+    <pre class="sm"><span class="kw">EXPLAIN</span> (<span class="prop">ANALYZE</span>, <span class="prop">BUFFERS</span>)
+<span class="kw">SELECT</span> <span class="prop">id</span>, <span class="prop">email</span> <span class="kw">FROM</span> <span class="prop">users</span> <span class="kw">WHERE</span> <span class="prop">id</span> = <span class="num">1</span>;
+
+<span class="hi-branch">  →  Heap Fetches: 0   Buffers: shared hit=2</span></pre>
+    <p class="body-text muted" style="font-size:20px; margin:0;"><span style="color:var(--branch);">Heap Fetches: 0</span> = pure index read. Buffers halved. No heap I/O. Scales to millions of rows.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="tab">recap.sql</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">// </span>recap</div>
+    <h2 style="font-size:44px; margin-bottom:24px;">Name your columns. Always.</h2>
+    <ul class="recap-list" style="margin-bottom:0;">
+      <li><span class="key">SELECT *</span> ships every byte — even bytes you discard</li>
+      <li><span class="key">index-only scan</span> needs a <em>covering</em> index — <code style="color:var(--conflict);">*</code> kills it</li>
+      <li><span class="key">TOAST</span> = hidden cost — big cols live off-heap, <code style="color:var(--conflict);">*</code> dereferences all</li>
+      <li>wide rows hurt <span class="key">cache locality</span> — fewer rows fit per page</li>
+      <li><code style="color:var(--merge);">SELECT *</code> OK only in <span class="key">psql</span> exploration — never in app code</li>
+    </ul>
+    <div class="cta" style="margin-top:24px; padding:22px;">
+      <div class="cta-text" style="font-size:20px;">next up → <strong>joins are loops</strong></div>
+      <div class="cta-handle" style="font-size:24px; margin-top:4px;">nested loop / hash / merge — when each wins →</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

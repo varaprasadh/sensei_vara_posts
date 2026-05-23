@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>MVCC — Your Row Has Versions, Not Locks — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;
+    --merge: #ffb454;
+    --conflict: #ff7a8a;
+    --staged: #c8a8ff;
+    --head: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* MVCC-specific */
+  .tuple-box {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 14px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--text);
+  }
+  .tuple-box.dead {
+    border-color: var(--conflict);
+    opacity: 0.65;
+    text-decoration: line-through;
+    text-decoration-color: var(--conflict);
+  }
+  .tuple-box.live {
+    border-color: var(--branch);
+  }
+  .tuple-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .tuple-fields { color: var(--text-muted); }
+  .tuple-fields .xmin { color: var(--branch); }
+  .tuple-fields .xmax { color: var(--conflict); }
+  .tuple-fields .xmax-inf { color: var(--text-dim); }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .badge.dead { background: rgba(255, 122, 138, 0.15); color: var(--conflict); border: 1px solid var(--conflict); }
+  .badge.live { background: rgba(126, 231, 184, 0.15); color: var(--branch); border: 1px solid var(--branch); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+
+<style>
+  html, body { margin: 0 !important; padding: 0 !important; background: #0a0e14 !important; }
+  body { display: block !important; gap: 0 !important; }
+  .slide { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">snapshot</span>
+    <span class="slide-num">04 / 08</span>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span>each transaction sees its own snapshot</div>
+    <h2 style="font-size:44px;margin-bottom:16px;">You see what existed<br>when you started.</h2>
+    <svg viewBox="0 0 920 490" width="920" height="490" style="display:block;max-width:100%;margin:0 auto;">
+      <defs>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#4a90c2"/>
+        </marker>
+      </defs>
+
+      <!-- Timeline axis -->
+      <line x1="80" y1="60" x2="840" y2="60" stroke="#36456a" stroke-width="1.5"/>
+      <text x="80" y="46" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98">time →</text>
+      <!-- tick marks -->
+      <line x1="160" y1="52" x2="160" y2="68" stroke="#36456a" stroke-width="1"/>
+      <line x1="340" y1="52" x2="340" y2="68" stroke="#36456a" stroke-width="1"/>
+      <line x1="520" y1="52" x2="520" y2="68" stroke="#36456a" stroke-width="1"/>
+      <line x1="700" y1="52" x2="700" y2="68" stroke="#36456a" stroke-width="1"/>
+      <text x="155" y="84" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">t1</text>
+      <text x="335" y="84" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">t2</text>
+      <text x="515" y="84" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">t3</text>
+      <text x="695" y="84" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">t4</text>
+
+      <!-- Txn A bar -->
+      <rect x="155" y="110" width="400" height="60" rx="8" fill="#1a2a42" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="175" y="138" font-family="JetBrains Mono, monospace" font-size="16" fill="#4a90c2" font-weight="600">Txn A  (xid=200)</text>
+      <text x="175" y="158" font-family="JetBrains Mono, monospace" font-size="13" fill="#93a3bf">START → snapshot taken at t1</text>
+
+      <!-- Snapshot bubble A -->
+      <rect x="155" y="185" width="400" height="44" rx="6" fill="#0e1626" stroke="#243049"/>
+      <text x="355" y="212" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8" text-anchor="middle">sees: name='Alice'  (row as of t1)</text>
+
+      <!-- Txn B bar -->
+      <rect x="335" y="270" width="400" height="60" rx="8" fill="#1f2a1a" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="355" y="298" font-family="JetBrains Mono, monospace" font-size="16" fill="#7ee7b8" font-weight="600">Txn B  (xid=201)</text>
+      <text x="355" y="318" font-family="JetBrains Mono, monospace" font-size="13" fill="#93a3bf">UPDATEs name → 'Bob' at t3</text>
+
+      <!-- Snapshot bubble B -->
+      <rect x="515" y="345" width="320" height="44" rx="6" fill="#0e1626" stroke="#243049"/>
+      <text x="675" y="372" font-family="JetBrains Mono, monospace" font-size="14" fill="#ffb454" text-anchor="middle">committed at t3 → new version</text>
+
+      <!-- Key callout -->
+      <rect x="80" y="410" width="760" height="60" rx="8" fill="#141d2e" stroke="#36456a"/>
+      <text x="460" y="438" font-family="Inter, sans-serif" font-size="16" fill="#e6edf3" text-anchor="middle" font-weight="600">Txn A reads at t4 — still sees 'Alice'.</text>
+      <text x="460" y="460" font-family="Inter, sans-serif" font-size="14" fill="#93a3bf" text-anchor="middle">Txn B's commit is after A's snapshot. Invisible to A. No blocking either way.</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+</body>
+</html>

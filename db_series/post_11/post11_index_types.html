@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>B-tree vs Hash vs GIN vs BRIN — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;          /* postgres blue */
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;          /* mint — success / index */
+    --merge: #ffb454;           /* amber — highlight / sql kw */
+    --conflict: #ff7a8a;        /* coral — errors */
+    --staged: #c8a8ff;          /* lavender — refs */
+    --head: #ffb454;            /* amber for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Decision matrix table */
+  .matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 18px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .matrix th {
+    background: var(--bg-elev);
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 12px 16px;
+    text-align: left;
+    border: 1px solid var(--border);
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .matrix td {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+    line-height: 1.4;
+    font-size: 16px;
+  }
+  .matrix tr:nth-child(even) td { background: rgba(74,144,194,0.04); }
+  .matrix .type-btree { color: var(--accent); font-weight: 600; }
+  .matrix .type-hash { color: var(--branch); font-weight: 600; }
+  .matrix .type-gin { color: var(--staged); font-weight: 600; }
+  .matrix .type-brin { color: var(--merge); font-weight: 600; }
+  .matrix .size-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .badge-sm { background: rgba(126,231,184,0.15); color: var(--branch); }
+  .badge-md { background: rgba(74,144,194,0.15); color: var(--accent); }
+  .badge-lg { background: rgba(255,180,84,0.15); color: var(--merge); }
+  .badge-tiny { background: rgba(200,168,255,0.15); color: var(--staged); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">index_types.sql</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">-- #</span> postgres series · post 11</div>
+    <h1>Four indexes.<br>Pick <span class="accent-text">wisely</span>.</h1>
+    <div class="cover-tagline">B-tree · Hash · GIN · BRIN<br>Wrong choice = disk waste + zero speedup.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">btree.sql</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> the problem</div>
+    <h2>B-tree isn't<br>the <span style="color:var(--conflict);">only</span> one.</h2>
+    <p class="lede">Most devs use B-tree everywhere. For arrays, jsonb, huge time-series tables — it does nothing. You burn disk and get no speedup.</p>
+
+    <div class="center-row" style="margin-top: 10px; gap: 18px; flex-wrap: wrap;">
+      <div class="pill accent" style="font-size:18px; padding:12px 20px;">B-tree<br><span style="font-size:13px; color:var(--text-dim);">default</span></div>
+      <div class="pill branch" style="font-size:18px; padding:12px 20px;">Hash<br><span style="font-size:13px; color:var(--text-dim);">equality only</span></div>
+      <div class="pill staged" style="font-size:18px; padding:12px 20px;">GIN<br><span style="font-size:13px; color:var(--text-dim);">arrays / jsonb</span></div>
+      <div class="pill merge" style="font-size:18px; padding:12px 20px;">BRIN<br><span style="font-size:13px; color:var(--text-dim);">huge + ordered</span></div>
+    </div>
+
+    <p class="body-text muted" style="font-size:22px; margin-top: 24px;">
+      Each index type answers a <span style="color:var(--accent);">different query shape</span>.<br>
+      Match the index to the query — not the other way around.
+    </p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: B-TREE ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">btree.sql</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> b-tree index</div>
+    <h2 style="font-size:50px;"><span style="color:var(--accent);">B-tree</span> — sorted.<br>Equality + range + sort.</h2>
+
+    <!-- SVG: balanced tree with sorted keys -->
+    <svg width="100%" viewBox="0 0 900 260" style="margin: 0 0 14px;">
+      <defs>
+        <marker id="bt1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- root -->
+      <rect x="370" y="10" width="160" height="48" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="450" y="40" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">50</text>
+
+      <!-- level 2 -->
+      <rect x="140" y="100" width="140" height="44" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="210" y="128" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="17">25</text>
+
+      <rect x="620" y="100" width="140" height="44" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="690" y="128" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="17">75</text>
+
+      <!-- level 3 (leaves) -->
+      <rect x="30" y="196" width="110" height="40" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="85" y="221" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="15">10 · 20</text>
+
+      <rect x="160" y="196" width="110" height="40" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="215" y="221" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="15">30 · 40</text>
+
+      <rect x="510" y="196" width="110" height="40" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="565" y="221" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="15">55 · 65</text>
+
+      <rect x="640" y="196" width="110" height="40" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="695" y="221" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="15">80 · 90</text>
+
+      <!-- edges root → l2 -->
+      <line x1="415" y1="58" x2="270" y2="100" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#bt1)"/>
+      <line x1="485" y1="58" x2="630" y2="100" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#bt1)"/>
+      <!-- l2 → leaves -->
+      <line x1="180" y1="144" x2="120" y2="196" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#bt1)"/>
+      <line x1="240" y1="144" x2="250" y2="196" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#bt1)"/>
+      <line x1="660" y1="144" x2="595" y2="196" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#bt1)"/>
+      <line x1="720" y1="144" x2="720" y2="196" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#bt1)"/>
+
+      <!-- leaf link arrows -->
+      <line x1="140" y1="216" x2="158" y2="216" stroke="#36456a" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#bt1)"/>
+      <line x1="270" y1="216" x2="508" y2="216" stroke="#36456a" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#bt1)"/>
+      <line x1="620" y1="216" x2="638" y2="216" stroke="#36456a" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#bt1)"/>
+
+      <text x="450" y="254" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13" font-style="italic">leaf pages linked — enables range scan</text>
+    </svg>
+
+    <pre style="font-size:17px; padding:18px 24px; margin:0;">
+<span class="com">-- all three work with B-tree</span>
+<span class="kw">WHERE</span> age = <span class="num">30</span>                        <span class="com">-- equality ✓</span>
+<span class="kw">WHERE</span> age <span class="kw">BETWEEN</span> <span class="num">20</span> <span class="kw">AND</span> <span class="num">40</span>           <span class="com">-- range   ✓</span>
+<span class="kw">ORDER BY</span> age                           <span class="com">-- sort    ✓</span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: HASH ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">hash.sql</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> hash index</div>
+    <h2 style="font-size:50px;"><span style="color:var(--branch);">Hash</span> — equality only.<br>Smaller. Faster exact match.</h2>
+
+    <!-- SVG: hash buckets -->
+    <svg width="100%" viewBox="0 0 900 250" style="margin: 0 0 14px;">
+      <defs>
+        <marker id="hsh1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#7ee7b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- input values (left side) -->
+      <rect x="20" y="40" width="180" height="36" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="110" y="63" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono, monospace" font-size="15">alice@x.com</text>
+      <rect x="20" y="100" width="180" height="36" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="110" y="123" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono, monospace" font-size="15">bob@y.com</text>
+      <rect x="20" y="160" width="180" height="36" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="110" y="183" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono, monospace" font-size="15">carol@z.com</text>
+
+      <!-- hash fn box -->
+      <rect x="270" y="95" width="120" height="54" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="2"/>
+      <text x="330" y="121" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600">hash()</text>
+      <text x="330" y="140" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">fn(val)</text>
+
+      <!-- arrows into hash -->
+      <line x1="200" y1="58" x2="268" y2="110" stroke="#7ee7b8" stroke-width="1.5" marker-end="url(#hsh1)"/>
+      <line x1="200" y1="118" x2="268" y2="122" stroke="#7ee7b8" stroke-width="1.5" marker-end="url(#hsh1)"/>
+      <line x1="200" y1="178" x2="268" y2="134" stroke="#7ee7b8" stroke-width="1.5" marker-end="url(#hsh1)"/>
+
+      <!-- bucket headers -->
+      <text x="500" y="30" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">bucket 0</text>
+      <text x="660" y="30" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">bucket 1</text>
+      <text x="820" y="30" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">bucket 2</text>
+
+      <!-- bucket boxes -->
+      <rect x="440" y="38" width="120" height="170" rx="8" fill="#141d2e" stroke="#7ee7b8" stroke-width="1.5"/>
+      <rect x="600" y="38" width="120" height="170" rx="8" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <rect x="760" y="38" width="120" height="170" rx="8" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+
+      <!-- entries in bucket 0 -->
+      <text x="500" y="72" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">alice@x</text>
+      <line x1="440" y1="84" x2="560" y2="84" stroke="#243049" stroke-width="1"/>
+      <text x="500" y="112" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">carol@z</text>
+      <line x1="440" y1="124" x2="560" y2="124" stroke="#243049" stroke-width="1"/>
+
+      <!-- entry in bucket 1 -->
+      <text x="660" y="72" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">bob@y</text>
+
+      <!-- arrows from hash to buckets -->
+      <line x1="390" y1="115" x2="438" y2="100" stroke="#7ee7b8" stroke-width="1.5" marker-end="url(#hsh1)"/>
+      <line x1="390" y1="122" x2="438" y2="68" stroke="#7ee7b8" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#hsh1)"/>
+      <line x1="390" y1="128" x2="597" y2="68" stroke="#7ee7b8" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#hsh1)"/>
+
+      <text x="450" y="235" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13" font-style="italic">O(1) lookup — no tree traversal needed</text>
+    </svg>
+
+    <pre style="font-size:17px; padding:18px 24px; margin:0;">
+<span class="kw">WHERE</span> email = <span class="str">'alice@x.com'</span>  <span class="com">-- hash: O(1) ✓</span>
+<span class="kw">WHERE</span> email > <span class="str">'a'</span>            <span class="com">-- hash: USELESS ✗</span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: GIN ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">gin.sql</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> gin index</div>
+    <h2 style="font-size:46px;"><span style="color:var(--staged);">GIN</span> — generalized inverted.<br>Arrays · JSONB · full-text.</h2>
+
+    <!-- SVG: keyword → list of rows -->
+    <svg width="100%" viewBox="0 0 900 240" style="margin: 0 0 12px;">
+      <defs>
+        <marker id="gin1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#c8a8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- title labels -->
+      <text x="140" y="22" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">keyword / element</text>
+      <text x="640" y="22" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">matching rows (ctids)</text>
+
+      <!-- keyword entries -->
+      <rect x="20" y="34" width="140" height="36" rx="6" fill="#141d2e" stroke="#c8a8ff" stroke-width="1.5"/>
+      <text x="90" y="57" text-anchor="middle" fill="#c8a8ff" font-family="JetBrains Mono, monospace" font-size="15">"postgres"</text>
+
+      <rect x="20" y="92" width="140" height="36" rx="6" fill="#141d2e" stroke="#c8a8ff" stroke-width="1.5"/>
+      <text x="90" y="115" text-anchor="middle" fill="#c8a8ff" font-family="JetBrains Mono, monospace" font-size="15">"db"</text>
+
+      <rect x="20" y="150" width="140" height="36" rx="6" fill="#141d2e" stroke="#c8a8ff" stroke-width="1.5"/>
+      <text x="90" y="173" text-anchor="middle" fill="#c8a8ff" font-family="JetBrains Mono, monospace" font-size="15">"index"</text>
+
+      <!-- postings lists -->
+      <rect x="360" y="34" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="400" y="55" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 1</text>
+      <rect x="460" y="34" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="500" y="55" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 3</text>
+      <rect x="560" y="34" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="600" y="55" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 7</text>
+      <rect x="660" y="34" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="700" y="55" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 12</text>
+
+      <rect x="360" y="92" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="400" y="113" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 1</text>
+      <rect x="460" y="92" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="500" y="113" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 7</text>
+      <rect x="560" y="92" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="600" y="113" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 9</text>
+
+      <rect x="360" y="150" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="400" y="171" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 3</text>
+      <rect x="460" y="150" width="80" height="32" rx="5" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="500" y="171" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">row 12</text>
+
+      <!-- arrows -->
+      <line x1="160" y1="52" x2="357" y2="52" stroke="#c8a8ff" stroke-width="1.5" marker-end="url(#gin1)"/>
+      <line x1="160" y1="110" x2="357" y2="110" stroke="#c8a8ff" stroke-width="1.5" marker-end="url(#gin1)"/>
+      <line x1="160" y1="168" x2="357" y2="168" stroke="#c8a8ff" stroke-width="1.5" marker-end="url(#gin1)"/>
+
+      <text x="450" y="220" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13" font-style="italic">each element maps to all rows containing it</text>
+    </svg>
+
+    <pre style="font-size:16px; padding:16px 22px; margin:0;">
+<span class="kw">WHERE</span> tags <span class="fn">@></span> <span class="fn">ARRAY</span>[<span class="str">'db'</span>, <span class="str">'postgres'</span>]    <span class="com">-- array overlap ✓</span>
+<span class="kw">WHERE</span> doc <span class="fn">@@</span> <span class="fn">to_tsquery</span>(<span class="str">'postgres'</span>)    <span class="com">-- full-text   ✓</span>
+<span class="kw">WHERE</span> data <span class="fn">@></span> <span class="str">'{"role":"admin"}'</span>::<span class="prop">jsonb</span>  <span class="com">-- jsonb       ✓</span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: BRIN ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">brin.sql</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> brin index</div>
+    <h2 style="font-size:46px;"><span style="color:var(--merge);">BRIN</span> — block range.<br>Tiny on disk. Time-series gold.</h2>
+
+    <!-- SVG: page ranges with min/max -->
+    <svg width="100%" viewBox="0 0 900 230" style="margin: 0 0 12px;">
+      <!-- page blocks (physical table) -->
+      <text x="130" y="20" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">heap (physical pages)</text>
+      <text x="660" y="20" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">brin index entries</text>
+
+      <!-- page range 1 (pages 0-127) -->
+      <rect x="10" y="34" width="230" height="46" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="125" y="52" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">pages 0 – 127</text>
+      <text x="125" y="72" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono, monospace" font-size="13">2025-01-01 … 2025-03-31</text>
+
+      <!-- page range 2 -->
+      <rect x="10" y="98" width="230" height="46" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="125" y="116" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">pages 128 – 255</text>
+      <text x="125" y="136" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono, monospace" font-size="13">2025-04-01 … 2025-06-30</text>
+
+      <!-- page range 3 -->
+      <rect x="10" y="162" width="230" height="46" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="125" y="180" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">pages 256 – 383</text>
+      <text x="125" y="200" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono, monospace" font-size="13">2025-07-01 … 2025-09-30</text>
+
+      <!-- BRIN index boxes -->
+      <rect x="460" y="34" width="390" height="46" rx="6" fill="#141d2e" stroke="#ffb454" stroke-width="1.5"/>
+      <text x="560" y="52" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">range 0</text>
+      <text x="750" y="52" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">min: 2025-01-01</text>
+      <text x="750" y="70" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">max: 2025-03-31</text>
+
+      <rect x="460" y="98" width="390" height="46" rx="6" fill="#141d2e" stroke="#ffb454" stroke-width="1.5"/>
+      <text x="560" y="116" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">range 1</text>
+      <text x="750" y="116" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">min: 2025-04-01</text>
+      <text x="750" y="134" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">max: 2025-06-30</text>
+
+      <rect x="460" y="162" width="390" height="46" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1"/>
+      <text x="560" y="180" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">range 2</text>
+      <text x="750" y="180" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">min: 2025-07-01</text>
+      <text x="750" y="198" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">max: 2025-09-30</text>
+
+      <!-- connector arrows -->
+      <line x1="242" y1="57" x2="458" y2="57" stroke="#ffb454" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <line x1="242" y1="121" x2="458" y2="121" stroke="#ffb454" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <line x1="242" y1="185" x2="458" y2="185" stroke="#36456a" stroke-width="1" stroke-dasharray="4 3"/>
+    </svg>
+
+    <pre style="font-size:17px; padding:16px 22px; margin:0;">
+<span class="com">-- 128 pages → 1 index entry. Tiny!</span>
+<span class="kw">WHERE</span> created_at > <span class="str">'2026-01-01'</span>  <span class="com">-- skips whole ranges ✓</span>
+<span class="com">-- needs: data physically ordered by time</span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: DECISION MATRIX ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">index_types.sql</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> pick by query shape</div>
+    <h2 style="font-size:48px; margin-bottom:20px;">Decision matrix</h2>
+
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Use when</th>
+          <th>Size</th>
+          <th>Example query</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="type-btree">B-tree</span></td>
+          <td>equality, range, sort — anything ordered</td>
+          <td><span class="size-badge badge-md">medium</span></td>
+          <td><code style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--text-muted);">WHERE age BETWEEN 20 AND 40</code></td>
+        </tr>
+        <tr>
+          <td><span class="type-hash">Hash</span></td>
+          <td>equality only, high-cardinality exact match</td>
+          <td><span class="size-badge badge-sm">small</span></td>
+          <td><code style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--text-muted);">WHERE email = 'x@x.com'</code></td>
+        </tr>
+        <tr>
+          <td><span class="type-gin">GIN</span></td>
+          <td>arrays, jsonb, tsvector — "contains X"</td>
+          <td><span class="size-badge badge-lg">large</span></td>
+          <td><code style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--text-muted);">WHERE tags @&gt; '{db}'</code></td>
+        </tr>
+        <tr>
+          <td><span class="type-brin">BRIN</span></td>
+          <td>huge table, data naturally ordered by col</td>
+          <td><span class="size-badge badge-tiny">tiny</span></td>
+          <td><code style="font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--text-muted);">WHERE created_at &gt; '2026-01-01'</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="body-text muted" style="font-size:20px; margin-top:24px;">
+      Wrong type → index exists but planner ignores it.<br>
+      <span style="color:var(--conflict);">No speedup. Just wasted disk.</span>
+    </p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">index_types.sql</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> tl;dr</div>
+    <h2 style="font-size:50px; margin-bottom:20px;">Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">B-tree</span> — default. equality + range + sort. Almost always right.</li>
+      <li><span class="key">Hash</span> — equality only, niche. Slightly smaller than B-tree.</li>
+      <li><span class="key">GIN</span> — arrays / jsonb / full-text. "Does row contain X?"</li>
+      <li><span class="key">BRIN</span> — huge append-only tables, physically ordered. Tiny index.</li>
+      <li>Pick by <span style="color:var(--accent);">query shape</span>, not habit.</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: MVCC — your row has versions, not locks →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

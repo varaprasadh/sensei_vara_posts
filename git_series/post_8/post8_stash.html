@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stash, properly — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 20px 24px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* trap grid 2x2 */
+  .traps { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 6px 0 16px; }
+  .trap-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 22px 24px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .trap-card .num-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  .trap-card .trap-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .trap-card .trap-desc { font-size: 17px; color: var(--text-muted); line-height: 1.5; }
+  .trap-card .trap-desc code { font-family: 'JetBrains Mono', monospace; color: var(--staged); font-size: 16px; }
+  .trap-card.c1 { border-color: var(--conflict); }
+  .trap-card.c1 .num-label { color: var(--conflict); }
+  .trap-card.c2 { border-color: var(--staged); }
+  .trap-card.c2 .num-label { color: var(--staged); }
+  .trap-card.c3 { border-color: var(--merge); }
+  .trap-card.c3 .num-label { color: var(--merge); }
+  .trap-card.c4 { border-color: var(--head); }
+  .trap-card.c4 .num-label { color: var(--head); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">stash.git</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> most underused command in git</div>
+    <h1>Stash: not just<br>a <span class="accent-text">panic button</span>.</h1>
+    <div class="cover-tagline">Pause work cleanly.<br>Resume later.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: THE BASIC USE ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">git stash</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the everyday move</div>
+    <h2><span style="color: var(--accent);">Pause</span> your work.</h2>
+    <p class="lede">You're mid-feature when an urgent fix lands. Stash, switch, fix, come back.</p>
+<pre class="sm"><span class="com">$ git stash</span>
+Saved working directory and index state WIP on main: <span class="sha">e89df01</span> add tests
+<span class="com"># working dir is now clean — your edits are parked</span>
+
+<span class="com">$ git switch hotfix</span>
+<span class="com"># ... do the urgent fix ...</span>
+
+<span class="com">$ git switch main</span>
+<span class="com">$ git stash pop</span>
+<span class="com"># your edits are back</span></pre>
+    <p class="body-text muted" style="font-size: 22px;">Park it. Switch. Fix. <span style="color: var(--accent);">Pop it back.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: WHAT IT ACTUALLY DOES ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">under.git</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> under the hood</div>
+    <h2>Stash = a <span style="color: var(--accent);">hidden commit</span>.</h2>
+    <p class="lede">It's not magic. Git creates a commit on a special <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">stash</code> ref and clears your working dir.</p>
+<pre><span class="com">$ cat .git/refs/stash</span>
+<span class="sha">a7f3e91b8d4c2f1e6a9b8c7d5e4f3a2b1c0d9e8f</span>
+
+<span class="com">$ git log --oneline stash</span>
+<span class="sha">a7f3e91</span> WIP on main: <span class="sha">e89df01</span> add tests</pre>
+    <p class="body-text muted">It's just a commit on a <span style="color: var(--accent);">side branch</span> you never see.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: LIST / APPLY / POP ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">list.git</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> working with multiple stashes</div>
+    <h2>Many stashes?<br><span style="color: var(--accent);">No problem</span>.</h2>
+<pre class="sm"><span class="com">$ git stash list</span>
+<span class="prop">stash@{0}</span>: WIP on main: ...
+<span class="prop">stash@{1}</span>: WIP on feature/api: ...
+<span class="prop">stash@{2}</span>: WIP on main: refactor
+
+<span class="com"># apply a specific one</span>
+<span class="com">$ git stash apply stash@{2}</span>
+
+<span class="com"># pop = apply + drop</span>
+<span class="com">$ git stash pop stash@{0}</span>
+
+<span class="com"># remove without applying</span>
+<span class="com">$ git stash drop stash@{1}</span></pre>
+    <p class="body-text muted" style="font-size: 22px;"><code style="font-family:'JetBrains Mono',monospace; color: var(--branch);">apply</code> keeps it. <code style="font-family:'JetBrains Mono',monospace; color: var(--staged);">pop</code> removes it. <code style="font-family:'JetBrains Mono',monospace; color: var(--conflict);">drop</code> deletes.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: PARTIAL STASH ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">stash -p</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> cherry-pick what to stash</div>
+    <h2>Stash <span style="color: var(--accent);">just some</span><br>of it.</h2>
+    <p class="lede">When you only want to park certain hunks, not everything.</p>
+<pre><span class="com">$ git stash -p</span>
+diff --git a/app.js b/app.js
+@@ -10,3 +10,5 @@
+<span class="str">+   console.log('debug')</span>
+<span class="str">+   debugger</span>
+<span class="hi">Stash this hunk [y,n,q,a,d,e,?]?</span></pre>
+    <p class="body-text muted">Interactive. Pick the hunks. <span style="color: var(--accent);">Leave the rest</span> in your working dir.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: NAMED STASH + BRANCH ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">branch.git</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> pro moves</div>
+    <h2>Name it.<br><span style="color: var(--accent);">Branch</span> from it.</h2>
+<pre class="sm"><span class="com"># name it so you can find it later</span>
+<span class="com">$ git stash push -m "wip: search refactor"</span>
+
+<span class="com"># turn a stash into a branch</span>
+<span class="com">$ git stash branch feature/search stash@{0}</span>
+<span class="com"># new branch, stash applied, stash dropped</span></pre>
+    <p class="body-text muted">Good for stashes you may <span style="color: var(--accent);">not come back to today</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: COMMON TRAPS ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">traps.git</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> what bites people</div>
+    <h2>3 things to <span style="color: var(--accent);">watch</span>.</h2>
+    <div class="traps">
+      <div class="trap-card c1">
+        <div class="num-label">01</div>
+        <div class="trap-title">wrong branch on pop</div>
+        <div class="trap-desc">Stashed on <code>main</code>, switched to <code>feature</code>, popped — now your edits are on the wrong branch. Stash again, switch back.</div>
+      </div>
+      <div class="trap-card c2">
+        <div class="num-label">02</div>
+        <div class="trap-title">untracked files skipped</div>
+        <div class="trap-desc"><code>git stash</code> ignores new (untracked) files by default. Use <code>git stash -u</code> to include them.</div>
+      </div>
+      <div class="trap-card c3">
+        <div class="num-label">03</div>
+        <div class="trap-title">conflict on pop</div>
+        <div class="trap-desc">Pop can conflict. Resolve manually — the stash stays put until you <code>drop</code> it.</div>
+      </div>
+      <div class="trap-card c4">
+        <div class="num-label">04</div>
+        <div class="trap-title">stash isn't forever</div>
+        <div class="trap-desc">Clear it out. Don't leave 47 stashes lying around — they pile up fast.</div>
+      </div>
+    </div>
+    <p class="body-text muted" style="font-size: 20px;">Stash is sharp. <span style="color: var(--accent);">Hold it right.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP + HOOK ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.git</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">git stash</span> — park your work, clean dir, switch around</li>
+      <li>it's a real commit on a hidden ref</li>
+      <li><span class="key">apply</span> / <span class="key">pop</span> / <span class="key">drop</span> / <span class="key">list</span> / <span class="key">-p</span> / <span class="key">branch</span></li>
+      <li>use <span class="key">-u</span> for untracked, name with <span class="key">-m</span></li>
+      <li>clear old stashes — they're not free forever</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Next: undoing things — <code style="font-family:'JetBrains Mono', monospace; color: var(--accent);">reset / revert / restore / checkout</code> 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

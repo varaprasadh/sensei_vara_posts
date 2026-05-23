@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UUID vs bigint — the index-page truth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;
+    --merge: #ffb454;
+    --conflict: #ff7a8a;
+    --staged: #c8a8ff;
+    --head: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 18px 22px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .size-compare {
+    display: flex;
+    gap: 24px;
+    margin: 16px 0 24px;
+  }
+  .size-box {
+    flex: 1;
+    background: var(--bg-elev);
+    border-radius: 14px;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid var(--border-strong);
+  }
+  .size-box.good { border-color: var(--branch); }
+  .size-box.bad { border-color: var(--conflict); }
+  .size-label { font-size: 20px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+  .size-num { font-size: 60px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+  .size-num.good { color: var(--branch); }
+  .size-num.bad { color: var(--conflict); }
+  .size-desc { font-size: 17px; color: var(--text-dim); line-height: 1.4; }
+
+  .bench-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .bench-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    width: 100px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .bench-bar-wrap {
+    flex: 1;
+    background: var(--bg-elev);
+    border-radius: 6px;
+    height: 38px;
+    overflow: hidden;
+  }
+  .bench-bar {
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding-left: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .bench-bar.bigint { background: rgba(126, 231, 184, 0.2); color: var(--branch); border: 1px solid var(--branch); width: 100%; }
+  .bench-bar.uuidv7 { background: rgba(74, 144, 194, 0.2); color: var(--accent); border: 1px solid var(--accent); width: 92%; }
+  .bench-bar.uuidv4 { background: rgba(255, 122, 138, 0.15); color: var(--conflict); border: 1px solid var(--conflict); width: 52%; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pk.sql</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">-- #</span> post 18 · primary keys</div>
+    <h1>UUID or bigint?</h1>
+    <h1><span class="accent-text">Pages decide.</span></h1>
+    <div class="cover-tagline">Your PK choice directly determines<br>how Postgres writes to its B-tree.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">uuid.sql</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> the argument</div>
+    <h2>Devs argue.<br>Postgres <span style="color: var(--conflict);">thrashes</span>.</h2>
+    <p class="lede">"No collisions in distributed systems." Sure. But Postgres doesn't care about your philosophy — it cares about where the insert lands in the index.</p>
+    <div style="background: var(--bg-elev); border: 1px solid var(--border-strong); border-radius: 12px; padding: 28px 32px; margin-top: 8px;">
+      <p class="body-text" style="margin: 0 0 16px;">UUIDv4 is random. Every insert picks a <span style="color: var(--conflict);">random leaf page</span> in the B-tree.</p>
+      <p class="body-text" style="margin: 0 0 16px;">bigint sequences always append to the <span style="color: var(--branch);">rightmost leaf</span>. That's it.</p>
+      <p class="body-text muted" style="margin: 0; font-size: 22px;">Random vs sequential writes → completely different I/O patterns at scale.</p>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SIZE ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">uuid_size.sql</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> size matters at scale</div>
+    <h2>16 bytes vs 8.<br><span style="color: var(--merge);">Multiply by millions.</span></h2>
+    <div class="size-compare">
+      <div class="size-box bad">
+        <div class="size-label">uuid (v4)</div>
+        <div class="size-num bad">16B</div>
+        <div class="size-desc">per row · every FK reference · every index entry</div>
+      </div>
+      <div class="size-box good">
+        <div class="size-label">bigint</div>
+        <div class="size-num good">8B</div>
+        <div class="size-desc">per row · half the storage · half the cache pressure</div>
+      </div>
+    </div>
+<pre class="sm"><span class="com">-- verify in psql</span>
+<span class="kw">SELECT</span>
+  <span class="fn">pg_column_size</span>(<span class="fn">uuid_generate_v4</span>()) <span class="kw">AS</span> <span class="prop">uuid_bytes</span>,
+  <span class="fn">pg_column_size</span>(<span class="num">1</span>::<span class="kw">bigint</span>)           <span class="kw">AS</span> <span class="prop">bigint_bytes</span>;
+
+<span class="com"> uuid_bytes │ bigint_bytes
+───────────┼─────────────
+         </span><span class="num">16</span><span class="com"> │ </span><span class="num">8</span></pre>
+    <p class="body-text muted" style="font-size: 21px; margin: 0;">10M rows + 3 FK tables = ~240 MB extra just in UUID overhead.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: BIGINT B-TREE ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">btree_bigint.sql</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> bigint inserts</div>
+    <h2>Sequential → always<br><span style="color: var(--branch);">rightmost leaf</span>.</h2>
+    <svg width="100%" viewBox="0 0 920 420" style="margin: 0 0 20px;">
+      <defs>
+        <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-ins" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#7ee7b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Root node -->
+      <rect x="340" y="20" width="240" height="56" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="460" y="42" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="14">ROOT</text>
+      <text x="460" y="62" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">1 … 1000000</text>
+
+      <!-- Internal nodes -->
+      <rect x="100" y="140" width="200" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="200" y="162" text-anchor="middle" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="13">1 … 333k</text>
+      <text x="200" y="180" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="11">internal</text>
+
+      <rect x="360" y="140" width="200" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="460" y="162" text-anchor="middle" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="13">333k … 666k</text>
+      <text x="460" y="180" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="11">internal</text>
+
+      <rect x="620" y="140" width="200" height="52" rx="8" fill="#141d2e" stroke="#7ee7b8" stroke-width="2"/>
+      <text x="720" y="162" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">666k … MAX</text>
+      <text x="720" y="180" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="11">→ all inserts here</text>
+
+      <!-- Edges root→internal -->
+      <line x1="400" y1="76" x2="240" y2="140" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#arr-b)"/>
+      <line x1="460" y1="76" x2="460" y2="140" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#arr-b)"/>
+      <line x1="520" y1="76" x2="680" y2="140" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#arr-b)"/>
+
+      <!-- Leaf nodes (bottom row) -->
+      <rect x="40" y="270" width="130" height="52" rx="8" fill="#0e1626" stroke="#243049" stroke-width="1.5"/>
+      <text x="105" y="296" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">leaf</text>
+      <text x="105" y="312" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="11">1…111k</text>
+
+      <rect x="190" y="270" width="130" height="52" rx="8" fill="#0e1626" stroke="#243049" stroke-width="1.5"/>
+      <text x="255" y="296" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">leaf</text>
+      <text x="255" y="312" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="11">111k…222k</text>
+
+      <rect x="300" y="270" width="130" height="52" rx="8" fill="#0e1626" stroke="#243049" stroke-width="1.5"/>
+      <text x="365" y="296" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">leaf</text>
+      <text x="365" y="312" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="11">…</text>
+
+      <rect x="450" y="270" width="130" height="52" rx="8" fill="#0e1626" stroke="#243049" stroke-width="1.5"/>
+      <text x="515" y="296" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">leaf</text>
+      <text x="515" y="312" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="11">…</text>
+
+      <!-- Rightmost leaf highlighted -->
+      <rect x="600" y="260" width="150" height="68" rx="8" fill="rgba(126,231,184,0.08)" stroke="#7ee7b8" stroke-width="2.5"/>
+      <text x="675" y="286" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">leaf (hot)</text>
+      <text x="675" y="306" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="12">999998</text>
+      <text x="675" y="322" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="12">999999 ← new</text>
+
+      <!-- Insert arrow from top-right -->
+      <text x="830" y="130" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">INSERT 1000000</text>
+      <text x="830" y="150" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">INSERT 1000001</text>
+      <text x="830" y="170" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="13">INSERT 1000002</text>
+      <line x1="830" y1="185" x2="770" y2="248" stroke="#7ee7b8" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arr-ins)"/>
+    </svg>
+    <p class="body-text muted" style="font-size: 22px; margin: 0;">One hot page. Always cached. <span style="color: var(--branch);">No page splits. No cache misses.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: UUIDV4 B-TREE ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">btree_uuid.sql</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> uuidv4 inserts</div>
+    <h2>Random → page splits<br><span style="color: var(--conflict);">everywhere</span>.</h2>
+    <svg width="100%" viewBox="0 0 920 410" style="margin: 0 0 16px;">
+      <defs>
+        <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-split" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#ff7a8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Root -->
+      <rect x="340" y="20" width="240" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="460" y="40" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="14">ROOT</text>
+      <text x="460" y="58" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="12">00… … ff…</text>
+
+      <!-- Internal left -->
+      <rect x="80" y="130" width="210" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="185" y="162" text-anchor="middle" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="12">internal 00…–7f…</text>
+
+      <!-- Internal right -->
+      <rect x="630" y="130" width="210" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="735" y="162" text-anchor="middle" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="12">internal 80…–ff…</text>
+
+      <line x1="420" y1="72" x2="250" y2="130" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#arr-r)"/>
+      <line x1="500" y1="72" x2="680" y2="130" stroke="#4a90c2" stroke-width="1.5" marker-end="url(#arr-r)"/>
+
+      <!-- Leaf nodes — several split (coral) -->
+      <rect x="20" y="258" width="120" height="58" rx="8" fill="rgba(255,122,138,0.12)" stroke="#ff7a8a" stroke-width="2"/>
+      <text x="80" y="280" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="12">SPLIT</text>
+      <text x="80" y="298" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="11">leaf</text>
+      <text x="80" y="312" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="10">1c3e…</text>
+
+      <rect x="155" y="258" width="120" height="58" rx="8" fill="#0e1626" stroke="#243049" stroke-width="1.5"/>
+      <text x="215" y="284" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">leaf</text>
+      <text x="215" y="300" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="10">2a7f…</text>
+
+      <rect x="290" y="258" width="120" height="58" rx="8" fill="rgba(255,122,138,0.12)" stroke="#ff7a8a" stroke-width="2"/>
+      <text x="350" y="280" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="12">SPLIT</text>
+      <text x="350" y="298" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="11">leaf</text>
+      <text x="350" y="312" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="10">4b12…</text>
+
+      <rect x="425" y="258" width="120" height="58" rx="8" fill="rgba(255,122,138,0.12)" stroke="#ff7a8a" stroke-width="2"/>
+      <text x="485" y="280" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="12">SPLIT</text>
+      <text x="485" y="298" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="11">leaf</text>
+      <text x="485" y="312" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="10">7d90…</text>
+
+      <rect x="560" y="258" width="120" height="58" rx="8" fill="#0e1626" stroke="#243049" stroke-width="1.5"/>
+      <text x="620" y="284" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12">leaf</text>
+      <text x="620" y="300" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="10">a3c4…</text>
+
+      <rect x="695" y="258" width="120" height="58" rx="8" fill="rgba(255,122,138,0.12)" stroke="#ff7a8a" stroke-width="2"/>
+      <text x="755" y="280" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="12">SPLIT</text>
+      <text x="755" y="298" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="11">leaf</text>
+      <text x="755" y="312" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="10">e8f1…</text>
+
+      <!-- Arrows from insert pointing randomly -->
+      <text x="460" y="360" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="13">INSERT a9f3… → random page evicted from cache</text>
+      <line x1="350" y1="355" x2="240" y2="316" stroke="#ff7a8a" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr-split)"/>
+      <line x1="570" y1="355" x2="700" y2="316" stroke="#ff7a8a" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr-split)"/>
+    </svg>
+    <p class="body-text muted" style="font-size: 21px; margin: 0;"><span style="color: var(--conflict);">Every insert → different page</span>. Cold read from disk. B-tree bloat. Write throughput collapses.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: UUIDV7 ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">uuidv7.sql</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> the fix</div>
+    <h2>UUIDv7 — distributed <span style="color: var(--branch);">and</span><br>sequential.</h2>
+    <p class="lede">Time-ordered UUID. Starts with a millisecond timestamp → inserts cluster at the rightmost leaf, just like bigint.</p>
+<pre class="sm"><span class="com">-- PG 18 native (or use pg_uuidv7 extension)</span>
+<span class="kw">CREATE</span> <span class="kw">EXTENSION</span> <span class="str">pg_uuidv7</span>;
+
+<span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="prop">orders</span> (
+  <span class="hi">  id   <span class="kw">uuid</span> <span class="kw">DEFAULT</span> <span class="fn">uuidv7</span>() <span class="kw">PRIMARY KEY</span>,</span>
+  item <span class="kw">text</span>
+);
+
+<span class="com">-- structure of a UUIDv7:</span>
+<span class="com">-- 0192d3a0-4f1e-7... ← timestamp prefix</span>
+<span class="com">-- 48-bit ms timestamp | 12-bit seq | random</span></pre>
+    <div class="center-row" style="margin-top: 12px;">
+      <div class="pill conflict">UUIDv4 — random</div>
+      <span class="arrow">→</span>
+      <div class="pill branch">UUIDv7 — time-ordered</div>
+      <span class="arrow">→</span>
+      <div class="pill accent">same write pattern as bigint</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: BENCHMARK ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">bench.sql</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> see it yourself</div>
+    <h2>1M inserts.<br><span style="color: var(--merge);">Real numbers.</span></h2>
+
+    <div style="margin: 0 0 20px;">
+      <div class="bench-row">
+        <div class="bench-label">bigint</div>
+        <div class="bench-bar-wrap"><div class="bench-bar bigint">~95k rows/sec (baseline)</div></div>
+      </div>
+      <div class="bench-row">
+        <div class="bench-label">uuidv7</div>
+        <div class="bench-bar-wrap"><div class="bench-bar uuidv7">~88k rows/sec (−8%)</div></div>
+      </div>
+      <div class="bench-row">
+        <div class="bench-label">uuidv4</div>
+        <div class="bench-bar-wrap"><div class="bench-bar uuidv4">~46k rows/sec (−52%)</div></div>
+      </div>
+    </div>
+
+<pre class="xs"><span class="com">-- check index splits / bloat</span>
+<span class="kw">SELECT</span> <span class="prop">indexrelname</span>, <span class="prop">idx_blks_read</span>, <span class="prop">idx_blks_hit</span>
+<span class="kw">FROM</span>   <span class="fn">pg_statio_user_indexes</span>
+<span class="kw">WHERE</span>  <span class="prop">indexrelname</span> <span class="kw">LIKE</span> <span class="str">'orders_pkey%'</span>;
+
+<span class="com">-- high idx_blks_read / low hit ratio = page thrashing</span></pre>
+    <p class="body-text muted" style="font-size: 20px; margin: 0;">UUIDv4 penalty worsens as DB grows beyond RAM. All those pages can't stay in cache.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.sql</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> tl;dr</div>
+    <h2 style="font-size: 48px; margin-bottom: 20px;">PK choice = write pattern.</h2>
+    <ul class="recap-list">
+      <li><span class="key">UUIDv4</span> random → page splits → cache misses → slow</li>
+      <li><span class="key">bigint</span> sequential → rightmost leaf → tight, fast</li>
+      <li><span class="key">size</span> 16B vs 8B — multiplied by every FK and index</li>
+      <li><span class="key">UUIDv7</span> time-ordered — distributed IDs, bigint write cost</li>
+      <li>Use UUIDs only when you need distributed uniqueness</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: JSONB — when to embrace, when to regret →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

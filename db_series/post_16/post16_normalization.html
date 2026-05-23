@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Normalization in one carousel — DB Series #16</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;          /* postgres blue */
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;          /* mint — success / index */
+    --merge: #ffb454;           /* amber — highlight / sql kw */
+    --conflict: #ff7a8a;        /* coral — errors */
+    --staged: #c8a8ff;          /* lavender — refs */
+    --head: #ffb454;            /* amber for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 18px 22px; line-height: 1.55; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .bad { background: rgba(255, 122, 138, 0.10); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .good { background: rgba(126, 231, 184, 0.10); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .col-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    margin-bottom: 8px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  .col-label.bad { background: rgba(255,122,138,0.15); color: var(--conflict); border-left: none; margin-left: 0; padding-left: 12px; }
+  .col-label.good { background: rgba(126,231,184,0.15); color: var(--branch); border-left: none; margin-left: 0; padding-left: 12px; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">schema.sql</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">-- </span> #16 schema &amp; integrity</div>
+    <h1>Normalization<br>in <span class="accent-text">one carousel</span>.</h1>
+    <div class="cover-tagline">No Boyce-Codd. No tears.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">why.sql</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> the myth</div>
+    <h2>Normalization is<br><span style="color:var(--conflict);">supposedly</span> hard.</h2>
+    <p class="lede">It's actually three rules. Most schemas need only the first three forms. That's it.</p>
+
+    <div class="center-row" style="margin-top: 8px;">
+      <div class="pill conflict">1NF</div>
+      <div class="arrow">→</div>
+      <div class="pill accent">2NF</div>
+      <div class="arrow">→</div>
+      <div class="pill branch">3NF</div>
+      <div class="arrow">→</div>
+      <div class="pill" style="color: var(--text-dim); border-color: var(--border);">BCNF, 4NF, 5NF…</div>
+    </div>
+
+    <p class="body-text" style="margin-top: 24px;">
+      Each form <span style="color: var(--accent);">adds one constraint</span> on top of the previous.
+      Devs overthink it. You don't need BCNF for a blog.
+    </p>
+    <p class="body-text muted">
+      Stop at 3NF. Denormalize <em>only</em> when the query plan forces you.
+    </p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: 1NF ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">1nf.sql</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> first normal form</div>
+    <h2><span style="color:var(--conflict);">1NF</span> — atomic values.<br>No arrays-in-a-column.</h2>
+
+    <div class="two-col" style="margin-top: 8px;">
+      <div>
+        <div class="col-label bad">✗ BAD</div>
+        <pre class="xs"><span class="com">-- tags crammed in one string</span>
+<span class="kw">CREATE TABLE</span> posts (
+  id      <span class="fn">BIGINT</span> <span class="kw">PRIMARY KEY</span>,
+  title   <span class="fn">TEXT</span>,
+<span class="bad">  tags    <span class="fn">VARCHAR</span>(200)
+  <span class="com">-- "db,sql,index"</span></span>
+);</pre>
+      </div>
+      <div>
+        <div class="col-label good">✓ GOOD</div>
+        <pre class="xs"><span class="com">-- proper array column + GIN</span>
+<span class="kw">CREATE TABLE</span> posts (
+  id      <span class="fn">BIGINT</span> <span class="kw">PRIMARY KEY</span>,
+  title   <span class="fn">TEXT</span>,
+<span class="good">  tags    <span class="fn">TEXT[]</span></span>
+);
+<span class="good"><span class="kw">CREATE INDEX</span> ON posts
+  <span class="kw">USING</span> <span class="fn">GIN</span>(tags);</span></pre>
+      </div>
+    </div>
+
+    <p class="body-text muted" style="font-size: 22px; margin-top: 6px;">
+      Or: a separate <span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">post_tags(post_id, tag)</span> table if you need tag-level queries.
+      Either way — <span style="color: var(--merge);">no CSVs in columns</span>.
+    </p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: 2NF ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">2nf.sql</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> second normal form</div>
+    <h2><span style="color:var(--accent);">2NF</span> — whole-key<br>dependency.</h2>
+    <p class="lede" style="margin-bottom: 18px;">Composite key <span style="font-family:'JetBrains Mono',monospace; color:var(--merge);">(order_id, product_id)</span> → every non-key column must depend on the <em>whole</em> key.</p>
+
+    <svg width="100%" viewBox="0 0 920 290" style="margin: 0 0 16px;">
+      <defs>
+        <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#ff7a8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="b2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#7ee7b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- BAD table box -->
+      <rect x="10" y="20" width="380" height="240" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="200" y="50" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="16">order_items  ✗</text>
+      <rect x="30" y="62" width="340" height="34" rx="5" fill="#0e1626" stroke="#36456a"/>
+      <text x="50" y="84" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">PK: order_id, product_id</text>
+      <text x="50" y="120" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="14">qty       INTEGER</text>
+      <text x="50" y="148" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="14">product_name  TEXT   ← partial dep</text>
+      <text x="50" y="176" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="14">product_price NUMERIC ← partial dep</text>
+      <text x="50" y="210" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12" font-style="italic">depends only on product_id, not full key</text>
+
+      <!-- arrow: partial dep columns out to products -->
+      <line x1="390" y1="162" x2="530" y2="162" stroke="#ff7a8a" stroke-width="2" marker-end="url(#b1)"/>
+      <text x="460" y="152" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13">move →</text>
+
+      <!-- GOOD products table -->
+      <rect x="540" y="90" width="360" height="170" rx="10" fill="#141d2e" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="720" y="118" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="16">products  ✓</text>
+      <rect x="560" y="128" width="320" height="32" rx="5" fill="#0e1626" stroke="#36456a"/>
+      <text x="580" y="149" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">PK: id</text>
+      <text x="580" y="182" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="14">name   TEXT</text>
+      <text x="580" y="208" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="14">price  NUMERIC</text>
+      <text x="580" y="238" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="13">← referenced by order_items.product_id</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 21px;">
+      <span style="color:var(--merge);">qty</span> stays — it depends on the full pair.
+      <span style="color:var(--conflict);">product_name</span> goes — it only needs <span style="color:var(--merge);">product_id</span>.
+    </p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: 3NF ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">3nf.sql</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> third normal form</div>
+    <h2><span style="color:var(--branch);">3NF</span> — no transitive<br>dependency.</h2>
+    <p class="lede" style="margin-bottom: 14px;">Non-key columns must depend on the key, not on each other.</p>
+
+    <svg width="100%" viewBox="0 0 920 290" style="margin: 0 0 14px;">
+      <defs>
+        <marker id="c1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#ff7a8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="c2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#7ee7b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- BAD users table -->
+      <rect x="10" y="20" width="380" height="240" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="200" y="50" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="16">users  ✗</text>
+      <rect x="30" y="62" width="340" height="32" rx="5" fill="#0e1626" stroke="#36456a"/>
+      <text x="50" y="83" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">PK: id</text>
+      <text x="50" y="116" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="14">name     TEXT</text>
+      <text x="50" y="142" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="14">city     TEXT</text>
+      <text x="50" y="168" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="14">zip      VARCHAR    ← transitive</text>
+      <text x="50" y="194" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="14">country  VARCHAR    ← depends on zip</text>
+      <text x="50" y="228" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="12" font-style="italic">zip → country, not id → country</text>
+
+      <!-- arrow out -->
+      <line x1="390" y1="181" x2="530" y2="181" stroke="#ff7a8a" stroke-width="2" marker-end="url(#c1)"/>
+      <text x="460" y="170" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13">move →</text>
+
+      <!-- zip_codes table -->
+      <rect x="540" y="108" width="360" height="148" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="720" y="136" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="16">zip_codes  ✓</text>
+      <rect x="560" y="146" width="320" height="32" rx="5" fill="#0e1626" stroke="#36456a"/>
+      <text x="580" y="167" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14">PK: zip</text>
+      <text x="580" y="202" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="14">city      TEXT</text>
+      <text x="580" y="228" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="14">country   VARCHAR</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 21px;">
+      <span style="color:var(--conflict);">country</span> depends on <span style="color:var(--merge);">zip</span>, not on <span style="color:var(--staged);">user.id</span>.
+      That's a transitive dep — extract it.
+    </p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: THE TRADEOFF ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">denorm.sql</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> the honest tradeoff</div>
+    <h2>Fully normalized =<br><span style="color:var(--merge);">more joins</span>.</h2>
+    <p class="lede" style="margin-bottom: 18px;">Sometimes that's fine. Hot-path reads? Break the rule. Deliberately.</p>
+
+<pre class="sm"><span class="com">-- normalized: join every time</span>
+<span class="kw">SELECT</span> p.title, u.name <span class="kw">AS</span> author
+<span class="kw">FROM</span>  posts p
+<span class="kw">JOIN</span>  users u <span class="kw">ON</span> u.id = p.user_id
+<span class="kw">WHERE</span> p.id = <span class="num">42</span>;
+
+<span class="com">-- denormalized: author_name stored on posts</span>
+<span class="hi"><span class="kw">SELECT</span> title, author_name <span class="kw">FROM</span> posts <span class="kw">WHERE</span> id = <span class="num">42</span>;</span>
+<span class="com">-- single PK lookup. zero joins.</span></pre>
+
+    <p class="body-text muted" style="font-size: 21px; margin-top: 4px;">
+      The cost: <span style="color:var(--conflict);">author_name</span> can drift if users rename.
+      Acceptable? Your call. Make it <span style="color:var(--accent);">intentional</span>, not accidental.
+    </p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">refactor.sql</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> see it yourself</div>
+    <h2>Messy → 3NF.<br><span style="color:var(--accent);">Side by side</span>.</h2>
+
+    <div class="two-col" style="margin-top: 8px;">
+      <div>
+        <div class="col-label bad">✗ before (1 big table)</div>
+        <pre class="xs"><span class="kw">CREATE TABLE</span> blog (
+  id          <span class="fn">BIGINT</span> <span class="kw">PK</span>,
+  title       <span class="fn">TEXT</span>,
+<span class="bad">  author_name <span class="fn">TEXT</span>,</span>
+<span class="bad">  author_email <span class="fn">TEXT</span>,</span>
+<span class="bad">  tags        <span class="fn">VARCHAR</span>(500),</span>
+<span class="bad">  cat_id      <span class="fn">INT</span>,</span>
+<span class="bad">  cat_name    <span class="fn">TEXT</span></span>
+);</pre>
+      </div>
+      <div>
+        <div class="col-label good">✓ after (3NF)</div>
+        <pre class="xs"><span class="kw">CREATE TABLE</span> users (
+  id    <span class="fn">BIGINT</span> <span class="kw">PK</span>,
+  name  <span class="fn">TEXT</span>, email <span class="fn">TEXT</span>
+);
+<span class="kw">CREATE TABLE</span> categories (
+  id   <span class="fn">BIGINT</span> <span class="kw">PK</span>, name <span class="fn">TEXT</span>
+);
+<span class="kw">CREATE TABLE</span> posts (
+  id       <span class="fn">BIGINT</span> <span class="kw">PK</span>,
+  title    <span class="fn">TEXT</span>,
+  user_id  <span class="fn">BIGINT</span> <span class="kw">REFERENCES</span> users,
+  cat_id   <span class="fn">BIGINT</span> <span class="kw">REFERENCES</span> categories,
+<span class="good">  tags     <span class="fn">TEXT[]</span></span>
+);</pre>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.sql</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">1NF</span> — atomic values. no arrays-in-a-column.</li>
+      <li><span class="key">2NF</span> — every non-key col depends on the whole key.</li>
+      <li><span class="key">3NF</span> — non-key cols don't depend on each other.</li>
+      <li>Normalize first. Denormalize <em>only</em> on measured read pressure.</li>
+      <li>BCNF/4NF/5NF — diminishing returns. Stop at 3.</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: foreign keys aren't overhead — they're invariants →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

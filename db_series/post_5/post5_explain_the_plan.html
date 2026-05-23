@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EXPLAIN — read the plan, not the SQL — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;          /* postgres blue */
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;          /* mint — success / index */
+    --merge: #ffb454;           /* amber — highlight / sql kw */
+    --conflict: #ff7a8a;        /* coral — errors */
+    --staged: #c8a8ff;          /* lavender — refs */
+    --head: #ffb454;            /* amber for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 20px 24px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-amber { background: rgba(255, 180, 84, 0.12); border-left: 3px solid var(--merge); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-mint { background: rgba(126, 231, 184, 0.12); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 25px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* cost breakdown table */
+  .cost-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 0 0 24px;
+  }
+  .cost-item {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+  .cost-item .ci-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .cost-item .ci-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .cost-item .ci-desc {
+    font-size: 18px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">explain.sql</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">-- </span> post #5 · postgres series</div>
+    <h1>Stop reading<br>the SQL.<br>Read the <span class="accent-text">plan</span>.</h1>
+    <div class="cover-tagline">EXPLAIN reveals what actually runs.<br>The SQL is just your intent.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">planner.sql</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> your sql is a request, not instructions</div>
+    <h2>You write intent.<br>Postgres decides <span style="color: var(--accent);">how</span>.</h2>
+    <p class="lede">You write <code style="font-family:'JetBrains Mono',monospace; color:var(--merge);">SELECT … WHERE id = 42</code>. The query planner rewrites that into an execution plan — an operator tree with joins, scans, sorts.</p>
+    <p class="body-text">The SQL string is <span style="color: var(--conflict);">irrelevant</span> to performance.<br>The <span style="color: var(--branch);">plan</span> is what runs.</p>
+    <div class="center-row" style="margin-top: 8px;">
+      <div class="pill merge">your SQL</div>
+      <div class="arrow">→ planner →</div>
+      <div class="pill branch">execution plan</div>
+      <div class="arrow">→ executor →</div>
+      <div class="pill accent">rows</div>
+    </div>
+    <p class="body-text muted" style="font-size: 21px; margin-top: 8px;">Two different SQLs can produce identical plans. Same SQL on different data → different plans. <span style="color: var(--accent);">Read THAT.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: EXPLAIN BASICS ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">explain.sql</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> seq scan vs index scan</div>
+    <h2>Same query.<br><span style="color: var(--conflict);">Two</span> different plans.</h2>
+<pre class="sm"><span class="com">-- no index on email</span>
+<span class="kw">EXPLAIN</span> <span class="kw">SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> email = <span class="str">'alice@example.com'</span>;
+
+<span class="hi-amber"><span class="conflict">Seq Scan</span> on users  (cost=<span class="num">0.00</span>..<span class="num">241.00</span> rows=<span class="num">1</span> width=<span class="num">64</span>)
+  Filter: (email = <span class="str">'alice@example.com'</span>)</span>
+
+<span class="com">-- after: CREATE INDEX ON users(email)</span>
+<span class="kw">EXPLAIN</span> <span class="kw">SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> email = <span class="str">'alice@example.com'</span>;
+
+<span class="hi-mint"><span class="branch">Index Scan</span> using users_email_idx  (cost=<span class="num">0.42</span>..<span class="num">8.44</span> rows=<span class="num">1</span> width=<span class="num">64</span>)
+  Index Cond: (email = <span class="str">'alice@example.com'</span>)</span></pre>
+    <p class="body-text muted" style="font-size: 21px;"><span style="color: var(--conflict);">Seq Scan</span> = read every row. <span style="color: var(--branch);">Index Scan</span> = jump straight to matching rows. Cost drops from <span style="color: var(--conflict);">241</span> → <span style="color: var(--branch);">8.44</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: SVG OPERATOR TREE ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">plan_tree.sql</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> the plan is a tree — data flows upward</div>
+    <h2>Operator tree.<br>Read <span style="color: var(--accent);">bottom-up</span>.</h2>
+
+    <svg width="100%" viewBox="0 0 920 460" style="margin: 0 0 18px;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Root: Hash Join (top center) -->
+      <rect x="330" y="30" width="260" height="70" rx="10" fill="#141d2e" stroke="#4a90c2" stroke-width="2.5"/>
+      <text x="460" y="62" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600">Hash Join</text>
+      <text x="460" y="86" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="14">cost=120..580</text>
+
+      <!-- Left branch: Seq Scan (orders) -->
+      <rect x="80" y="210" width="240" height="70" rx="10" fill="#141d2e" stroke="#ff7a8a" stroke-width="2"/>
+      <text x="200" y="242" text-anchor="middle" fill="#ff7a8a" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">Seq Scan</text>
+      <text x="200" y="264" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">orders  cost=0..88</text>
+
+      <!-- Right branch: Hash (users) containing Index Scan -->
+      <rect x="600" y="210" width="240" height="70" rx="10" fill="#141d2e" stroke="#ffb454" stroke-width="2"/>
+      <text x="720" y="242" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">Hash</text>
+      <text x="720" y="264" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">cost=8..42</text>
+
+      <!-- Leaf: Index Scan under Hash -->
+      <rect x="590" y="380" width="260" height="70" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="2"/>
+      <text x="720" y="412" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">Index Scan</text>
+      <text x="720" y="434" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="13">users_pkey  cost=0.42..8.44</text>
+
+      <!-- Arrows: data flows upward -->
+      <!-- Seq Scan → Hash Join -->
+      <line x1="200" y1="210" x2="380" y2="100" stroke="#4a90c2" stroke-width="2" marker-end="url(#arr2)"/>
+      <!-- Hash → Hash Join -->
+      <line x1="720" y1="210" x2="540" y2="100" stroke="#4a90c2" stroke-width="2" marker-end="url(#arr2)"/>
+      <!-- Index Scan → Hash -->
+      <line x1="720" y1="380" x2="720" y2="280" stroke="#4a90c2" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <!-- Labels on arrows -->
+      <text x="270" y="168" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13" font-style="italic">rows ↑</text>
+      <text x="660" y="168" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13" font-style="italic">rows ↑</text>
+      <text x="748" y="340" text-anchor="start" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13" font-style="italic">rows ↑</text>
+
+      <!-- Read direction hint -->
+      <text x="30" y="450" text-anchor="start" fill="#93a3bf" font-family="Inter, sans-serif" font-size="15">← start here, read upward</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 21px; margin: 0;">Leaves execute first. Root produces the final result. Each node feeds rows to its parent.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: THE NUMBERS ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">cost_numbers.sql</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> decode the cost string</div>
+    <h2>What the numbers<br>actually <span style="color: var(--accent);">mean</span>.</h2>
+<pre style="margin-bottom: 20px; font-size: 19px;">Index Scan  (cost=<span class="num">0.42</span>..<span class="num">8.44</span>  rows=<span class="num">1</span>  width=<span class="num">64</span>)</pre>
+    <div class="cost-breakdown">
+      <div class="cost-item">
+        <div class="ci-label">cost=0.42..</div>
+        <div class="ci-value" style="color: var(--accent);">startup cost</div>
+        <div class="ci-desc">cost before first row emitted — index traversal, hash build, sort</div>
+      </div>
+      <div class="cost-item">
+        <div class="ci-label">..8.44</div>
+        <div class="ci-value" style="color: var(--merge);">total cost</div>
+        <div class="ci-desc">cost to emit all rows — what matters for most queries</div>
+      </div>
+      <div class="cost-item">
+        <div class="ci-label">rows=</div>
+        <div class="ci-value" style="color: var(--branch);">est. rows</div>
+        <div class="ci-desc">planner's guess based on table statistics, not a measurement</div>
+      </div>
+      <div class="cost-item">
+        <div class="ci-label">width=</div>
+        <div class="ci-value" style="color: var(--staged);">avg bytes</div>
+        <div class="ci-desc">average row width in bytes — affects sort &amp; hash memory</div>
+      </div>
+    </div>
+    <p class="body-text muted" style="font-size: 20px; margin: 0;">Cost units are arbitrary. Compare plans <span style="color: var(--accent);">relative to each other</span>, not absolute numbers. These are <span style="color: var(--conflict);">estimates</span>, not measurements.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: EXPLAIN ANALYZE ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">explain_analyze.sql</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> estimates vs actuals</div>
+    <h2>ANALYZE adds<br><span style="color: var(--branch);">real numbers</span>.</h2>
+<pre class="sm"><span class="kw">EXPLAIN ANALYZE</span>
+  <span class="kw">SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> id = <span class="num">42</span>;
+
+Index Scan using users_pkey on users
+  (cost=<span class="num">0.42</span>..<span class="num">8.44</span> rows=<span class="num">1</span> width=<span class="num">64</span>)
+<span class="hi">  (actual time=<span class="branch">0.012</span>..<span class="branch">0.014</span> rows=<span class="num">1</span> loops=<span class="num">1</span>)</span>
+  Index Cond: (id = <span class="num">42</span>)
+Planning Time: <span class="num">0.184</span> ms
+Execution Time: <span class="num">0.041</span> ms</pre>
+    <p class="body-text" style="margin-top: 8px;">Highlighted line = <span style="color: var(--branch);">actual measurements</span>. Compare to cost estimates above it.</p>
+    <p class="body-text muted" style="font-size: 22px;"><span style="color: var(--merge);">rows estimate = 1. actual rows = 1.</span> Planner was right.<br>When they diverge badly → stale stats. Run <code style="font-family:'JetBrains Mono',monospace; color:var(--accent);">ANALYZE tablename</code>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pg_stat_statements</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> the full command — copy-paste this</div>
+    <h2>Full EXPLAIN.<br>Run this <span style="color: var(--accent);">now</span>.</h2>
+<pre class="xs"><span class="kw">EXPLAIN</span> (<span class="prop">ANALYZE</span>, <span class="prop">BUFFERS</span>, <span class="prop">VERBOSE</span>)
+  <span class="kw">SELECT</span> o.id, u.email, o.total
+  <span class="kw">FROM</span> orders o
+  <span class="kw">JOIN</span> users u <span class="kw">ON</span> u.id = o.user_id
+  <span class="kw">WHERE</span> o.status = <span class="str">'pending'</span>;
+
+Hash Join  (cost=<span class="num">42.0</span>..<span class="num">580.0</span> rows=<span class="num">240</span> width=<span class="num">48</span>)
+           (actual time=<span class="branch">1.2</span>..<span class="branch">14.7</span> rows=<span class="num">237</span> loops=<span class="num">1</span>)
+  <span class="hi-amber">Buffers: shared hit=<span class="num">82</span> read=<span class="num">144</span>   <span class="com">← 144 disk reads!</span></span>
+  -&gt;  Seq Scan on orders  (actual time=<span class="branch">0.03</span>..<span class="branch">9.1</span> rows=<span class="num">10000</span>)
+        Filter: (status = <span class="str">'pending'</span>)
+        <span class="hi">Rows Removed by Filter: <span class="num">9763</span>   <span class="com">← index opportunity</span></span>
+  -&gt;  Hash  (actual time=<span class="branch">0.8</span>..<span class="branch">0.8</span> rows=<span class="num">500</span>)
+        Buckets: <span class="num">1024</span>  Batches: <span class="num">1</span>  Mem: <span class="num">42</span>kB
+        -&gt;  Index Scan using users_pkey ...</pre>
+    <p class="body-text muted" style="font-size: 19px; margin: 0;"><span style="color: var(--merge);">BUFFERS</span> shows disk vs cache hits. <span style="color: var(--conflict);">144 reads</span> + 9763 rows filtered = add an index on <code style="font-family:'JetBrains Mono',monospace">orders(status)</code>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.sql</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span> tl;dr</div>
+    <h2 style="font-size: 48px; margin-bottom: 20px;">Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">plan</span> is what runs — SQL is just intent</li>
+      <li>read <span class="key">bottom-up</span>, inside-out — leaves first</li>
+      <li><span class="key">EXPLAIN</span> = estimates (cost, rows)</li>
+      <li><span class="key">ANALYZE</span> = actuals (time, real rows)</li>
+      <li>rows mismatch? run <span class="key">ANALYZE tablename</span></li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next up: <code style="font-family:'JetBrains Mono',monospace; color:var(--merge);">SELECT *</code> is a smell — projection &amp; I/O →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

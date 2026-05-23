@@ -1,0 +1,415 @@
+{
+  "1": {
+    "title": "A database is a file. Why that matters.",
+    "variants": {
+      "mystery_hook": "Everyone talks about databases like they're magic black boxes.\nThey're not.\nOnce you see what your DB actually is, every performance question changes. ⬇️",
+      "direct_value": "A database is a file on disk. Pages, bytes, fsync calls. The whole mental model — from file descriptor to query result — in 8 slides. ⬇️",
+      "short_punchy": "Your database is a file.\nEverything else is just software on top. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#sql",
+      "#database",
+      "#softwareengineering",
+      "#devthread",
+      "#backend",
+      "#programming",
+      "#databases",
+      "#devtips"
+    ]
+  },
+  "2": {
+    "title": "Pages — the 8KB atom.",
+    "variants": {
+      "mystery_hook": "Postgres doesn't read rows.\nIt doesn't read columns either.\nIt reads 8KB chunks. And that one fact changes how you think about every query. ⬇️",
+      "direct_value": "Pages are the atomic unit of Postgres I/O — 8192 bytes, every time. Rows, indexes, TOAST — all pages. Here's what's inside one. ⬇️",
+      "short_punchy": "8KB in. 8KB out.\nThat's all Postgres sees. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#dba",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#sql",
+      "#databases",
+      "#programming",
+      "#devtips"
+    ]
+  },
+  "3": {
+    "title": "The heap — where rows actually live.",
+    "variants": {
+      "mystery_hook": "You wrote `INSERT INTO users`. Where did that row go?\nNot where you think.\nThe heap is weirder than the name suggests. ⬇️",
+      "direct_value": "The heap: Postgres's unordered row store. Page layout, line pointers, tuple headers, dead tuples. What happens between INSERT and SELECT. ⬇️",
+      "short_punchy": "The heap is chaos.\nOrdered queries on unordered data.\nNow you know. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#sql",
+      "#database",
+      "#backend",
+      "#dba",
+      "#devthread",
+      "#softwareengineering",
+      "#databases",
+      "#programming"
+    ]
+  },
+  "4": {
+    "title": "Indexes aren't magic — they're sorted pointers (B-tree intro).",
+    "variants": {
+      "mystery_hook": "\"Just add an index\" is the most repeated advice in databases.\nAlmost nobody knows what that actually does.\nHere's the real structure. ⬇️",
+      "direct_value": "A B-tree index is a sorted structure of (value → heap pointer) pairs. How leaf nodes, root, and branches work together — and why ORDER BY gets fast for free. ⬇️",
+      "short_punchy": "Index = sorted list of pointers.\nThat's it.\nNow stop guessing. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#sql",
+      "#database",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#dba",
+      "#programming",
+      "#devtips",
+      "#datamodeling"
+    ]
+  },
+  "5": {
+    "title": "EXPLAIN — read the plan, not the SQL.",
+    "variants": {
+      "mystery_hook": "You've been optimizing the wrong thing.\nYour slow query isn't slow for the reason you think.\nThe proof is one command away. ⬇️",
+      "direct_value": "`EXPLAIN ANALYZE` decoded: seq scan vs index scan, cost estimates, actual rows, loops. How to read the plan Postgres chose — and how to change it. ⬇️",
+      "short_punchy": "Don't guess. EXPLAIN.\nThe plan doesn't lie. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#sql",
+      "#database",
+      "#backend",
+      "#dba",
+      "#devthread",
+      "#softwareengineering",
+      "#databases",
+      "#devtips",
+      "#performance"
+    ]
+  },
+  "6": {
+    "title": "`SELECT *` is a smell — projection & I/O.",
+    "variants": {
+      "mystery_hook": "`SELECT *` looks harmless.\nIt isn't.\nOne star can multiply your I/O by 10x — even with an index. ⬇️",
+      "direct_value": "Projection matters: `SELECT *` forces full row reads, blows index-only scans, pulls TOAST columns. How to audit and fix it with `EXPLAIN (ANALYZE, BUFFERS)`. ⬇️",
+      "short_punchy": "`SELECT *` reads everything.\nName your columns. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#sql",
+      "#database",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#programming",
+      "#devtips"
+    ]
+  },
+  "7": {
+    "title": "Joins are loops (nested loop / hash / merge).",
+    "variants": {
+      "mystery_hook": "Every JOIN you've written is secretly a loop.\nSometimes it's 3 nested ones.\nPostgres picks which kind — and the wrong pick is why your query is slow. ⬇️",
+      "direct_value": "The 3 join strategies: nested loop (small inputs), hash join (large unsorted), merge join (pre-sorted). When Postgres picks each and how to read it in EXPLAIN. ⬇️",
+      "short_punchy": "Joins are loops.\n3 kinds. One winner per query. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#sql",
+      "#database",
+      "#backend",
+      "#dba",
+      "#devthread",
+      "#softwareengineering",
+      "#databases",
+      "#programming",
+      "#performance"
+    ]
+  },
+  "8": {
+    "title": "Sargability — why `WHERE lower(email) = …` kills your index.",
+    "variants": {
+      "mystery_hook": "You have an index on `email`.\nYour query is still slow.\nYou wrapped a function around it. That's the entire problem. ⬇️",
+      "direct_value": "Sargability: a predicate that can use an index vs one that can't. Why `WHERE lower(email) = ...` forces a seq scan — and the 3 fixes including expression indexes. ⬇️",
+      "short_punchy": "Wrap a function → lose the index.\nThat's sargability. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#sql",
+      "#database",
+      "#dba",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#programming",
+      "#devtips",
+      "#datamodeling"
+    ]
+  },
+  "9": {
+    "title": "NULL is not a value — three-valued logic.",
+    "variants": {
+      "mystery_hook": "`WHERE email != 'test@test.com'` won't return rows where email is NULL.\nMost devs are surprised by this.\nSQL runs on 3-valued logic — not 2. ⬇️",
+      "direct_value": "NULL in SQL: TRUE / FALSE / UNKNOWN. Why `NULL != anything` is UNKNOWN, why `NOT IN` with NULLs returns nothing, and how `IS DISTINCT FROM` saves you. ⬇️",
+      "short_punchy": "NULL is not false.\nNot empty. Not zero.\nUNKNOWN. →"
+    },
+    "tags": [
+      "#sql",
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#databases",
+      "#softwareengineering",
+      "#devthread",
+      "#backend",
+      "#programming",
+      "#devtips"
+    ]
+  },
+  "10": {
+    "title": "Clause order ≠ execution order.",
+    "variants": {
+      "mystery_hook": "You write SQL in one order.\nPostgres runs it in a different order entirely.\nThat gap explains every \"why can't I use my alias here?\" error. ⬇️",
+      "direct_value": "SQL execution order: FROM → JOIN → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. Why aliases fail in WHERE, why window fns go last, with real errors decoded. ⬇️",
+      "short_punchy": "You write SELECT first.\nPostgres runs it sixth.\nSave this. →"
+    },
+    "tags": [
+      "#sql",
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#webdev",
+      "#programming",
+      "#devtips"
+    ]
+  },
+  "11": {
+    "title": "B-tree vs hash vs GIN vs BRIN.",
+    "variants": {
+      "mystery_hook": "There are 4 index types in Postgres.\nMost devs only know one.\nThe other 3 are faster for the queries you're probably running. ⬇️",
+      "direct_value": "B-tree (range/equality), hash (equality-only), GIN (arrays/JSONB/FTS), BRIN (time-series/monotonic). When to use each — with query patterns and size trade-offs. ⬇️",
+      "short_punchy": "4 index types. 4 different jobs.\nYou're overusing B-tree. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#dba",
+      "#sql",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#databases",
+      "#programming",
+      "#performance"
+    ]
+  },
+  "12": {
+    "title": "MVCC — your row has versions, not locks.",
+    "variants": {
+      "mystery_hook": "Two transactions read the same row at the same time without blocking each other.\nNo lock.\nHow is that possible? ⬇️",
+      "direct_value": "MVCC: Postgres keeps multiple row versions (xmin/xmax). Readers never block writers. How snapshots work, what dead tuples cost, and why VACUUM exists because of this. ⬇️",
+      "short_punchy": "Readers don't block writers.\nThat's MVCC.\nYour row has versions. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#dba",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#sql",
+      "#databases",
+      "#programming"
+    ]
+  },
+  "13": {
+    "title": "VACUUM — why your DB takes out the trash.",
+    "variants": {
+      "mystery_hook": "Your table keeps growing even though you DELETE everything.\nDisk space doesn't come back.\nThis isn't a bug. It's MVCC's tax — and VACUUM is the payment. ⬇️",
+      "direct_value": "VACUUM explained: dead tuples from MVCC, how autovacuum finds and reclaims them, bloat, VACUUM FULL vs regular, and the tuning knobs that matter. ⬇️",
+      "short_punchy": "DELETE doesn't free space.\nVACUUM does.\nNow you know why. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#dba",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#sql",
+      "#databases",
+      "#devtips"
+    ]
+  },
+  "14": {
+    "title": "WAL — the DB writes twice (durability).",
+    "variants": {
+      "mystery_hook": "When you COMMIT a transaction, Postgres writes to disk twice.\nThe second write is what makes it safe to cut the power.\nMost devs have no idea this exists. ⬇️",
+      "direct_value": "WAL (Write-Ahead Log): every change written to the log before the heap. How crash recovery works, what `fsync=off` risks, and why replication is basically WAL shipping. ⬇️",
+      "short_punchy": "Commit → two writes.\nOne is the safety net.\nThat's WAL. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#dba",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#sql",
+      "#databases",
+      "#programming"
+    ]
+  },
+  "15": {
+    "title": "Isolation levels — what \"repeatable read\" actually means.",
+    "variants": {
+      "mystery_hook": "You ran the same query twice in one transaction.\nDifferent results.\nThis isn't a bug. It's the default isolation level working exactly as designed. ⬇️",
+      "direct_value": "Isolation levels: Read Committed (default), Repeatable Read, Serializable. What each one prevents (dirty read / non-repeatable read / phantom read) — with real query pairs that reproduce each anomaly. ⬇️",
+      "short_punchy": "4 isolation levels.\n3 things they prevent.\nKnow what you're running. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#dba",
+      "#sql",
+      "#backend",
+      "#devthread",
+      "#softwareengineering",
+      "#databases",
+      "#programming",
+      "#devtips"
+    ]
+  },
+  "16": {
+    "title": "Normalization in one carousel (1NF → 3NF, no textbook).",
+    "variants": {
+      "mystery_hook": "Normalization has a reputation for being academic and slow.\nBoth are wrong.\n8 slides. Real schema. No theory. ⬇️",
+      "direct_value": "1NF → 2NF → 3NF: what each one actually removes (repeating groups, partial deps, transitive deps) — with a real orders schema transformed step by step. ⬇️",
+      "short_punchy": "3 normal forms.\nOne rule each.\nReal schema, no textbook. →"
+    },
+    "tags": [
+      "#sql",
+      "#database",
+      "#datamodeling",
+      "#postgres",
+      "#postgresql",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#databases",
+      "#programming",
+      "#dba"
+    ]
+  },
+  "17": {
+    "title": "Foreign keys aren't overhead — they're invariants.",
+    "variants": {
+      "mystery_hook": "\"We removed foreign keys for performance\" is the most dangerous sentence in database design.\nYou traded a constraint for a bug that's already in your data. ⬇️",
+      "direct_value": "Foreign keys: not a performance cost but a correctness guarantee. What they enforce, when the index cost is real, and why soft-deletes without FKs destroy data integrity. ⬇️",
+      "short_punchy": "Skip FK → orphaned rows.\nThat's not a feature.\nThat's a bug. →"
+    },
+    "tags": [
+      "#sql",
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#datamodeling",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#databases",
+      "#dba",
+      "#programming"
+    ]
+  },
+  "18": {
+    "title": "UUID vs bigint as PK — the index-page truth.",
+    "variants": {
+      "mystery_hook": "UUIDs look like a good primary key.\nThey're random. They're globally unique.\nThey're also quietly destroying your B-tree. ⬇️",
+      "direct_value": "UUID vs bigint PK: random UUIDs fragment B-tree leaf pages → page splits → bloat → slower inserts. UUIDv7 fixes this. Benchmarks, index sizes, and the trade-off table. ⬇️",
+      "short_punchy": "Random UUIDs fragment indexes.\nbigint or UUIDv7.\nChoose wisely. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#datamodeling",
+      "#dba",
+      "#sql",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#programming",
+      "#databases"
+    ]
+  },
+  "19": {
+    "title": "JSONB — when to embrace, when to regret.",
+    "variants": {
+      "mystery_hook": "JSONB feels like escaping schema design.\nIt is — and that freedom has a bill.\nHere's when it saves you and when it buries you. ⬇️",
+      "direct_value": "JSONB: binary storage, GIN indexing, operators. When it wins (sparse attributes, evolving schema) vs when to regret it (joins, aggregates, required columns). With query comparisons. ⬇️",
+      "short_punchy": "JSONB is a tool.\nNot a replacement for schema.\nKnow the line. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#database",
+      "#sql",
+      "#datamodeling",
+      "#backend",
+      "#softwareengineering",
+      "#devthread",
+      "#databases",
+      "#programming",
+      "#dba"
+    ]
+  },
+  "20": {
+    "title": "N+1 — the bug that scales linearly with users. (SERIES FINALE)",
+    "variants": {
+      "mystery_hook": "Your app works fine in dev.\nIn prod, with 10k users, it fires 10,001 queries per page.\nThe logs have been lying to you this whole time. ⬇️",
+      "direct_value": "N+1 explained: the loop that generates one query per row, how to spot it in logs and EXPLAIN, and the fixes — JOIN, eager load, `IN (...)`, subquery. Finale of a 20-post DB series. ⬇️",
+      "short_punchy": "1 query becomes N+1.\nScales with your users.\nFix it before prod finds it. →"
+    },
+    "tags": [
+      "#postgres",
+      "#postgresql",
+      "#sql",
+      "#database",
+      "#backend",
+      "#webdev",
+      "#softwareengineering",
+      "#devthread",
+      "#databases",
+      "#programming",
+      "#performance",
+      "#buildinpublic"
+    ]
+  }
+}

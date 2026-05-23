@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Promise Combinators — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a140d;
+    --bg-elev: #122019;
+    --bg-code: #0c1810;
+    --border: #1f3024;
+    --border-strong: #2f4a37;
+    --text: #e8f0e8;
+    --text-muted: #9bb3a0;
+    --text-dim: #6c8275;
+    --accent: #68a063;
+    --accent-soft: rgba(104, 160, 99, 0.15);
+    --branch: #c8f573;
+    --merge: #ffd166;
+    --conflict: #ff6b6b;
+    --staged: #93dcff;
+    --head: #ffd166;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 170, 130, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 170, 130, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 18px 22px; line-height: 1.55; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-red { background: rgba(255, 107, 107, 0.12); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-lime { background: rgba(200, 245, 115, 0.1); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 23px; line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; min-height: 0; }
+  .col-block { display: flex; flex-direction: column; }
+  .col-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+  .col-label.accent { color: var(--accent); }
+  .col-label.staged { color: var(--staged); }
+  .note-box {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 18px 22px;
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin-top: auto;
+  }
+  .note-box.lime { border-color: var(--branch); }
+  .note-box.red { border-color: var(--conflict); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">Promise.all.js</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> node.js async — post 9 / 20</div>
+    <h1>Four<br>combinators.</h1>
+    <div class="cover-tagline">Pick the <span style="color: var(--accent); font-weight: 700;">right one</span>.</div>
+    <div class="center-row" style="margin-top: 48px; justify-content: flex-start; gap: 12px;">
+      <span class="pill accent">Promise.all</span>
+      <span class="pill branch">allSettled</span>
+      <span class="pill merge">race</span>
+      <span class="pill staged">any</span>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">Promise.all.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> what most devs miss</div>
+    <h2 style="font-size: 52px;">Most devs only know<br><span style="color: var(--accent);">Promise.all</span>.</h2>
+    <p class="lede">That's why one slow endpoint kills their whole batch.</p>
+
+    <pre class="sm"><span class="com">// 10 webhook calls. One fails.</span>
+<span class="kw">const</span> results = <span class="kw">await</span> Promise.<span class="fn">all</span>(webhooks.<span class="fn">map</span>(send));
+<span class="com">//                                 ↑</span>
+<span class="hi-red"><span class="com">// ONE rejection → whole thing throws. 9 results lost.</span></span></pre>
+
+    <div class="note-box red" style="margin-top: 12px;">
+      <strong style="color: var(--conflict);">The trap:</strong> independent tasks shouldn't share a fate.
+      Use the right combinator, not the first one you learned.
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SVG TIMELINE DIAGRAM ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">allSettled.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> when does each combinator settle?</div>
+    <h2 style="font-size: 46px; margin-bottom: 18px;">Four timelines.<br>Four settlement rules.</h2>
+
+    <svg width="100%" viewBox="0 0 920 580" style="flex: 1; min-height: 0;">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#6c8275" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#68a063" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#ffd166" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-sky" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#93dcff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Time axis label -->
+      <text x="60" y="24" fill="#6c8275" font-family="JetBrains Mono, monospace" font-size="13">time →</text>
+      <line x1="60" y1="32" x2="880" y2="32" stroke="#1f3024" stroke-width="1"/>
+
+      <!-- Promise lanes: P1=100ms, P2=200ms, P3=400ms (rejects at 300ms) -->
+      <!-- Columns: start=80, P1 ends=260, P2 ends=440, P3-reject=560, P3-resolve=680, end=780 -->
+
+      <!-- Lane labels -->
+      <text x="60" y="72" fill="#9bb3a0" font-family="JetBrains Mono, monospace" font-size="14">P1</text>
+      <text x="60" y="122" fill="#9bb3a0" font-family="JetBrains Mono, monospace" font-size="14">P2</text>
+      <text x="60" y="172" fill="#9bb3a0" font-family="JetBrains Mono, monospace" font-size="14">P3</text>
+      <text x="60" y="222" fill="#9bb3a0" font-family="JetBrains Mono, monospace" font-size="14">P4</text>
+
+      <!-- P1 bar: resolves at 260 -->
+      <rect x="90" y="55" width="170" height="22" rx="4" fill="#2f4a37"/>
+      <circle cx="260" cy="66" r="8" fill="#c8f573"/>
+      <text x="268" y="70" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="12">✓ 100ms</text>
+
+      <!-- P2 bar: resolves at 440 -->
+      <rect x="90" y="105" width="350" height="22" rx="4" fill="#2f4a37"/>
+      <circle cx="440" cy="116" r="8" fill="#c8f573"/>
+      <text x="448" y="120" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="12">✓ 200ms</text>
+
+      <!-- P3 bar: rejects at 560 -->
+      <rect x="90" y="155" width="470" height="22" rx="4" fill="#2f4a37"/>
+      <circle cx="560" cy="166" r="8" fill="#ff6b6b"/>
+      <text x="568" y="170" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="12">✗ reject</text>
+
+      <!-- P4 bar: resolves at 700 -->
+      <rect x="90" y="205" width="610" height="22" rx="4" fill="#2f4a37"/>
+      <circle cx="700" cy="216" r="8" fill="#c8f573"/>
+      <text x="708" y="220" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="12">✓ 400ms</text>
+
+      <!-- Divider -->
+      <line x1="60" y1="248" x2="880" y2="248" stroke="#1f3024" stroke-width="1" stroke-dasharray="4 4"/>
+
+      <!-- Combinator settlement rows -->
+      <!-- .all: settles at reject (560), rejects -->
+      <text x="60" y="288" fill="#68a063" font-family="JetBrains Mono, monospace" font-size="14">.all</text>
+      <rect x="90" y="272" width="470" height="22" rx="4" fill="rgba(104,160,99,0.1)" stroke="#68a063" stroke-width="1"/>
+      <line x1="560" y1="260" x2="560" y2="283" stroke="#ff6b6b" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <text x="565" y="288" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="13">rejects (P3 failed)</text>
+
+      <!-- .allSettled: waits for ALL, 700 -->
+      <text x="60" y="338" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="13">.allSettled</text>
+      <rect x="90" y="322" width="610" height="22" rx="4" fill="rgba(200,245,115,0.08)" stroke="#c8f573" stroke-width="1"/>
+      <line x1="700" y1="310" x2="700" y2="333" stroke="#c8f573" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <text x="705" y="338" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="13">resolves [{status:...}×4]</text>
+
+      <!-- .race: settles at first to settle = P1 at 260 -->
+      <text x="60" y="388" fill="#ffd166" font-family="JetBrains Mono, monospace" font-size="14">.race</text>
+      <rect x="90" y="372" width="170" height="22" rx="4" fill="rgba(255,209,102,0.08)" stroke="#ffd166" stroke-width="1"/>
+      <line x1="260" y1="360" x2="260" y2="373" stroke="#ffd166" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <text x="265" y="388" fill="#ffd166" font-family="JetBrains Mono, monospace" font-size="13">first to settle (P1)</text>
+
+      <!-- .any: first to RESOLVE = P1 at 260 (ignores rejection) -->
+      <text x="60" y="438" fill="#93dcff" font-family="JetBrains Mono, monospace" font-size="14">.any</text>
+      <rect x="90" y="422" width="170" height="22" rx="4" fill="rgba(147,220,255,0.08)" stroke="#93dcff" stroke-width="1"/>
+      <line x1="260" y1="410" x2="260" y2="423" stroke="#93dcff" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <text x="265" y="438" fill="#93dcff" font-family="JetBrains Mono, monospace" font-size="13">first to RESOLVE (ignores rejects)</text>
+
+      <!-- bottom note -->
+      <text x="460" y="490" text-anchor="middle" fill="#6c8275" font-family="Inter, sans-serif" font-size="13" font-style="italic">P3 rejects — .all fails, .allSettled collects it, .any skips it</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: Promise.all ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">Promise.all.js</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> Promise.all — all-or-nothing</div>
+    <h2 style="font-size: 50px; margin-bottom: 16px;"><span style="color: var(--accent);">Promise.all</span><br>all must succeed.</h2>
+
+    <pre class="sm"><span class="com">// parallel DB lookups — all required</span>
+<span class="kw">const</span> [user, cart, prefs] = <span class="kw">await</span> Promise.<span class="fn">all</span>([
+  db.<span class="fn">getUser</span>(id),
+  db.<span class="fn">getCart</span>(id),
+  db.<span class="fn">getPrefs</span>(id),
+]);
+<span class="com">// fast fail ↓</span>
+<span class="hi-red"><span class="com">// ONE rejection → rejects. Other results discarded.</span></span></pre>
+
+    <div class="two-col" style="gap: 16px; flex: 0; margin-top: 10px;">
+      <div class="note-box" style="margin-top: 0; padding: 16px 18px; font-size: 18px;">
+        <strong style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">Use when:</strong><br>
+        all values required — no point continuing if one fails
+      </div>
+      <div class="note-box red" style="margin-top: 0; padding: 16px 18px; font-size: 18px;">
+        <strong style="color: var(--conflict); font-family: 'JetBrains Mono', monospace;">Footgun:</strong><br>
+        independent tasks (webhooks, emails) → one failure nukes all
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: Promise.allSettled ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">allSettled.js</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> Promise.allSettled — never throws</div>
+    <h2 style="font-size: 50px; margin-bottom: 16px;"><span style="color: var(--branch);">allSettled</span><br>fire all. collect outcomes.</h2>
+
+    <pre class="sm"><span class="com">// notify 10 webhooks — each independent</span>
+<span class="kw">const</span> results = <span class="kw">await</span> Promise.<span class="fn">allSettled</span>(
+  webhooks.<span class="fn">map</span>(url => <span class="fn">notify</span>(url))
+);
+<span class="hi-lime">results.<span class="fn">forEach</span>(r => {
+  <span class="kw">if</span> (r.status === <span class="str">'rejected'</span>) logger.<span class="fn">warn</span>(r.reason);
+});</span></pre>
+
+    <div class="note-box lime" style="font-size: 19px; margin-top: 10px;">
+      Always resolves with array:&nbsp;
+      <code style="font-family:'JetBrains Mono',monospace; color: var(--branch);">[{status:'fulfilled', value:...},<br>&nbsp;{status:'rejected', reason:...}]</code>
+      <br>Never rejects. Every result preserved.
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: race vs any ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">race.js</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> race vs any — subtle but critical</div>
+    <div class="two-col" style="flex: 1; gap: 24px;">
+      <div class="col-block">
+        <div class="col-label merge">Promise.race — first to SETTLE</div>
+        <pre class="xs" style="flex: 1; margin-bottom: 10px;"><span class="com">// timeout pattern</span>
+<span class="kw">const</span> result = <span class="kw">await</span> Promise.<span class="fn">race</span>([
+  <span class="fn">fetchData</span>(),
+  <span class="kw">new</span> <span class="fn">Promise</span>((_,rej) =>
+    <span class="fn">setTimeout</span>(() =>
+      rej(<span class="kw">new</span> Error(<span class="str">'timeout'</span>)),
+      <span class="num">5000</span>
+    )
+  )
+]);</pre>
+        <div class="note-box" style="font-size: 17px; padding: 14px 16px;">
+          First to settle — resolve <em>or</em> reject.
+          <br>Good for: <span style="color: var(--merge);">timeouts, hedged requests</span>
+        </div>
+      </div>
+      <div class="col-block">
+        <div class="col-label staged">Promise.any — first to RESOLVE</div>
+        <pre class="xs" style="flex: 1; margin-bottom: 10px;"><span class="com">// try N mirrors, take fastest</span>
+<span class="kw">const</span> data = <span class="kw">await</span> Promise.<span class="fn">any</span>([
+  <span class="fn">fetch</span>(<span class="str">mirror1</span>),
+  <span class="fn">fetch</span>(<span class="str">mirror2</span>),
+  <span class="fn">fetch</span>(<span class="str">mirror3</span>),
+]);
+<span class="com">// rejects only if ALL reject</span>
+<span class="com">// → AggregateError</span></pre>
+        <div class="note-box" style="font-size: 17px; padding: 14px 16px;">
+          Skips rejections. First <em>resolved</em> wins.
+          <br>Good for: <span style="color: var(--staged);">mirrors, fallbacks, CDN races</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">any.js</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> see it yourself — same 3 promises, 4 combinators</div>
+
+    <pre class="xs" style="margin-bottom: 14px;"><span class="kw">const</span> p1 = Promise.<span class="fn">resolve</span>(<span class="str">'A'</span>);
+<span class="kw">const</span> p2 = Promise.<span class="fn">reject</span>(<span class="kw">new</span> <span class="fn">Error</span>(<span class="str">'B failed'</span>));
+<span class="kw">const</span> p3 = <span class="kw">new</span> <span class="fn">Promise</span>(res => <span class="fn">setTimeout</span>(() => res(<span class="str">'C'</span>), <span class="num">100</span>));
+
+Promise.<span class="fn">all</span>([p1,p2,p3]).<span class="fn">catch</span>(e => console.<span class="fn">log</span>(<span class="str">'all:'</span>, e.message));
+<span class="com">//→ all: B failed</span>
+
+Promise.<span class="fn">allSettled</span>([p1,p2,p3]).<span class="fn">then</span>(r => console.<span class="fn">log</span>(<span class="str">'settled:'</span>, r));
+<span class="com">//→ settled: [{status:'fulfilled',value:'A'},</span>
+<span class="com">//            {status:'rejected',reason:Error},</span>
+<span class="com">//            {status:'fulfilled',value:'C'}]</span>
+
+Promise.<span class="fn">race</span>([p1,p2,p3]).<span class="fn">then</span>(v => console.<span class="fn">log</span>(<span class="str">'race:'</span>, v));
+<span class="com">//→ race: A  (p1 settles first — resolved)</span>
+
+Promise.<span class="fn">any</span>([p1,p2,p3]).<span class="fn">then</span>(v => console.<span class="fn">log</span>(<span class="str">'any:'</span>, v));
+<span class="com">//→ any: A   (p2 rejected, p1 first resolve wins)</span></pre>
+
+    <div class="note-box" style="font-size: 18px; padding: 14px 18px;">
+      <span style="color: var(--merge);">race</span> vs <span style="color: var(--staged);">any</span>: if p1 were rejected, race rejects, any continues to p3.
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">allSettled.js</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2 style="font-size: 50px; margin-bottom: 20px;">Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">all</span> — all-or-nothing. one reject → whole thing fails</li>
+      <li><span class="key">allSettled</span> — never throws. collect every outcome</li>
+      <li><span class="key">race</span> — first to settle (resolve OR reject)</li>
+      <li><span class="key">any</span> — first to RESOLVE. rejects only if ALL reject</li>
+      <li>independent tasks → <span class="key">allSettled</span>, not <span class="key">all</span></li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: <code style="font-family:'JetBrains Mono',monospace; color: var(--merge);">await</code> in a loop = sequential — parallelize properly →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

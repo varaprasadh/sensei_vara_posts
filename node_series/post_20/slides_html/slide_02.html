@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>console.log isn't free — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a140d;
+    --bg-elev: #122019;
+    --bg-code: #0c1810;
+    --border: #1f3024;
+    --border-strong: #2f4a37;
+    --text: #e8f0e8;
+    --text-muted: #9bb3a0;
+    --text-dim: #6c8275;
+    --accent: #68a063;          /* node green */
+    --accent-soft: rgba(104, 160, 99, 0.15);
+    --branch: #c8f573;          /* neon lime — highlight */
+    --merge: #ffd166;           /* gold — numbers / refs */
+    --conflict: #ff6b6b;        /* red — errors */
+    --staged: #93dcff;          /* sky — special */
+    --head: #ffd166;            /* gold for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 170, 130, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 170, 130, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 52px; font-weight: 700; line-height: 1.1; margin: 0 0 20px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 28px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 18px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin: 0 0 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 19px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 20px 24px; line-height: 1.6; }
+  pre.lime { border-color: var(--branch); }
+  pre.gold { border-color: var(--merge); }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-red { background: rgba(255, 107, 107, 0.1); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-lime { background: rgba(200, 245, 115, 0.1); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-content .conflict-text { color: var(--conflict); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 24px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 14px 0 22px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 23px; line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .finale-arc {
+    display: flex; flex-direction: column; gap: 6px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 20px 26px;
+    margin: 0 0 18px;
+  }
+  .arc-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .arc-line .k { color: var(--accent); }
+  .arc-line .sep { color: var(--text-dim); margin: 0 4px; }
+
+  .perf-bar-wrap { display: flex; flex-direction: column; gap: 14px; margin: 10px 0 20px; }
+  .perf-row { display: flex; align-items: center; gap: 14px; }
+  .perf-label { font-family: 'JetBrains Mono', monospace; font-size: 17px; color: var(--text-muted); width: 120px; flex-shrink: 0; text-align: right; }
+  .perf-bar-bg { flex: 1; background: var(--bg-code); border-radius: 6px; height: 28px; overflow: hidden; }
+  .perf-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #000; font-weight: 600; }
+  .perf-val { font-family: 'JetBrains Mono', monospace; font-size: 16px; width: 80px; flex-shrink: 0; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+
+<style>
+  html, body { margin: 0 !important; padding: 0 !important; background: #0a0e14 !important; }
+  body { display: block !important; gap: 0 !important; }
+  .slide { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">perf.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> what most devs assume</div>
+    <h2>One log line.<br><span style="color:var(--conflict);">20% slower API</span>.</h2>
+    <p class="lede">A <code style="font-family:'JetBrains Mono',monospace;color:var(--staged);">console.log</code> in your hot path can slow your API by 20%. Most devs think it's free.</p>
+    <pre>app.<span class="prop">get</span>(<span class="str">'/users'</span>, <span class="kw">async</span> (req, res) => {
+  <span class="hi-red"><span class="fn">console</span>.<span class="prop">log</span>(<span class="str">'GET /users'</span>, req.<span class="prop">query</span>);  <span class="com">// ← killer</span></span>
+  <span class="kw">const</span> <span class="var">users</span> = <span class="kw">await</span> <span class="fn">db</span>.<span class="prop">query</span>(<span class="str">'SELECT * FROM users'</span>);
+  res.<span class="prop">json</span>(users);
+});</pre>
+    <p class="body-text muted">This runs on <span style="color:var(--conflict);">every request</span>. At 1k req/s, that's a lot of blocked I/O.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+</body>
+</html>

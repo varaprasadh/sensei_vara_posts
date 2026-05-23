@@ -1,0 +1,33 @@
+name: refresh-ig-token
+
+on:
+  schedule:
+    # Monthly on the 1st at 09:00 UTC — well before the 60-day TTL
+    - cron: '0 9 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Refresh token and update secret
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT_FOR_SECRETS }}
+        run: |
+          NEW=$(node publisher/refresh_token.js)
+          if [ -z "$NEW" ]; then
+            echo "empty token returned" >&2
+            exit 1
+          fi
+          echo "$NEW" | gh secret set IG_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+          echo "token rotated"

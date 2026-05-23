@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>require.cache — Modules Cached Forever — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a140d;
+    --bg-elev: #122019;
+    --bg-code: #0c1810;
+    --border: #1f3024;
+    --border-strong: #2f4a37;
+    --text: #e8f0e8;
+    --text-muted: #9bb3a0;
+    --text-dim: #6c8275;
+    --accent: #68a063;          /* node green */
+    --accent-soft: rgba(104, 160, 99, 0.15);
+    --branch: #c8f573;          /* neon lime — highlight */
+    --merge: #ffd166;           /* gold — numbers/refs */
+    --conflict: #ff6b6b;        /* red — errors */
+    --staged: #93dcff;          /* sky — special */
+    --head: #ffd166;            /* gold for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 170, 130, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 170, 130, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 18px 22px; line-height: 1.55; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-red { background: rgba(255, 107, 107, 0.12); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--branch); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--branch); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+
+<style>
+  html, body { margin: 0 !important; padding: 0 !important; background: #0a0e14 !important; }
+  body { display: block !important; gap: 0 !important; }
+  .slide { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">cache.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> what actually happens</div>
+    <h2>require() = lookup<br><span style="color:var(--accent);">first</span>, load second.</h2>
+
+    <svg width="100%" viewBox="0 0 920 430" style="margin: 0 0 10px;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#68a063" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#c8f573" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#ff6b6b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- FIRST REQUIRE (top row) -->
+      <text x="14" y="50" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="15" font-weight="600">FIRST require('./foo')</text>
+
+      <!-- require box -->
+      <rect x="14" y="62" width="160" height="48" rx="8" fill="#122019" stroke="#2f4a37" stroke-width="1.5"/>
+      <text x="94" y="92" text-anchor="middle" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="15">require('./foo')</text>
+
+      <!-- arrow to cache check -->
+      <line x1="174" y1="86" x2="218" y2="86" stroke="#68a063" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- cache check -->
+      <rect x="220" y="62" width="148" height="48" rx="8" fill="#122019" stroke="#2f4a37" stroke-width="1.5"/>
+      <text x="294" y="82" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">cache</text>
+      <text x="294" y="100" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="14">MISS</text>
+
+      <!-- arrow to load+exec -->
+      <line x1="368" y1="86" x2="412" y2="86" stroke="#68a063" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- load + execute -->
+      <rect x="414" y="62" width="162" height="48" rx="8" fill="#122019" stroke="#68a063" stroke-width="1.5"/>
+      <text x="495" y="82" text-anchor="middle" fill="#68a063" font-family="Inter, sans-serif" font-size="13">load + execute</text>
+      <text x="495" y="100" text-anchor="middle" fill="#9bb3a0" font-family="JetBrains Mono, monospace" font-size="13">foo.js runs ✓</text>
+
+      <!-- arrow to store in cache -->
+      <line x1="576" y1="86" x2="620" y2="86" stroke="#68a063" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- store -->
+      <rect x="622" y="62" width="148" height="48" rx="8" fill="#122019" stroke="#2f4a37" stroke-width="1.5"/>
+      <text x="696" y="82" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">store in cache</text>
+      <text x="696" y="100" text-anchor="middle" fill="#ffd166" font-family="JetBrains Mono, monospace" font-size="13">exports saved</text>
+
+      <!-- arrow return -->
+      <line x1="770" y1="86" x2="814" y2="86" stroke="#68a063" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="816" y="62" width="90" height="48" rx="8" fill="#122019" stroke="#c8f573" stroke-width="1.5"/>
+      <text x="861" y="92" text-anchor="middle" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="13">return</text>
+
+      <!-- SECOND REQUIRE (middle row) -->
+      <text x="14" y="175" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="15" font-weight="600">SECOND require('./foo')</text>
+
+      <rect x="14" y="187" width="160" height="48" rx="8" fill="#122019" stroke="#2f4a37" stroke-width="1.5"/>
+      <text x="94" y="217" text-anchor="middle" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="15">require('./foo')</text>
+
+      <line x1="174" y1="211" x2="218" y2="211" stroke="#68a063" stroke-width="2" marker-end="url(#arr)"/>
+
+      <rect x="220" y="187" width="148" height="48" rx="8" fill="#122019" stroke="#68a063" stroke-width="1.5"/>
+      <text x="294" y="207" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">cache</text>
+      <text x="294" y="225" text-anchor="middle" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="14">HIT ✓</text>
+
+      <!-- arrow skips load, goes straight to return -->
+      <path d="M368 211 Q 490 211 620 211 L 814 211" stroke="#c8f573" stroke-width="2" fill="none" stroke-dasharray="6 3" marker-end="url(#arr2)"/>
+      <text x="540" y="203" text-anchor="middle" fill="#6c8275" font-family="Inter, sans-serif" font-size="13" font-style="italic">skips load/execute</text>
+
+      <rect x="816" y="187" width="90" height="48" rx="8" fill="#122019" stroke="#c8f573" stroke-width="1.5"/>
+      <text x="861" y="217" text-anchor="middle" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="13">return</text>
+
+      <!-- require.cache map -->
+      <text x="14" y="305" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="15" font-weight="600">require.cache  (key → module object)</text>
+      <rect x="14" y="315" width="892" height="96" rx="10" fill="#0c1810" stroke="#1f3024" stroke-width="1.5"/>
+      <text x="40" y="345" fill="#6c8275" font-family="JetBrains Mono, monospace" font-size="13">key</text>
+      <text x="300" y="345" fill="#6c8275" font-family="JetBrains Mono, monospace" font-size="13">module.exports</text>
+      <line x1="14" y1="353" x2="906" y2="353" stroke="#1f3024" stroke-width="1"/>
+      <text x="40" y="376" fill="#93dcff" font-family="JetBrains Mono, monospace" font-size="13">'/app/foo.js'</text>
+      <text x="300" y="376" fill="#ffd166" font-family="JetBrains Mono, monospace" font-size="13">{ count: 1, greet: [Function] }</text>
+      <text x="40" y="400" fill="#93dcff" font-family="JetBrains Mono, monospace" font-size="13">'/app/node_modules/express/index.js'</text>
+      <text x="300" y="400" fill="#ffd166" font-family="JetBrains Mono, monospace" font-size="13">{ createApplication: [Function], ... }</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>git bisect — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .ingredients {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    margin-top: 8px;
+  }
+  .ingredient {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 24px 26px;
+  }
+  .ingredient .num-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .ingredient .title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .ingredient .desc {
+    font-size: 18px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  .caption {
+    font-size: 22px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 14px;
+    font-style: italic;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">bisect.git</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> the move every senior knows</div>
+    <h1>Bisect: find<br>the bug in<br><span class="accent-text">log(n)</span>.</h1>
+    <div class="cover-tagline">Binary search,<br>for your commit history.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: THE PROBLEM ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">problem.git</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the scenario</div>
+    <h2>Bug appeared.<br><span style="color: var(--accent);">Where</span>?</h2>
+    <p class="lede">Tests passed 200 commits ago. They fail now. Reading every commit takes forever.</p>
+
+    <svg width="100%" viewBox="0 0 900 320" style="margin: 8px 0 16px;">
+      <defs>
+        <marker id="ap1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#6e7681" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- left: good -->
+      <circle cx="120" cy="160" r="44" fill="#13181f" stroke="#7ee787" stroke-width="2.5"/>
+      <text x="120" y="155" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="16">v1.0</text>
+      <text x="120" y="178" text-anchor="middle" fill="#7ee787" font-family="Inter, sans-serif" font-size="13">good</text>
+
+      <!-- middle: 200 commits blur -->
+      <rect x="200" y="130" width="540" height="60" rx="8" fill="#13181f" stroke="#3a4150" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="470" y="158" text-anchor="middle" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="18">~ 200 commits ~</text>
+      <text x="470" y="180" text-anchor="middle" fill="#6e7681" font-family="Inter, sans-serif" font-size="14" font-style="italic">somewhere in here the bug landed</text>
+
+      <!-- right: bad (HEAD) -->
+      <circle cx="780" cy="160" r="44" fill="#13181f" stroke="#ff7b72" stroke-width="2.5"/>
+      <text x="780" y="155" text-anchor="middle" fill="#ff7b72" font-family="JetBrains Mono, monospace" font-size="16">HEAD</text>
+      <text x="780" y="178" text-anchor="middle" fill="#ff7b72" font-family="Inter, sans-serif" font-size="13">bad</text>
+
+      <!-- connectors -->
+      <line x1="164" y1="160" x2="200" y2="160" stroke="#6e7681" stroke-width="2"/>
+      <line x1="740" y1="160" x2="736" y2="160" stroke="#6e7681" stroke-width="2"/>
+      <line x1="740" y1="160" x2="780" y2="160" stroke="#6e7681" stroke-width="2"/>
+
+      <text x="450" y="260" text-anchor="middle" fill="#f1502f" font-family="JetBrains Mono, monospace" font-size="18">log₂(200) ≈ 8 steps</text>
+    </svg>
+
+    <p class="body-text muted">There's a faster way — <span style="color: var(--accent);">log₂(200) ≈ 8 steps</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: BINARY SEARCH IDEA ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">binsearch.git</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the trick</div>
+    <h2><span style="color: var(--accent);">Half</span>. Then half again.</h2>
+    <p class="lede">Test the middle commit. Good? Bug came after. Bad? Bug came before. Cut the range in half. Repeat.</p>
+
+    <svg width="100%" viewBox="0 0 900 360" style="margin: 4px 0 8px;">
+      <!-- Helper: 16 dots from x=80..820, y per step. radius 14 -->
+      <!-- Step 1: all visible, leftmost good (green), rightmost bad (pink), midpoint (idx 8) yellow -->
+      <g>
+        <text x="40" y="62" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="14">step 1</text>
+        <!-- range line -->
+        <line x1="80" y1="60" x2="820" y2="60" stroke="#252b35" stroke-width="2"/>
+        <!-- 16 dots -->
+        <circle cx="80"  cy="60" r="14" fill="#13181f" stroke="#7ee787" stroke-width="2.5"/>
+        <circle cx="129" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="178" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="227" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="276" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="325" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="374" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="423" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <!-- midpoint idx 8 -->
+        <circle cx="472" cy="60" r="16" fill="#13181f" stroke="#ffd866" stroke-width="3"/>
+        <circle cx="521" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="570" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="619" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="668" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="717" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="766" cy="60" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="820" cy="60" r="14" fill="#13181f" stroke="#ff7b72" stroke-width="2.5"/>
+        <text x="80"  y="32" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="12">good</text>
+        <text x="820" y="32" text-anchor="middle" fill="#ff7b72" font-family="JetBrains Mono, monospace" font-size="12">bad</text>
+        <text x="472" y="96" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="12">testing</text>
+      </g>
+
+      <!-- Step 2: assume midpoint was good — eliminate left half, new midpoint -->
+      <g>
+        <text x="40" y="182" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="14">step 2</text>
+        <line x1="80" y1="180" x2="820" y2="180" stroke="#252b35" stroke-width="2"/>
+        <!-- left half faded -->
+        <circle cx="80"  cy="180" r="14" fill="#13181f" stroke="#252b35" stroke-width="1.5" opacity="0.35"/>
+        <circle cx="129" cy="180" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.35"/>
+        <circle cx="178" cy="180" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.35"/>
+        <circle cx="227" cy="180" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.35"/>
+        <circle cx="276" cy="180" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.35"/>
+        <circle cx="325" cy="180" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.35"/>
+        <circle cx="374" cy="180" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.35"/>
+        <circle cx="423" cy="180" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.35"/>
+        <!-- new good boundary (was midpoint) -->
+        <circle cx="472" cy="180" r="14" fill="#13181f" stroke="#7ee787" stroke-width="2.5"/>
+        <circle cx="521" cy="180" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="570" cy="180" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <!-- new midpoint idx 12 -->
+        <circle cx="619" cy="180" r="16" fill="#13181f" stroke="#ffd866" stroke-width="3"/>
+        <circle cx="668" cy="180" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="717" cy="180" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="766" cy="180" r="10" fill="#13181f" stroke="#3a4150" stroke-width="1.5"/>
+        <circle cx="820" cy="180" r="14" fill="#13181f" stroke="#ff7b72" stroke-width="2.5"/>
+        <text x="472" y="216" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="12">good</text>
+        <text x="619" y="216" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="12">testing</text>
+      </g>
+
+      <!-- Step 3: narrowed -->
+      <g>
+        <text x="40" y="302" fill="#8b949e" font-family="JetBrains Mono, monospace" font-size="14">step 3</text>
+        <line x1="80" y1="300" x2="820" y2="300" stroke="#252b35" stroke-width="2"/>
+        <!-- fade most -->
+        <circle cx="80"  cy="300" r="14" fill="#13181f" stroke="#252b35" stroke-width="1.5" opacity="0.3"/>
+        <circle cx="129" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="178" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="227" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="276" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="325" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="374" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="423" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="472" cy="300" r="14" fill="#13181f" stroke="#252b35" stroke-width="1.5" opacity="0.3"/>
+        <circle cx="521" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="570" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <!-- narrowed to 2 candidates -->
+        <circle cx="619" cy="300" r="14" fill="#13181f" stroke="#7ee787" stroke-width="2.5"/>
+        <circle cx="668" cy="300" r="16" fill="#13181f" stroke="#f1502f" stroke-width="3"/>
+        <circle cx="717" cy="300" r="14" fill="#13181f" stroke="#ff7b72" stroke-width="2.5"/>
+        <circle cx="766" cy="300" r="10" fill="#13181f" stroke="#252b35" stroke-width="1" opacity="0.3"/>
+        <circle cx="820" cy="300" r="14" fill="#13181f" stroke="#252b35" stroke-width="1.5" opacity="0.3"/>
+        <text x="668" y="336" text-anchor="middle" fill="#f1502f" font-family="JetBrains Mono, monospace" font-size="12">→ first bad</text>
+      </g>
+    </svg>
+
+    <p class="caption">8 tests find the bug in 200 commits.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: THE WORKFLOW ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">workflow.git</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the actual commands</div>
+    <h2>Start. Bad. <span style="color: var(--accent);">Good</span>. Test.</h2>
+    <p class="lede">Tell git the boundaries. Git picks the midpoints for you.</p>
+<pre class="sm"><span class="com">$ git bisect start</span>
+<span class="com">$ git bisect bad</span>                  <span class="com"># current commit is broken</span>
+<span class="com">$ git bisect good v1.0</span>            <span class="com"># this tag was working</span>
+
+<span class="com"># git checks out a midpoint commit</span>
+<span class="com"># you run your test...</span>
+<span class="com">$ git bisect good</span>                 <span class="com"># or `bisect bad`</span>
+
+<span class="com"># repeat. git narrows it down each step.</span>
+
+<span class="com">$ git bisect reset</span>                <span class="com"># clean up when done</span></pre>
+    <p class="caption">Tell git the boundaries. It does the rest.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: AUTOMATED BISECT ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">bisect run</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> let git drive</div>
+    <h2><code style="font-family:'JetBrains Mono', monospace; font-size: 48px;">bisect run</code> — fully <span style="color: var(--accent);">automatic</span>.</h2>
+    <p class="lede">Give it a script that exits 0 (good) or non-0 (bad). Walk away.</p>
+<pre class="sm"><span class="com">$ git bisect start HEAD v1.0</span>
+<span class="com">$ git bisect run npm test</span>
+<span class="com"># git checks out commits, runs `npm test`,</span>
+<span class="com"># and reports the first bad commit when done</span>
+
+<span class="hi"><span class="sha">a3f8e90</span> is the first bad commit
+<span class="prop">commit</span> <span class="sha">a3f8e90</span>
+<span class="prop">Author:</span> <span class="str">alice</span>
+<span class="prop">Date:</span>   <span class="num">2026-04-12</span>
+    refactor session handling</span></pre>
+    <p class="caption">Even a flaky test? <span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">bisect skip</span> marks "can't tell" and moves on.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: WHEN IT WORKS BEST ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">best.git</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> ideal conditions</div>
+    <h2>Best <span style="color: var(--accent);">when</span>...</h2>
+    <p class="lede">Bisect works on any history, but it shines when these line up.</p>
+
+    <div class="ingredients">
+      <div class="ingredient">
+        <div class="num-tag">01</div>
+        <div class="title">linear history</div>
+        <div class="desc">Merges + branches still work, but linear is fastest.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num-tag">02</div>
+        <div class="title">deterministic test</div>
+        <div class="desc">Pass / fail must be reproducible. No flakes.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num-tag">03</div>
+        <div class="title">fast test loop</div>
+        <div class="desc">You'll run it ~log₂(n) times. Seconds &gt; minutes.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num-tag">04</div>
+        <div class="title">clear good baseline</div>
+        <div class="desc">A known-working tag or commit to anchor on.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: AFTER — CLEAN UP ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">reset.git</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> don't forget the reset</div>
+    <h2>Bisect leaves you<br>in a <span style="color: var(--accent);">detached</span> state.</h2>
+    <p class="lede">When bisect ends, you're parked on the suspect commit — not on a branch.</p>
+<pre><span class="com"># bisect parks you on the suspect commit</span>
+<span class="com"># detached HEAD — don't commit here</span>
+
+<span class="com">$ git bisect reset</span>
+<span class="com"># back to where you were before bisect started</span></pre>
+    <p class="caption"><span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">reset</span> ends the session. Always run it before doing anything else.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP + HOOK ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.git</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">bisect</span> — binary search across commit history</li>
+      <li><span class="key">bisect start</span> → <span class="key">bad</span> / <span class="key">good</span> → test → mark → repeat</li>
+      <li><span class="key">bisect run &lt;cmd&gt;</span> — automate the whole thing</li>
+      <li>finds first bad commit in <span class="key">log(n)</span> tests</li>
+      <li>always end with <span class="key">bisect reset</span></li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Next: recover <span style="color: var(--accent);">lost</span> commits, reflog deep dive 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>Merge vs Rebase, Finally — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 8px 0 16px; }
+  .compare .panel {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 26px 22px;
+  }
+  .compare .panel.merge-panel { border-color: rgba(121, 192, 255, 0.5); }
+  .compare .panel.rebase-panel { border-color: rgba(126, 231, 135, 0.5); }
+  .compare .panel-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+  .compare .panel.merge-panel .panel-title { color: var(--merge); }
+  .compare .panel.rebase-panel .panel-title { color: var(--branch); }
+  .compare ul { list-style: none; padding: 0; margin: 0; }
+  .compare li {
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 10px;
+    padding-left: 28px;
+    position: relative;
+  }
+  .compare li.pro::before {
+    content: "✓"; position: absolute; left: 0; color: var(--branch); font-weight: 700;
+  }
+  .compare li.con::before {
+    content: "✗"; position: absolute; left: 0; color: var(--conflict); font-weight: 700;
+  }
+
+  .rule {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 18px;
+  }
+  .rule .rule-q {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--staged);
+    margin-bottom: 8px;
+  }
+  .rule .rule-a {
+    font-size: 24px;
+    color: var(--text);
+    line-height: 1.45;
+  }
+  .rule .rule-a .key {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+  }
+
+  .warning-box {
+    background: rgba(255, 123, 114, 0.08);
+    border: 1px solid var(--conflict);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 18px;
+    color: var(--text);
+    font-size: 22px;
+    line-height: 1.5;
+  }
+  .warning-box .warn-key { color: var(--conflict); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+
+<style>
+  html, body { margin: 0 !important; padding: 0 !important; background: #0a0e14 !important; }
+  body { display: block !important; gap: 0 !important; }
+  .slide { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">git merge</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> option A</div>
+    <h2><span style="color: var(--accent);">Merge</span> = new commit.</h2>
+    <p class="lede">Creates a new commit with two parents. Both histories preserved exactly as they happened.</p>
+
+    <svg width="100%" viewBox="0 0 900 380" style="margin: 8px 0 16px;">
+      <defs>
+        <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#f1502f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="a3b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#79c0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- base -->
+      <circle cx="90" cy="190" r="36" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="90" y="195" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">a3f8</text>
+      <circle cx="220" cy="190" r="36" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="220" y="195" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">b72c</text>
+      <line x1="184" y1="190" x2="126" y2="190" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+
+      <!-- main upper -->
+      <circle cx="380" cy="110" r="36" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="380" y="115" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">e89d</text>
+      <circle cx="520" cy="110" r="36" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="520" y="115" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">f01a</text>
+
+      <!-- feature lower -->
+      <circle cx="380" cy="270" r="36" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="380" y="275" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">c91e</text>
+      <circle cx="520" cy="270" r="36" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="520" y="275" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">d4a1</text>
+
+      <!-- merge -->
+      <circle cx="720" cy="190" r="48" fill="#13181f" stroke="#79c0ff" stroke-width="2.5"/>
+      <text x="720" y="186" text-anchor="middle" fill="#79c0ff" font-family="JetBrains Mono, monospace" font-size="13">merge</text>
+      <text x="720" y="206" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="13">7e2d</text>
+
+      <!-- edges to base -->
+      <line x1="344" y1="123" x2="252" y2="180" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="344" y1="257" x2="252" y2="200" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="484" y1="110" x2="416" y2="110" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="484" y1="270" x2="416" y2="270" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+
+      <!-- merge → two parents (blue arrows) -->
+      <line x1="678" y1="170" x2="556" y2="125" stroke="#79c0ff" stroke-width="2" marker-end="url(#a3b)"/>
+      <line x1="678" y1="210" x2="556" y2="255" stroke="#79c0ff" stroke-width="2" marker-end="url(#a3b)"/>
+
+      <!-- main label (now on merge) -->
+      <rect x="780" y="174" width="100" height="32" rx="6" fill="#13181f" stroke="#7ee787" stroke-width="1.5"/>
+      <text x="830" y="195" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="14">main</text>
+      <line x1="780" y1="190" x2="768" y2="190" stroke="#7ee787" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <text x="720" y="270" text-anchor="middle" fill="#79c0ff" font-family="Inter, sans-serif" font-size="14" font-style="italic">two parents ↑</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px; text-align: center;">Real history. <span style="color: var(--merge);">Plus a junction point.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+</body>
+</html>

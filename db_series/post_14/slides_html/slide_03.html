@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>WAL — The DB Writes Twice — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;
+    --merge: #ffb454;
+    --conflict: #ff7a8a;
+    --staged: #c8a8ff;
+    --head: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+
+<style>
+  html, body { margin: 0 !important; padding: 0 !important; background: #0a0e14 !important; }
+  body { display: block !important; gap: 0 !important; }
+  .slide { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">checkpoint</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> what actually happens on INSERT</div>
+    <h2>Two destinations.<br>One <span style="color: var(--accent);">fast</span>, one slow.</h2>
+
+    <svg width="100%" viewBox="0 0 920 460" style="margin: 6px 0 10px;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#7ee7b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#ffb454" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#6a7a98" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- INSERT box -->
+      <rect x="30" y="185" width="140" height="60" rx="10" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="100" y="220" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">INSERT</text>
+
+      <!-- arrow from INSERT to split -->
+      <line x1="170" y1="215" x2="230" y2="215" stroke="#4a90c2" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- split point dot -->
+      <circle cx="242" cy="215" r="7" fill="#4a90c2"/>
+
+      <!-- upper path: WAL append -->
+      <line x1="242" y1="208" x2="242" y2="115" stroke="#7ee7b8" stroke-width="2"/>
+      <line x1="242" y1="115" x2="380" y2="115" stroke="#7ee7b8" stroke-width="2" marker-end="url(#arr-green)"/>
+
+      <!-- WAL box -->
+      <rect x="380" y="82" width="200" height="66" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="2"/>
+      <text x="480" y="112" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="17" font-weight="600">WAL append</text>
+      <text x="480" y="135" text-anchor="middle" fill="#93a3bf" font-family="Inter, sans-serif" font-size="13">sequential · fast</text>
+
+      <!-- arrow WAL → COMMIT -->
+      <line x1="580" y1="115" x2="680" y2="115" stroke="#7ee7b8" stroke-width="2" marker-end="url(#arr-green)"/>
+
+      <!-- COMMIT box -->
+      <rect x="680" y="82" width="180" height="66" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="2.5"/>
+      <text x="770" y="108" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="17" font-weight="700">COMMIT</text>
+      <text x="770" y="130" text-anchor="middle" fill="#7ee7b8" font-family="Inter, sans-serif" font-size="13">returns ✓</text>
+
+      <!-- lower path: shared buffer -->
+      <line x1="242" y1="222" x2="242" y2="315" stroke="#ffb454" stroke-width="2"/>
+      <line x1="242" y1="315" x2="380" y2="315" stroke="#ffb454" stroke-width="2" marker-end="url(#arr-amber)"/>
+
+      <!-- Shared buffer box -->
+      <rect x="380" y="282" width="200" height="66" rx="10" fill="#141d2e" stroke="#ffb454" stroke-width="2"/>
+      <text x="480" y="311" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600">shared_buffers</text>
+      <text x="480" y="334" text-anchor="middle" fill="#93a3bf" font-family="Inter, sans-serif" font-size="13">dirty page in RAM</text>
+
+      <!-- arrow shared buffer → disk (later) -->
+      <line x1="580" y1="315" x2="680" y2="315" stroke="#6a7a98" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr-dim)"/>
+
+      <!-- Disk box -->
+      <rect x="680" y="282" width="200" height="66" rx="10" fill="#141d2e" stroke="#36456a" stroke-width="2"/>
+      <text x="780" y="311" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="16">heap page</text>
+      <text x="780" y="334" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13">disk — flushed LATER</text>
+
+      <!-- labels on arrows -->
+      <text x="310" y="100" text-anchor="middle" fill="#7ee7b8" font-family="Inter, sans-serif" font-size="13" font-style="italic">① WAL first</text>
+      <text x="310" y="336" text-anchor="middle" fill="#ffb454" font-family="Inter, sans-serif" font-size="13" font-style="italic">② buffer</text>
+
+      <!-- checkpointer label -->
+      <text x="730" y="370" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13" font-style="italic">checkpointer flushes later</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 21px; margin: 0;">COMMIT only waits for <span style="color: var(--branch); font-family:'JetBrains Mono',monospace;">WAL fsync</span>. The dirty page hits disk <span style="color: var(--merge);">whenever the checkpointer gets to it</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+</body>
+</html>

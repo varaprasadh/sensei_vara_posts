@@ -1,0 +1,314 @@
+{
+  "1": {
+    "title": "How AI agents actually work",
+    "variants": {
+      "mystery_hook": "Everyone's building \"agents.\"\nMost of them are just chatbots with extra steps.\nHere's what an agent actually is — and the loop that makes it one. ⬇️",
+      "direct_value": "Agents = a model + tools + a loop. That's it.\nThe mental model, the function-call cycle, and why every framework boils down to the same 6 lines. ⬇️",
+      "short_punchy": "An agent is a loop.\nNot a model.\nNot a prompt. →"
+    },
+    "tags": ["#ai", "#aiagents", "#llm", "#agents", "#aidev", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#openai", "#genai"]
+  },
+  "2": {
+    "title": "System prompts",
+    "variants": {
+      "mystery_hook": "Same model. Same question. Two completely different answers.\nThe difference: one line you never see.\nHere's what's in it. ⬇️",
+      "direct_value": "System prompts: the hidden context that turns a raw model into a product.\n4 ingredients every good system prompt has — with examples. ⬇️",
+      "short_punchy": "ChatGPT and Claude aren't different models.\nThey're different system prompts. →"
+    },
+    "tags": ["#ai", "#llm", "#promptengineering", "#systemprompt", "#aidev", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#openai", "#claude"]
+  },
+  "3": {
+    "title": "Tokens & context windows",
+    "variants": {
+      "mystery_hook": "The model doesn't see your words.\nIt sees something smaller.\nAnd when the window fills up — your old turns just vanish. ⬇️",
+      "direct_value": "Tokens, context windows, and why your long chat \"forgets\" things.\n1 token ≈ 4 chars. Today's limits, the trade-offs, and what gets dropped. ⬇️",
+      "short_punchy": "1 word ≠ 1 token.\nAnd that gap is your bill. →"
+    },
+    "tags": ["#ai", "#llm", "#tokens", "#contextwindow", "#aidev", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#openai", "#genai"]
+  },
+  "4": {
+    "title": "Writing good tools",
+    "variants": {
+      "mystery_hook": "Your agent is dumb.\nNot because the model is weak.\nBecause your tool descriptions are. ⬇️",
+      "direct_value": "Writing tools the model actually picks: name, description, schema, errors.\n4 things to nail — with the exact JSON the model reads. ⬇️",
+      "short_punchy": "The model picks tools by their description.\nWrite docs, not code. →"
+    },
+    "tags": ["#ai", "#aiagents", "#llm", "#toolcalling", "#functioncalling", "#aidev", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#mcp"]
+  },
+  "5": {
+    "title": "4 ways your first agent breaks",
+    "variants": {
+      "mystery_hook": "You shipped your first agent.\nIt worked once.\nThen it didn't.\nHere are the 4 failure modes nobody warns you about. ⬇️",
+      "direct_value": "Infinite loops, hallucinated tool calls, context overflow, silent tool errors.\nEvery first-agent bug — what causes it, how to wire around it. ⬇️",
+      "short_punchy": "Your agent didn't break.\nIt did exactly what you told it to. →"
+    },
+    "tags": ["#ai", "#aiagents", "#llm", "#agents", "#aidev", "#debugging", "#buildwithai", "#buildinpublic", "#aibuilders", "#softwareengineering", "#anthropic", "#genai"]
+  },
+  "6": {
+    "title": "Streaming, explained",
+    "variants": {
+      "direct_value": "Streaming, explained: Server-Sent Events, token-by-token generation, and the JS pattern for streaming chat UIs.\nWith/without streaming compared side by side. ⬇️",
+      "short_punchy": "Why ChatGPT \"types.\"\n(Spoiler: it doesn't.) →"
+    },
+    "tags": []
+  },
+  "7": {
+    "title": "Structured outputs (JSON mode)",
+    "variants": {
+      "mystery_hook": "You can't trust the model to return clean JSON.\nUnless you wire it like an app, not a chat.\nThere's 1 API param most builders miss.\nIt changes everything. ⬇️",
+      "direct_value": "JSON mode + schemas as contracts: how to go from chatbot prose to typed app data without try/catch nightmares.\nWith real schema code that works in any major API. ⬇️",
+      "short_punchy": "Stop parsing prose.\nStart enforcing shapes. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#json",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#softwareengineering",
+      "#fullstack",
+      "#genai",
+      "#openai",
+      "#anthropic",
+      "#structuredoutput"
+    ]
+  },
+  "8": {
+    "title": "Memory: short-term vs long-term",
+    "variants": {
+      "mystery_hook": "Why does your agent forget you,\nbut ChatGPT remembers your name?\nThe answer isn't a bigger context window.\nIt's a totally different kind of memory. ⬇️",
+      "direct_value": "Short-term vs long-term memory for AI agents: chat history vs vector store, when to use which, and the hybrid pattern most real systems run. ⬇️",
+      "short_punchy": "Scratchpad vs library.\nPick both. Save this. →"
+    },
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#vectordb",
+      "#rag",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#memory",
+      "#genai"
+    ]
+  },
+  "9": {
+    "title": "Embeddings, explained",
+    "variants": {
+      "mystery_hook": "What does it really mean to turn \"king\" minus \"man\" plus \"woman\" into \"queen\"?\nThe math is simpler than you think.\nThe implications run deeper. ⬇️",
+      "direct_value": "Embeddings explained: text → fixed-length vectors, meaning as distance, and the 4 things they unlock.\nWith a 2D scatter plot that makes it click. ⬇️",
+      "short_punchy": "Text becomes numbers.\nSimilar means close.\nThat's an embedding. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#embeddings",
+      "#vectordb",
+      "#rag",
+      "#aidev",
+      "#buildinpublic",
+      "#genai",
+      "#softwareengineering",
+      "#anthropic",
+      "#openai",
+      "#ml"
+    ]
+  },
+  "10": {
+    "title": "RAG in 8 slides",
+    "variants": {
+      "mystery_hook": "Why is RAG suddenly everywhere?\nBecause giving the model an open-book exam beats hoping it remembers.\nHere's the whole pattern in 8 slides. ⬇️",
+      "direct_value": "RAG (Retrieval-Augmented Generation) explained: 5-step recipe, retrieval math, real JS code, and when to use it instead of fine-tuning. ⬇️",
+      "short_punchy": "Open-book beats closed-book.\nThat's RAG. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#rag",
+      "#vectordb",
+      "#embeddings",
+      "#buildwithai",
+      "#aidev",
+      "#aibuilders",
+      "#buildinpublic",
+      "#softwareengineering",
+      "#anthropic",
+      "#openai"
+    ]
+  },
+  "11": {
+    "title": "ReAct: how agents actually \"think\"",
+    "variants": {
+      "mystery_hook": "There's a 2022 paper that defined how every real AI agent thinks today.\nMost builders use the pattern without knowing the name.\nOnce you see it, you can't unsee it. ⬇️",
+      "direct_value": "ReAct: how agents actually \"think.\" Thought → Action → Observation.\nWith an annotated trace + the system prompt that elicits the pattern. ⬇️",
+      "short_punchy": "Agents that think before they act.\nThe pattern is called ReAct. →"
+    },
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#react",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#promptengineering",
+      "#anthropic"
+    ]
+  },
+  "12": {
+    "title": "Single-agent vs multi-agent",
+    "variants": {
+      "mystery_hook": "Your single agent hit a wall.\nMore tools won't fix it.\nMore rules won't fix it.\nThe answer is hiring. ⬇️",
+      "direct_value": "Single-agent vs multi-agent: when to split, how to handoff, and the orchestrator patterns that work in practice.\nWith a swimlane diagram. ⬇️",
+      "short_punchy": "One agent juggling 12 tools?\nSplit it. Here's how. →"
+    },
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#multiagent",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#genai"
+    ]
+  },
+  "13": {
+    "title": "MCP: tools, standardized",
+    "variants": {
+      "mystery_hook": "There's a new protocol becoming the USB-C of AI.\nThe big labs are racing to support it.\nIf you build with AI, you'll meet it soon.\nHere's the simplest explainer I could write. ⬇️",
+      "direct_value": "MCP (Model Context Protocol) explained simply: standardized AI tools that plug into any host. Server vs client, real examples (GitHub, Postgres, Slack), and why it matters. ⬇️",
+      "short_punchy": "Write a tool once.\nPlug it into any model.\nThat's MCP. →"
+    },
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#mcp",
+      "#anthropic",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#claude",
+      "#genai"
+    ]
+  },
+  "14": {
+    "title": "Prompt caching",
+    "variants": {
+      "mystery_hook": "Most builders pay the same price for the same prompt — 100 times a day.\nThere's a button most don't press.\nIt cuts input cost 50–90%. ⬇️",
+      "direct_value": "Prompt caching explained: how to cut input costs 50–90% on repeated prompts.\nWith Anthropic + OpenAI rate numbers and what to put on each side of the cache boundary. ⬇️",
+      "short_punchy": "The 90% off button you've been ignoring.\nSave this. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#anthropic",
+      "#openai",
+      "#aicost",
+      "#genai"
+    ]
+  },
+  "15": {
+    "title": "Temperature, top-p, the other knobs",
+    "variants": {
+      "mystery_hook": "Temperature isn't \"how creative\" the model is.\nIt's something stranger — and more useful.\nPlus the 4 knobs nobody on your team has ever tuned. ⬇️",
+      "direct_value": "Temperature, top-p, top-k, and the 4 other sampling knobs nobody explains properly.\nWith visual histograms + use-case defaults. ⬇️",
+      "short_punchy": "Same model. Different vibe.\nThe dials, explained. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#aidev",
+      "#promptengineering",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#genai",
+      "#anthropic",
+      "#openai"
+    ]
+  },
+  "16": {
+    "title": "Evals",
+    "variants": {
+      "mystery_hook": "Unit tests don't work for agents.\nSo how do teams that ship the good ones actually know they're good?\nIt's a totally different harness. ⬇️",
+      "direct_value": "Evals for AI: cases, graders, and the CI loop for non-deterministic systems.\nWith a real eval set + the 3 grading styles (exact, rubric, LLM-as-judge). ⬇️",
+      "short_punchy": "Testing AI ≠ testing code.\nSave this before you ship. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#aidev",
+      "#aiagents",
+      "#aitesting",
+      "#evals",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#devops",
+      "#genai"
+    ]
+  },
+  "17": {
+    "title": "Hallucinations, honestly",
+    "variants": {
+      "mystery_hook": "Hallucinations aren't a moral failing of the model.\nThey're a structural side effect of how it works.\nOnce you see this, you stop blaming the AI — and start fixing the system. ⬇️",
+      "direct_value": "Hallucinations explained honestly: the 3 root causes (missing knowledge, ambiguity, hot temperature) and the 3 fixes that actually work (grounding, \"I don't know,\" tool use). ⬇️",
+      "short_punchy": "Models don't lie. They predict.\nHere's the fix. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#aidev",
+      "#aiagents",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#genai",
+      "#promptengineering",
+      "#anthropic",
+      "#openai"
+    ]
+  },
+  "18": {
+    "title": "Cost: what you actually pay for (SERIES FINALE)",
+    "variants": {
+      "mystery_hook": "After 18 posts on building with AI,\nthe most important number is still the one nobody calculates:\nthe bill.\nLet's do the napkin math. ⬇️",
+      "direct_value": "Cost: input vs output tokens, why output is 3-5x pricier, and the back-of-napkin math for a real support bot at scale.\nThe finale of an 18-post series on building with AI. ⬇️",
+      "short_punchy": "Token math is the whole game.\n18 posts. Series wraps here. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#aidev",
+      "#aiagents",
+      "#buildwithai",
+      "#buildinpublic",
+      "#aibuilders",
+      "#softwareengineering",
+      "#genai",
+      "#aicost",
+      "#anthropic",
+      "#openai"
+    ]
+  }
+}

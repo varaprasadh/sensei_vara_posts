@@ -1,0 +1,1488 @@
+{
+  "generated_at": "2026-05-23T10:33:12.097Z",
+  "last_published_at": null,
+  "queue": [
+    {
+      "series": "ai_series",
+      "folder": "post_1",
+      "post_number": 1,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Everyone's building \"agents.\"\nMost of them are just chatbots with extra steps.\nHere's what an agent actually is — and the loop that makes it one. ⬇️\n\n#ai #aiagents #llm #agents #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #openai #genai",
+      "status": "published",
+      "published_at": "manual-pre-existing",
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_2",
+      "post_number": 2,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Same model. Same question. Two completely different answers.\nThe difference: one line you never see.\nHere's what's in it. ⬇️\n\n#ai #llm #promptengineering #systemprompt #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #openai #claude",
+      "status": "published",
+      "published_at": "manual-pre-existing",
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_3",
+      "post_number": 3,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "The model doesn't see your words.\nIt sees something smaller.\nAnd when the window fills up — your old turns just vanish. ⬇️\n\n#ai #llm #tokens #contextwindow #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #openai #genai",
+      "status": "published",
+      "published_at": "manual-pre-existing",
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_4",
+      "post_number": 4,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your agent is dumb.\nNot because the model is weak.\nBecause your tool descriptions are. ⬇️\n\n#ai #aiagents #llm #toolcalling #functioncalling #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #mcp",
+      "status": "published",
+      "published_at": "manual-pre-existing",
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_5",
+      "post_number": 5,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You shipped your first agent.\nIt worked once.\nThen it didn't.\nHere are the 4 failure modes nobody warns you about. ⬇️\n\n#ai #aiagents #llm #agents #aidev #debugging #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #genai",
+      "status": "published",
+      "published_at": "manual-pre-existing",
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_6",
+      "post_number": 6,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Streaming, explained: Server-Sent Events, token-by-token generation, and the JS pattern for streaming chat UIs.\nWith/without streaming compared side by side. ⬇️",
+      "status": "published",
+      "published_at": "manual-pre-existing",
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_7",
+      "post_number": 7,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You can't trust the model to return clean JSON.\nUnless you wire it like an app, not a chat.\nThere's 1 API param most builders miss.\nIt changes everything. ⬇️\n\n#ai #llm #json #aidev #buildwithai #buildinpublic #softwareengineering #fullstack #genai #openai #anthropic #structuredoutput",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_8",
+      "post_number": 8,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Why does your agent forget you,\nbut ChatGPT remembers your name?\nThe answer isn't a bigger context window.\nIt's a totally different kind of memory. ⬇️\n\n#ai #aiagents #llm #vectordb #rag #buildwithai #buildinpublic #aibuilders #softwareengineering #memory #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_9",
+      "post_number": 9,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "What does it really mean to turn \"king\" minus \"man\" plus \"woman\" into \"queen\"?\nThe math is simpler than you think.\nThe implications run deeper. ⬇️\n\n#ai #llm #embeddings #vectordb #rag #aidev #buildinpublic #genai #softwareengineering #anthropic #openai #ml",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_10",
+      "post_number": 10,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Why is RAG suddenly everywhere?\nBecause giving the model an open-book exam beats hoping it remembers.\nHere's the whole pattern in 8 slides. ⬇️\n\n#ai #llm #rag #vectordb #embeddings #buildwithai #aidev #aibuilders #buildinpublic #softwareengineering #anthropic #openai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_11",
+      "post_number": 11,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There's a 2022 paper that defined how every real AI agent thinks today.\nMost builders use the pattern without knowing the name.\nOnce you see it, you can't unsee it. ⬇️\n\n#ai #aiagents #llm #react #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #promptengineering #anthropic",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_12",
+      "post_number": 12,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your single agent hit a wall.\nMore tools won't fix it.\nMore rules won't fix it.\nThe answer is hiring. ⬇️\n\n#ai #aiagents #llm #multiagent #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_13",
+      "post_number": 13,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There's a new protocol becoming the USB-C of AI.\nThe big labs are racing to support it.\nIf you build with AI, you'll meet it soon.\nHere's the simplest explainer I could write. ⬇️\n\n#ai #aiagents #llm #mcp #anthropic #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #claude #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_14",
+      "post_number": 14,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Most builders pay the same price for the same prompt — 100 times a day.\nThere's a button most don't press.\nIt cuts input cost 50–90%. ⬇️\n\n#ai #llm #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #openai #aicost #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_15",
+      "post_number": 15,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Temperature isn't \"how creative\" the model is.\nIt's something stranger — and more useful.\nPlus the 4 knobs nobody on your team has ever tuned. ⬇️\n\n#ai #llm #aidev #promptengineering #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #anthropic #openai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_16",
+      "post_number": 16,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Unit tests don't work for agents.\nSo how do teams that ship the good ones actually know they're good?\nIt's a totally different harness. ⬇️\n\n#ai #llm #aidev #aiagents #aitesting #evals #buildwithai #buildinpublic #aibuilders #softwareengineering #devops #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_17",
+      "post_number": 17,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Hallucinations aren't a moral failing of the model.\nThey're a structural side effect of how it works.\nOnce you see this, you stop blaming the AI — and start fixing the system. ⬇️\n\n#ai #llm #aidev #aiagents #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #promptengineering #anthropic #openai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_18",
+      "post_number": 18,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "After 18 posts on building with AI,\nthe most important number is still the one nobody calculates:\nthe bill.\nLet's do the napkin math. ⬇️\n\n#ai #llm #aidev #aiagents #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #aicost #anthropic #openai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_1",
+      "post_number": 1,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Every git tutorial shows branches as forking trees.\nThat's a lie.\nOnce you see what your repo actually is, every command makes sense.\nSwipe → for the mental model that fixes everything. 👇\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #programming #coding #devtips #versioncontrol #techthread",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_2",
+      "post_number": 2,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There's a folder you've ignored 10,000 times.\nIt contains your entire repo — not just history. The whole thing.\nOpen it up. ⬇️\n\n#git #github #softwareengineering #devops #buildinpublic #webdev #devthread #programming #devtips #versioncontrol #cli",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_3",
+      "post_number": 3,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "\"Where are my changes?\" is the most-asked question in git.\nThe answer is always one of 3 places.\nIf you know them, you never panic again. ⬇️\n\n#git #github #softwareengineering #buildinpublic #devthread #webdev #programming #coding #devtips #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_4",
+      "post_number": 4,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You think branches are folders of code.\nThey're not.\nA branch in git is one text file holding one number.\nOnce this clicks, branch operations feel free. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #programming #coding #devtips #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_5",
+      "post_number": 5,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There's a 10-year debate that splits dev teams in half.\nBoth sides are right. Both sides are wrong.\nHere's the one rule that ends it. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #programming #coding #devtips #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_6",
+      "post_number": 6,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "That `<<<<<<<` marker isn't an error.\nIt's git asking you a question.\nHere's how to answer it without panic. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_7",
+      "post_number": 7,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You ran `git reset --hard` and watched 8 commits disappear.\nThey're not gone.\nThey're never gone.\nHere's how to find them. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_8",
+      "post_number": 8,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "`git stash` is everyone's panic button.\nBut it's also a power tool 90% of devs never unlock.\nHere's everything past the basics. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #cli",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_9",
+      "post_number": 9,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There are 4 verbs in git that all \"undo\" something.\nMost devs use the wrong one.\nThe right one depends on what you're trying to unmake. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_10",
+      "post_number": 10,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Before you open that PR — wait.\nThere are 2 commands that turn your messy commits into a clean story.\nThe reviewers will love you. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_11",
+      "post_number": 11,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "A bug appeared in your last 200 commits.\nReading every one would take all day.\nThere's a way to find it in 8 tests. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #debugging",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_12",
+      "post_number": 12,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Force-pushed over your teammate's work?\nReset-hard nuked your branch?\nDon't panic.\nIf it was committed, it's still in there. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_13",
+      "post_number": 13,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There's no `git pull-request` command.\nPRs aren't a git feature at all.\nOnce you see what they really are, you'll review them better. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #codereview #pullrequest",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_14",
+      "post_number": 14,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There's one flag that turns \"I overwrote my teammate's work\" into \"git refused to push.\"\nMost devs never type it.\nYou should. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_15",
+      "post_number": 15,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Free CI that runs on your laptop, before you push.\n20 lines of bash.\nMost repos have it. Yours probably doesn't. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devops #programming #coding #devtools #ci",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_16",
+      "post_number": 16,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your repo depends on another repo.\nThere are 3 ways to wire that up.\nEach has a tax. Pick the one you're willing to pay. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #monorepo #devtips #programming #coding",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_17",
+      "post_number": 17,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "`git push` runs 4 distinct phases.\nYou've never thought about any of them.\nYou should. They explain every weird push error you've ever seen. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #networking",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_18",
+      "post_number": 18,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You ran `du -sh .git/` and it said 0.5 GB.\nYou committed mostly text.\nWhere did all that space go? ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devops #programming #coding #performance",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_19",
+      "post_number": 19,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Committed a 50 MB file once?\nIt's in your repo. Forever.\nUntil you learn this. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #gamedev #ml",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "git_series",
+      "folder": "post_20",
+      "post_number": 20,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You committed a secret.\nOr a 200 MB binary.\nOr a typo in 47 commit messages.\nThere's a way to wipe it from history — but read this first. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devops #devtips #programming #coding #security",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_1",
+      "post_number": 1,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Everyone talks about databases like they're magic black boxes.\nThey're not.\nOnce you see what your DB actually is, every performance question changes. ⬇️\n\n#postgres #postgresql #sql #database #softwareengineering #devthread #backend #programming #databases #devtips",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_2",
+      "post_number": 2,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Postgres doesn't read rows.\nIt doesn't read columns either.\nIt reads 8KB chunks. And that one fact changes how you think about every query. ⬇️\n\n#postgres #postgresql #database #dba #backend #softwareengineering #devthread #sql #databases #programming #devtips",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_3",
+      "post_number": 3,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You wrote `INSERT INTO users`. Where did that row go?\nNot where you think.\nThe heap is weirder than the name suggests. ⬇️\n\n#postgres #postgresql #sql #database #backend #dba #devthread #softwareengineering #databases #programming",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_4",
+      "post_number": 4,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "\"Just add an index\" is the most repeated advice in databases.\nAlmost nobody knows what that actually does.\nHere's the real structure. ⬇️\n\n#postgres #postgresql #sql #database #backend #softwareengineering #devthread #dba #programming #devtips #datamodeling",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_5",
+      "post_number": 5,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You've been optimizing the wrong thing.\nYour slow query isn't slow for the reason you think.\nThe proof is one command away. ⬇️\n\n#postgres #postgresql #sql #database #backend #dba #devthread #softwareengineering #databases #devtips #performance",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_6",
+      "post_number": 6,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "`SELECT *` looks harmless.\nIt isn't.\nOne star can multiply your I/O by 10x — even with an index. ⬇️\n\n#postgres #postgresql #sql #database #backend #softwareengineering #devthread #webdev #programming #devtips",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_7",
+      "post_number": 7,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Every JOIN you've written is secretly a loop.\nSometimes it's 3 nested ones.\nPostgres picks which kind — and the wrong pick is why your query is slow. ⬇️\n\n#postgres #postgresql #sql #database #backend #dba #devthread #softwareengineering #databases #programming #performance",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_8",
+      "post_number": 8,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You have an index on `email`.\nYour query is still slow.\nYou wrapped a function around it. That's the entire problem. ⬇️\n\n#postgres #postgresql #sql #database #dba #backend #devthread #softwareengineering #programming #devtips #datamodeling",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_9",
+      "post_number": 9,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "`WHERE email != 'test@test.com'` won't return rows where email is NULL.\nMost devs are surprised by this.\nSQL runs on 3-valued logic — not 2. ⬇️\n\n#sql #postgres #postgresql #database #databases #softwareengineering #devthread #backend #programming #devtips",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_10",
+      "post_number": 10,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You write SQL in one order.\nPostgres runs it in a different order entirely.\nThat gap explains every \"why can't I use my alias here?\" error. ⬇️\n\n#sql #postgres #postgresql #database #backend #softwareengineering #devthread #webdev #programming #devtips",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_11",
+      "post_number": 11,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There are 4 index types in Postgres.\nMost devs only know one.\nThe other 3 are faster for the queries you're probably running. ⬇️\n\n#postgres #postgresql #database #dba #sql #backend #devthread #softwareengineering #databases #programming #performance",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_12",
+      "post_number": 12,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Two transactions read the same row at the same time without blocking each other.\nNo lock.\nHow is that possible? ⬇️\n\n#postgres #postgresql #database #dba #backend #devthread #softwareengineering #sql #databases #programming",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_13",
+      "post_number": 13,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your table keeps growing even though you DELETE everything.\nDisk space doesn't come back.\nThis isn't a bug. It's MVCC's tax — and VACUUM is the payment. ⬇️\n\n#postgres #postgresql #database #dba #backend #softwareengineering #devthread #sql #databases #devtips",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_14",
+      "post_number": 14,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "When you COMMIT a transaction, Postgres writes to disk twice.\nThe second write is what makes it safe to cut the power.\nMost devs have no idea this exists. ⬇️\n\n#postgres #postgresql #database #dba #backend #softwareengineering #devthread #sql #databases #programming",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_15",
+      "post_number": 15,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You ran the same query twice in one transaction.\nDifferent results.\nThis isn't a bug. It's the default isolation level working exactly as designed. ⬇️\n\n#postgres #postgresql #database #dba #sql #backend #devthread #softwareengineering #databases #programming #devtips",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_16",
+      "post_number": 16,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Normalization has a reputation for being academic and slow.\nBoth are wrong.\n8 slides. Real schema. No theory. ⬇️\n\n#sql #database #datamodeling #postgres #postgresql #backend #softwareengineering #devthread #databases #programming #dba",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_17",
+      "post_number": 17,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "\"We removed foreign keys for performance\" is the most dangerous sentence in database design.\nYou traded a constraint for a bug that's already in your data. ⬇️\n\n#sql #postgres #postgresql #database #datamodeling #backend #softwareengineering #devthread #databases #dba #programming",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_18",
+      "post_number": 18,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "UUIDs look like a good primary key.\nThey're random. They're globally unique.\nThey're also quietly destroying your B-tree. ⬇️\n\n#postgres #postgresql #database #datamodeling #dba #sql #backend #softwareengineering #devthread #programming #databases",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_19",
+      "post_number": 19,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "JSONB feels like escaping schema design.\nIt is — and that freedom has a bill.\nHere's when it saves you and when it buries you. ⬇️\n\n#postgres #postgresql #database #sql #datamodeling #backend #softwareengineering #devthread #databases #programming #dba",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "db_series",
+      "folder": "post_20",
+      "post_number": 20,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your app works fine in dev.\nIn prod, with 10k users, it fires 10,001 queries per page.\nThe logs have been lying to you this whole time. ⬇️\n\n#postgres #postgresql #sql #database #backend #webdev #softwareengineering #devthread #databases #programming #performance #buildinpublic",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_1",
+      "post_number": 1,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Everyone says \"Node is just JavaScript.\"\nIt's not.\nUnder the hood there are three separate engines doing three different jobs.\nOnce you see them, `require('fs')` never looks the same. ⬇️\n\n#nodejs #javascript #backend #softwareengineering #devthread #webdev #programming #coding #v8 #buildinpublic",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_2",
+      "post_number": 2,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "\"The event loop\" is the most-said phrase in Node.\nAnd the most misunderstood.\nIt's not one loop. It's six phases in a fixed order.\nMiss one and your async code misfires. ⬇️\n\n#nodejs #javascript #async #backend #softwareengineering #devthread #webdev #devtips #programming #eventloop #buildinpublic",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_3",
+      "post_number": 3,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your code looks synchronous.\nIt isn't.\nThere are two completely separate execution tracks in Node.\nKnowing which track you're on changes how you write every async function. ⬇️\n\n#nodejs #javascript #js #backend #softwareengineering #devthread #webdev #programming #coding #devtips #v8",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_4",
+      "post_number": 4,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "`Promise.resolve()` and `setTimeout(fn, 0)` both look instant.\nOne runs before the other — every single time.\nThe order isn't random. There's a rule. ⬇️\n\n#nodejs #javascript #async #js #backend #devthread #softwareengineering #webdev #programming #devtips #coding",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_5",
+      "post_number": 5,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "There's a Node API that cuts every queue.\nPromises, timers, I/O — it beats them all.\nIt's also the easiest way to starve your entire event loop. ⬇️\n\n#nodejs #javascript #async #backend #devthread #softwareengineering #webdev #devtips #programming #coding #buildinpublic",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_6",
+      "post_number": 6,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "async/await didn't replace Promises.\nAnd Promises didn't replace callbacks.\nEach one is a transformation of the one before it.\nUnderstanding the chain changes how you debug all three. ⬇️\n\n#nodejs #javascript #async #js #backend #softwareengineering #devthread #webdev #programming #devtips #coding",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_7",
+      "post_number": 7,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You wrote `async function getUser()`.\nYou think it sometimes returns a user.\nIt never does.\nIt always returns a Promise. Even when you return a string. ⬇️\n\n#nodejs #javascript #async #js #typescript #backend #devthread #softwareengineering #webdev #devtips #programming",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_8",
+      "post_number": 8,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Node 14: unhandled Promise rejection → a warning and life goes on.\nNode 15: unhandled Promise rejection → your process dies.\nOne version upgrade. One silent crash path.\nHere's how to catch it before it catches you. ⬇️\n\n#nodejs #javascript #async #backend #softwareengineering #devthread #webdev #devtips #programming #coding #npm",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_9",
+      "post_number": 9,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You know `Promise.all`.\nYou use it wrong.\nOne rejection kills everything.\nThere are 3 other combinators. Each one handles failure differently. ⬇️\n\n#nodejs #javascript #async #js #backend #softwareengineering #devthread #webdev #devtips #programming #typescript",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_10",
+      "post_number": 10,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You wrote a `for` loop with `await` inside.\nCongratulations — you just made Node synchronous.\nHere's how to actually run those requests in parallel. ⬇️\n\n#nodejs #javascript #async #js #backend #devthread #softwareengineering #webdev #programming #devtips #performance",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_11",
+      "post_number": 11,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You added `\"type\": \"module\"` to your `package.json`.\nSuddenly 3 deps broke.\nYou removed it.\nNow a different dep broke.\nThis isn't a config problem. It's a module system war. ⬇️\n\n#nodejs #javascript #js #npm #backend #softwareengineering #devthread #webdev #programming #devtips #typescript",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_12",
+      "post_number": 12,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You changed a config file.\nYou called `require('./config')` again.\nYou got the old values.\nNode didn't re-read the file.\nIt cached it on first load and never looked again. ⬇️\n\n#nodejs #javascript #js #backend #devthread #softwareengineering #webdev #devtips #programming #coding #npm",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_13",
+      "post_number": 13,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "`require('react')` has no path in it.\nHow does Node find the file?\nIt doesn't guess. There's a deterministic algorithm.\nAnd it explains every \"module not found\" you've ever seen. ⬇️\n\n#nodejs #javascript #npm #js #backend #softwareengineering #devthread #webdev #devtips #programming #coding",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_14",
+      "post_number": 14,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You read `name`, `version`, `scripts`.\nYou skipped 4 other fields that control whether your package works for TypeScript users, tree-shakers, and bundlers.\nMost packages get these wrong. ⬇️\n\n#nodejs #javascript #npm #typescript #backend #softwareengineering #devthread #webdev #devtips #programming #buildinpublic",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_15",
+      "post_number": 15,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You read a 2 GB file with `fs.readFile`.\nNode loaded all 2 GB into RAM.\nThere's a better way.\nIt's been in Node since v0.9. ⬇️\n\n#nodejs #javascript #streams #backend #softwareengineering #devthread #webdev #programming #devtips #coding #performance",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_16",
+      "post_number": 16,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You piped a fast Readable into a slow Writable.\nIt worked — until it didn't.\nMemory climbed. Process crashed.\nNobody told you streams can push back. ⬇️\n\n#nodejs #javascript #streams #backend #softwareengineering #devthread #webdev #devtips #programming #performance #coding",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_17",
+      "post_number": 17,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Everything in Node that touches a file, a network socket, or a crypto operation hands you a `Buffer`.\nMost devs immediately call `.toString()` and move on.\nHere's what you lost. ⬇️\n\n#nodejs #javascript #backend #js #softwareengineering #devthread #webdev #devtips #programming #coding #crypto",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_18",
+      "post_number": 18,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "\"Node is single-threaded.\"\nEverybody says it.\nNode ships with `worker_threads`, `cluster`, and `child_process`.\nPick one. But know which one actually unblocks the event loop. ⬇️\n\n#nodejs #javascript #backend #softwareengineering #devthread #webdev #devtips #programming #coding #performance #scaling",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_19",
+      "post_number": 19,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your server's RSS is 150 MB on deploy.\nIt's 1.2 GB after 3 days.\nRestart fixes it. Restarting isn't fixing it.\nThere are 4 shapes every Node leak takes. ⬇️\n\n#nodejs #javascript #backend #softwareengineering #devthread #webdev #devtips #programming #debugging #performance #coding",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "node_series",
+      "folder": "post_20",
+      "post_number": 20,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You left `console.log` in prod \"just to debug.\"\nOn a hot path it's serializing objects to string, writing to stdout synchronously, blocking the event loop.\nOne liner. Real latency. ⬇️\n\n#nodejs #javascript #backend #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #performance #npm",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    }
+  ]
+}

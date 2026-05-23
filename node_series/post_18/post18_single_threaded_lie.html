@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Single-Threaded Lie — Worker Threads vs Cluster vs child_process</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a140d;
+    --bg-elev: #122019;
+    --bg-code: #0c1810;
+    --border: #1f3024;
+    --border-strong: #2f4a37;
+    --text: #e8f0e8;
+    --text-muted: #9bb3a0;
+    --text-dim: #6c8275;
+    --accent: #68a063;          /* node green */
+    --accent-soft: rgba(104, 160, 99, 0.15);
+    --branch: #c8f573;          /* neon lime — highlight */
+    --merge: #ffd166;           /* gold — numbers / refs */
+    --conflict: #ff6b6b;        /* red — errors */
+    --staged: #93dcff;          /* sky — special */
+    --head: #ffd166;            /* gold for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 170, 130, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 170, 130, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 18px 22px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-lime { background: rgba(200, 245, 115, 0.08); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-gold { background: rgba(255, 209, 102, 0.08); border-left: 3px solid var(--merge); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-sky { background: rgba(147, 220, 255, 0.08); border-left: 3px solid var(--staged); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--branch); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Concept box used in slide 4/5/6 */
+  .concept-box {
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    border: 2px solid var(--border);
+  }
+  .concept-box.lime { border-color: var(--branch); }
+  .concept-box.gold { border-color: var(--merge); }
+  .concept-box.sky  { border-color: var(--staged); }
+  .concept-box .box-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .concept-box.lime .box-title { color: var(--branch); }
+  .concept-box.gold .box-title { color: var(--merge); }
+  .concept-box.sky  .box-title { color: var(--staged); }
+  .concept-box .box-body { font-size: 20px; color: var(--text-muted); line-height: 1.45; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">worker.js</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> post 18 — perf / debugging</div>
+    <h1>"Node is<br>single-threaded."</h1>
+    <h1 style="margin-top: -10px;"><span class="accent-text">Not exactly.</span></h1>
+    <div class="cover-tagline">JS runs on one thread per process.<br>But you have three escape hatches.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">cluster.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the half-truth everyone repeats</div>
+    <h2>Your JS runs<br>on <span style="color: var(--accent);">one thread</span>.<br>Your machine has <span style="color: var(--branch);">8+</span>.</h2>
+    <p class="lede">Every core sitting idle while you wait for the event loop. That's the actual problem.</p>
+    <div class="center-row" style="justify-content: flex-start; gap: 18px; flex-wrap: wrap;">
+      <span class="pill">libuv thread pool</span>
+      <span class="arrow">+</span>
+      <span class="pill branch">worker_threads</span>
+      <span class="arrow">+</span>
+      <span class="pill merge">cluster</span>
+      <span class="arrow">+</span>
+      <span class="pill staged">child_process</span>
+    </div>
+    <p class="body-text muted" style="font-size: 22px; margin-top: 12px;">Node gave you tools. Most devs just never reach for them.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SVG DIAGRAM ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">child_process.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the full picture</div>
+    <h2 style="font-size: 46px; margin-bottom: 18px;">What's actually running</h2>
+
+    <svg width="100%" viewBox="0 0 920 600" style="display:block;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#6c8275" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-lime" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#c8f573" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#ffd166" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-sky" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#93dcff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- MAIN PROCESS BOX -->
+      <rect x="10" y="10" width="380" height="420" rx="12" fill="#122019" stroke="#2f4a37" stroke-width="1.5"/>
+      <text x="200" y="44" text-anchor="middle" fill="#9bb3a0" font-family="JetBrains Mono, monospace" font-size="16">Node.js Process</text>
+
+      <!-- JS Thread box -->
+      <rect x="30" y="60" width="340" height="90" rx="8" fill="#0c1810" stroke="#68a063" stroke-width="2"/>
+      <text x="200" y="95" text-anchor="middle" fill="#68a063" font-family="JetBrains Mono, monospace" font-size="17" font-weight="600">JS Thread (V8)</text>
+      <text x="200" y="120" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="14">event loop + your code</text>
+
+      <!-- libuv pool -->
+      <rect x="30" y="170" width="340" height="110" rx="8" fill="#0c1810" stroke="#2f4a37" stroke-width="1.5"/>
+      <text x="200" y="200" text-anchor="middle" fill="#6c8275" font-family="JetBrains Mono, monospace" font-size="15">libuv thread pool (4 threads)</text>
+      <text x="90" y="228" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">fs.readFile</text>
+      <text x="200" y="228" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">dns.lookup</text>
+      <text x="310" y="228" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">crypto</text>
+      <text x="200" y="260" text-anchor="middle" fill="#6c8275" font-family="Inter, sans-serif" font-size="12" font-style="italic">hidden — you don't control this</text>
+
+      <!-- escape hatches label -->
+      <text x="200" y="315" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="15" font-style="italic">← escape hatches you control →</text>
+
+      <!-- YOUR CHOICE label -->
+      <rect x="30" y="330" width="340" height="80" rx="8" fill="#0a140d" stroke="#2f4a37" stroke-width="1" stroke-dasharray="5 3"/>
+      <text x="200" y="362" text-anchor="middle" fill="#6c8275" font-family="JetBrains Mono, monospace" font-size="13">worker_threads (same process)</text>
+      <text x="200" y="385" text-anchor="middle" fill="#6c8275" font-family="JetBrains Mono, monospace" font-size="13">cluster / child_process (new OS process)</text>
+
+      <!-- worker_threads column -->
+      <rect x="430" y="10" width="210" height="180" rx="12" fill="#122019" stroke="#c8f573" stroke-width="2"/>
+      <text x="535" y="44" text-anchor="middle" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">worker_threads</text>
+      <rect x="450" y="60" width="170" height="46" rx="6" fill="#0c1810" stroke="#c8f573" stroke-width="1"/>
+      <text x="535" y="80" text-anchor="middle" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="13">V8 isolate #2</text>
+      <text x="535" y="98" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="12">SharedArrayBuffer</text>
+      <rect x="450" y="118" width="170" height="46" rx="6" fill="#0c1810" stroke="#c8f573" stroke-width="1"/>
+      <text x="535" y="138" text-anchor="middle" fill="#c8f573" font-family="JetBrains Mono, monospace" font-size="13">V8 isolate #3</text>
+      <text x="535" y="156" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="12">MessageChannel</text>
+
+      <!-- cluster column -->
+      <rect x="430" y="215" width="210" height="100" rx="12" fill="#122019" stroke="#ffd166" stroke-width="2"/>
+      <text x="535" y="245" text-anchor="middle" fill="#ffd166" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">cluster</text>
+      <text x="535" y="272" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">Process #2 (same port)</text>
+      <text x="535" y="294" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">Process #3 (OS balanced)</text>
+
+      <!-- child_process column -->
+      <rect x="430" y="335" width="210" height="95" rx="12" fill="#122019" stroke="#93dcff" stroke-width="2"/>
+      <text x="535" y="362" text-anchor="middle" fill="#93dcff" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">child_process</text>
+      <text x="535" y="388" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">Any binary / script</text>
+      <text x="535" y="408" text-anchor="middle" fill="#9bb3a0" font-family="Inter, sans-serif" font-size="13">IPC via stdio / send()</text>
+
+      <!-- arrow from main to worker_threads -->
+      <line x1="390" y1="100" x2="428" y2="100" stroke="#c8f573" stroke-width="1.5" marker-end="url(#arr-lime)"/>
+      <!-- arrow from main to cluster -->
+      <line x1="390" y1="265" x2="428" y2="265" stroke="#ffd166" stroke-width="1.5" marker-end="url(#arr-gold)"/>
+      <!-- arrow from main to child_process -->
+      <line x1="390" y1="382" x2="428" y2="382" stroke="#93dcff" stroke-width="1.5" marker-end="url(#arr-sky)"/>
+
+      <!-- OS cpu label -->
+      <rect x="670" y="10" width="240" height="60" rx="8" fill="#0a140d" stroke="#2f4a37" stroke-width="1"/>
+      <text x="790" y="35" text-anchor="middle" fill="#6c8275" font-family="JetBrains Mono, monospace" font-size="14">OS / CPU Cores</text>
+      <text x="790" y="56" text-anchor="middle" fill="#6c8275" font-family="Inter, sans-serif" font-size="12">all three → more cores</text>
+      <line x1="640" y1="100" x2="668" y2="40" stroke="#6c8275" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+      <line x1="640" y1="265" x2="668" y2="55" stroke="#6c8275" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+      <line x1="640" y1="382" x2="668" y2="60" stroke="#6c8275" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: WORKER_THREADS ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">worker.js</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> escape hatch #1</div>
+    <h2 style="font-size: 52px;"><span style="color: var(--branch);">worker_threads</span> —<br>same process, real threads</h2>
+    <p class="lede" style="margin-bottom: 18px;">Same process. Separate V8 isolates. Share memory via <span style="color:var(--branch); font-family:'JetBrains Mono',monospace;">SharedArrayBuffer</span>. Best for CPU-bound JS: parse, hash, compress, transform.</p>
+<pre class="sm"><span class="kw">const</span> { <span class="prop">Worker</span>, <span class="prop">isMainThread</span>, <span class="prop">parentPort</span> } =
+    <span class="fn">require</span>(<span class="str">'worker_threads'</span>);
+
+<span class="kw">if</span> (<span class="prop">isMainThread</span>) {
+<span class="hi-lime">  <span class="kw">const</span> w = <span class="kw">new</span> <span class="fn">Worker</span>(<span class="str">'./worker.js'</span>);</span>
+  w.<span class="fn">on</span>(<span class="str">'message'</span>, result =&gt; console.<span class="fn">log</span>(result));
+  w.<span class="fn">postMessage</span>({ data: bigInput });
+} <span class="kw">else</span> {
+  <span class="prop">parentPort</span>.<span class="fn">on</span>(<span class="str">'message'</span>, ({ data }) =&gt; {
+    <span class="prop">parentPort</span>.<span class="fn">postMessage</span>(<span class="fn">heavyTransform</span>(data));
+  });
+}</pre>
+    <p class="body-text muted" style="font-size: 21px;">Event loop stays <span style="color:var(--branch);">unblocked</span>. Worker runs on another core.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: CLUSTER ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">cluster.js</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> escape hatch #2</div>
+    <h2 style="font-size: 52px;"><span style="color: var(--merge);">cluster</span> —<br>multi-core HTTP server</h2>
+    <p class="lede" style="margin-bottom: 18px;">Forks one Node process per CPU. OS round-robins incoming connections. Each worker is a full Node process — no shared memory, separate heap. Best for: scaling HTTP throughput.</p>
+<pre class="sm"><span class="kw">const</span> cluster = <span class="fn">require</span>(<span class="str">'cluster'</span>);
+<span class="kw">const</span> { <span class="prop">cpus</span> } = <span class="fn">require</span>(<span class="str">'os'</span>);
+
+<span class="kw">if</span> (cluster.<span class="prop">isPrimary</span>) {
+<span class="hi-gold">  cpus().<span class="fn">forEach</span>(() =&gt; cluster.<span class="fn">fork</span>());</span>
+  cluster.<span class="fn">on</span>(<span class="str">'exit'</span>, (w) =&gt; cluster.<span class="fn">fork</span>()); <span class="com">// auto-restart</span>
+} <span class="kw">else</span> {
+  <span class="com">// each worker listens on SAME port</span>
+  <span class="fn">require</span>(<span class="str">'./server'</span>).<span class="fn">listen</span>(<span class="num">3000</span>);
+}</pre>
+    <p class="body-text muted" style="font-size: 21px;"><span style="color:var(--merge);">8 cores → 8 workers</span>. No code changes to your HTTP handlers.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: CHILD_PROCESS ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">child_process.js</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> escape hatch #3</div>
+    <h2 style="font-size: 52px;"><span style="color: var(--staged);">child_process</span> —<br>run anything</h2>
+    <p class="lede" style="margin-bottom: 14px;">spawn/exec/fork. Run another binary, shell command, or Node script. Communicate via stdin/stdout or <code style="font-family:'JetBrains Mono',monospace;color:var(--staged);">send()</code>/<code style="font-family:'JetBrains Mono',monospace;color:var(--staged);">on('message')</code>. Best for: external tools, crashy isolation.</p>
+<pre class="sm"><span class="kw">const</span> { <span class="prop">spawn</span>, <span class="prop">fork</span> } = <span class="fn">require</span>(<span class="str">'child_process'</span>);
+
+<span class="com">// run any binary</span>
+<span class="kw">const</span> proc = <span class="fn">spawn</span>(<span class="str">'ffmpeg'</span>, [<span class="str">'-i'</span>, <span class="str">'in.mp4'</span>, <span class="str">'out.webm'</span>]);
+proc.stdout.<span class="fn">on</span>(<span class="str">'data'</span>, d =&gt; process.stdout.<span class="fn">write</span>(d));
+
+<span class="com">// or fork another Node script (gets send/message IPC)</span>
+<span class="hi-sky"><span class="kw">const</span> child = <span class="fn">fork</span>(<span class="str">'./risky-task.js'</span>);</span>
+child.<span class="fn">send</span>({ job: payload });
+child.<span class="fn">on</span>(<span class="str">'message'</span>, result =&gt; handle(result));
+child.<span class="fn">on</span>(<span class="str">'exit'</span>, code =&gt; log(<span class="str">`exited ${code}`</span>));</pre>
+    <p class="body-text muted" style="font-size: 21px;">Crash in child? <span style="color:var(--staged);">Parent survives</span>. Natural isolation boundary.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">cpu_cores.js</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> see it yourself</div>
+    <h2 style="font-size: 46px; margin-bottom: 14px;">Fib off-thread.<br><span style="color: var(--branch);">Loop never blocks.</span></h2>
+<pre class="xs"><span class="kw">const</span> { <span class="prop">Worker</span>, <span class="prop">isMainThread</span>, <span class="prop">parentPort</span>, <span class="prop">workerData</span> } =
+    <span class="fn">require</span>(<span class="str">'worker_threads'</span>);
+
+<span class="kw">function</span> <span class="fn">fib</span>(n) { <span class="kw">return</span> n &lt;= <span class="num">1</span> ? n : <span class="fn">fib</span>(n-<span class="num">1</span>) + <span class="fn">fib</span>(n-<span class="num">2</span>); }
+
+<span class="kw">if</span> (<span class="prop">isMainThread</span>) {
+  <span class="kw">let</span> ticks = <span class="num">0</span>;
+<span class="hi-lime">  <span class="kw">const</span> interval = <span class="fn">setInterval</span>(() =&gt; process.<span class="fn">stdout</span>.<span class="fn">write</span>(<span class="str">`tick ${++ticks}\n`</span>), <span class="num">100</span>);</span>
+  <span class="kw">const</span> w = <span class="kw">new</span> <span class="fn">Worker</span>(__filename, { workerData: <span class="num">44</span> });
+  w.<span class="fn">on</span>(<span class="str">'message'</span>, r =&gt; { <span class="fn">clearInterval</span>(interval); console.<span class="fn">log</span>(<span class="str">`fib(44) = ${r}`</span>); });
+} <span class="kw">else</span> {
+  <span class="prop">parentPort</span>.<span class="fn">postMessage</span>(<span class="fn">fib</span>(<span class="prop">workerData</span>));
+}</pre>
+<pre class="sm" style="margin-top: 8px;"><span class="com">$ node fib_worker.js</span>
+<span class="str">tick 1</span>   <span class="com">← main thread ticking while worker computes</span>
+<span class="str">tick 2</span>
+<span class="str">tick 3</span>
+<span class="str">...</span>
+<span class="str">tick 11</span>
+<span class="hi-lime"><span class="prop">fib(44) = 701408733</span>   <span class="com">← worker done, ~1.1s later</span></span></pre>
+    <p class="body-text muted" style="font-size: 21px;">Without worker: <span style="color:var(--conflict);">zero ticks</span> — event loop frozen for entire 1.1s.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">worker.js</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2 style="font-size: 50px; margin-bottom: 18px;">Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">single-thread</span> = JS only. libuv threads are hidden.</li>
+      <li><span class="key" style="color:var(--branch);">worker_threads</span> — CPU-bound JS. Same process. Share SAB.</li>
+      <li><span class="key" style="color:var(--merge);">cluster</span> — scale HTTP. Multiple processes, one port.</li>
+      <li><span class="key" style="color:var(--staged);">child_process</span> — external bins. IPC or stdio. Crash isolation.</li>
+      <li>Shared state → <span class="key">SharedArrayBuffer</span> (workers) or <span class="key">messages</span></li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: memory leaks — the 4 common shapes in Node →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

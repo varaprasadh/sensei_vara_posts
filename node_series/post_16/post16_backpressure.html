@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Backpressure — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a140d;
+    --bg-elev: #122019;
+    --bg-code: #0c1810;
+    --border: #1f3024;
+    --border-strong: #2f4a37;
+    --text: #e8f0e8;
+    --text-muted: #9bb3a0;
+    --text-dim: #6c8275;
+    --accent: #68a063;          /* node green */
+    --accent-soft: rgba(104, 160, 99, 0.15);
+    --branch: #c8f573;          /* neon lime — highlight */
+    --merge: #ffd166;           /* gold — numbers / refs */
+    --conflict: #ff6b6b;        /* red — errors */
+    --staged: #93dcff;          /* sky — special */
+    --head: #ffd166;            /* gold for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 170, 130, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 170, 130, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-red { background: rgba(255,107,107,0.12); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-lime { background: rgba(200,245,115,0.10); border-left: 3px solid var(--branch); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-content .conflict-text { color: var(--conflict); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid;
+    margin-bottom: 10px;
+  }
+  .badge.bad { color: var(--conflict); border-color: var(--conflict); background: rgba(255,107,107,0.08); }
+  .badge.good { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .badge.best { color: var(--branch); border-color: var(--branch); background: rgba(200,245,115,0.08); }
+
+  .caption {
+    font-size: 20px;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-top: 10px;
+  }
+  .caption.lime { color: var(--branch); font-style: normal; font-family: 'JetBrains Mono', monospace; font-size: 18px; }
+
+  .best-box {
+    border: 2px solid var(--branch);
+    border-radius: 12px;
+    padding: 2px;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">backpressure.js</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ node</span> streams/backpressure</div>
+    <h1>Fast source.<br>Slow sink.<br><span class="conflict-text">OOM.</span></h1>
+    <div class="cover-tagline">Post #16 — the mechanism most devs ignore.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">backpressure.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the problem most devs never see coming</div>
+    <h2>RAM eater hiding<br>in plain sight.</h2>
+    <p class="lede">Backpressure is what stops your Node process from eating all the RAM when you copy a big file the wrong way.</p>
+    <p class="body-text">Your <span style="color: var(--staged);">Readable</span> produces data at full disk speed.<br>
+    Your <span style="color: var(--merge);">Writable</span> flushes to a slow network socket.</p>
+    <p class="body-text muted">Gap between them? That gap lives in your <span style="color: var(--conflict);">heap</span>.</p>
+    <div class="center-row" style="margin-top: 10px;">
+      <span class="pill staged">fast Readable</span>
+      <span class="arrow">→→→</span>
+      <span class="pill conflict">heap buffer</span>
+      <span class="arrow">→</span>
+      <span class="pill merge">slow Writable</span>
+    </div>
+    <p class="body-text muted" style="font-size: 22px; text-align: center;">The missing signal: <span style="color: var(--conflict); font-family: 'JetBrains Mono', monospace;">.write()</span> returns <span style="color: var(--conflict); font-family: 'JetBrains Mono', monospace;">false</span> when full.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SVG WATER ANALOGY ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">oom.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> water analogy</div>
+    <h2>Fat pipe.<br>Small drain.</h2>
+
+    <svg width="100%" viewBox="0 0 920 480" style="margin: 0 0 14px;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#93dcff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arrr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arrd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#ffd166" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#93dcff" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#4a9fcc" stop-opacity="0.7"/>
+        </linearGradient>
+        <linearGradient id="overflow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ff6b6b" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#cc3333" stop-opacity="0.6"/>
+        </linearGradient>
+      </defs>
+
+      <!-- FAST SOURCE pipe on left -->
+      <rect x="30" y="160" width="120" height="50" rx="8" fill="#122019" stroke="#93dcff" stroke-width="2"/>
+      <text x="90" y="182" text-anchor="middle" fill="#93dcff" font-family="JetBrains Mono,monospace" font-size="14" font-weight="600">Readable</text>
+      <text x="90" y="200" text-anchor="middle" fill="#6c8275" font-family="Inter,sans-serif" font-size="12">fast source</text>
+
+      <!-- Flow arrow from source to bucket -->
+      <line x1="150" y1="185" x2="250" y2="185" stroke="#93dcff" stroke-width="3" marker-end="url(#arr)"/>
+      <text x="200" y="172" text-anchor="middle" fill="#93dcff" font-family="JetBrains Mono,monospace" font-size="13">chunks</text>
+
+      <!-- BUCKET (heap) in center -->
+      <!-- bucket walls -->
+      <rect x="255" y="110" width="200" height="250" rx="6" fill="#0c1810" stroke="#ff6b6b" stroke-width="2.5"/>
+      <!-- water fill — almost full with overflow -->
+      <rect x="257" y="115" width="196" height="235" rx="4" fill="url(#water)" opacity="0.85"/>
+      <!-- overflow on top -->
+      <rect x="255" y="105" width="200" height="14" rx="3" fill="url(#overflow)" opacity="0.9"/>
+      <!-- overflow drips -->
+      <ellipse cx="275" cy="115" rx="8" ry="5" fill="#ff6b6b" opacity="0.7"/>
+      <ellipse cx="440" cy="118" rx="7" ry="4" fill="#ff6b6b" opacity="0.7"/>
+      <ellipse cx="310" cy="122" rx="5" ry="6" fill="#ff6b6b" opacity="0.6"/>
+      <ellipse cx="395" cy="120" rx="6" ry="7" fill="#ff6b6b" opacity="0.65"/>
+
+      <text x="355" y="225" text-anchor="middle" fill="#e8f0e8" font-family="Inter,sans-serif" font-size="22" font-weight="700">heap</text>
+      <text x="355" y="252" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono,monospace" font-size="14">growing...</text>
+
+      <!-- label: this is your heap -->
+      <rect x="265" y="370" width="180" height="30" rx="6" fill="#122019" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="355" y="391" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono,monospace" font-size="13">this is your heap</text>
+
+      <!-- Arrow to slow sink -->
+      <line x1="455" y1="235" x2="560" y2="235" stroke="#ffd166" stroke-width="2.5" marker-end="url(#arrd)"/>
+      <text x="508" y="222" text-anchor="middle" fill="#ffd166" font-family="JetBrains Mono,monospace" font-size="12">trickle</text>
+
+      <!-- SLOW SINK on right -->
+      <rect x="565" y="210" width="130" height="50" rx="8" fill="#122019" stroke="#ffd166" stroke-width="2"/>
+      <text x="630" y="232" text-anchor="middle" fill="#ffd166" font-family="JetBrains Mono,monospace" font-size="14" font-weight="600">Writable</text>
+      <text x="630" y="250" text-anchor="middle" fill="#6c8275" font-family="Inter,sans-serif" font-size="12">slow sink</text>
+
+      <!-- OOM label bottom right -->
+      <text x="830" y="435" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono,monospace" font-size="28" font-weight="800" opacity="0.6">OOM →</text>
+
+      <!-- drain label with tiny drain icon -->
+      <line x1="630" y1="260" x2="630" y2="310" stroke="#ffd166" stroke-width="2" stroke-dasharray="4 3"/>
+      <ellipse cx="630" cy="318" rx="18" ry="8" fill="#0c1810" stroke="#ffd166" stroke-width="1.5"/>
+      <text x="680" y="322" fill="#6c8275" font-family="Inter,sans-serif" font-size="12" font-style="italic">drain is slow</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 21px; text-align: center;">Source fills bucket faster than drain empties it. <span style="color: var(--conflict);">Bucket overflows.</span> That's your process.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: BAD CODE ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">backpressure.js</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the code that kills your server</div>
+    <span class="badge bad">BAD — bypasses backpressure</span>
+    <h2>Ignoring<br><code style="font-family:'JetBrains Mono',monospace; font-size: 52px;">.write()</code><br>return value.</h2>
+<pre><span class="kw">const</span> <span class="var">fs</span> = <span class="fn">require</span>(<span class="str">'fs'</span>);
+
+<span class="kw">const</span> <span class="var">readable</span> = <span class="var">fs</span>.<span class="prop">createReadStream</span>(<span class="str">'huge.bin'</span>);
+<span class="kw">const</span> <span class="var">writable</span> = <span class="var">fs</span>.<span class="prop">createWriteStream</span>(<span class="str">'out.bin'</span>);
+
+<span class="hi-red"><span class="var">readable</span>.<span class="prop">on</span>(<span class="str">'data'</span>, <span class="var">chunk</span> =&gt; <span class="var">writable</span>.<span class="prop">write</span>(<span class="var">chunk</span>)); <span class="com">// ← ignores backpressure</span></span></pre>
+    <p class="body-text muted"><span style="color: var(--conflict);">.write()</span> returns <span style="color: var(--conflict);">false</span> when buffer is full.<br>You never check it. Heap balloons. Eventually: <span style="color: var(--conflict);">OOM crash.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: GOOD — PIPE ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pipeline.js</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> .pipe() — backpressure for free</div>
+    <span class="badge good">GOOD — backpressure handled</span>
+    <h2><code style="font-family:'JetBrains Mono',monospace; font-size: 52px;">.pipe()</code><br>does it for you.</h2>
+<pre><span class="kw">const</span> <span class="var">fs</span> = <span class="fn">require</span>(<span class="str">'fs'</span>);
+
+<span class="kw">const</span> <span class="var">readable</span> = <span class="var">fs</span>.<span class="prop">createReadStream</span>(<span class="str">'huge.bin'</span>);
+<span class="kw">const</span> <span class="var">writable</span> = <span class="var">fs</span>.<span class="prop">createWriteStream</span>(<span class="str">'out.bin'</span>);
+
+<span class="hi"><span class="var">readable</span>.<span class="prop">pipe</span>(<span class="var">writable</span>); <span class="com">// pauses source when sink is full</span></span></pre>
+    <p class="body-text muted">When <span style="color: var(--accent);">.write()</span> returns <span style="color: var(--conflict);">false</span>, pipe pauses the Readable.<br>Resumes on <span style="color: var(--accent);">'drain'</span> event. Memory stays flat.</p>
+    <p class="body-text" style="color: var(--merge); font-size: 21px;">But: no error handling. One stream errors → silent leak.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: BEST — PIPELINE ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pipeline.js</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the production answer</div>
+    <span class="badge best">BEST — backpressure + errors + cleanup</span>
+    <div class="best-box" style="margin-top: 12px;">
+<pre style="border: none; border-radius: 10px; margin: 0;"><span class="kw">const</span> { <span class="prop">pipeline</span> } = <span class="fn">require</span>(<span class="str">'stream/promises'</span>);
+<span class="kw">const</span> <span class="var">zlib</span> = <span class="fn">require</span>(<span class="str">'zlib'</span>);
+<span class="kw">const</span> <span class="var">fs</span> = <span class="fn">require</span>(<span class="str">'fs'</span>);
+
+<span class="hi-lime"><span class="kw">await</span> <span class="fn">pipeline</span>(
+  <span class="var">fs</span>.<span class="prop">createReadStream</span>(<span class="str">'huge.bin'</span>),
+  <span class="var">zlib</span>.<span class="prop">createGzip</span>(),
+  <span class="var">fs</span>.<span class="prop">createWriteStream</span>(<span class="str">'out.bin.gz'</span>)
+); <span class="com">// throws on error, cleans up all streams</span></span></pre>
+    </div>
+    <p class="caption lime" style="margin-top: 14px;">// this is the production answer.</p>
+    <p class="body-text muted" style="margin-top: 12px;">Backpressure: yes. Error propagation: yes. Cleanup on failure: yes.<br><span style="color: var(--branch);">All three in one call.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">drain.js</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> see the heap difference yourself</div>
+    <h2>Watch RSS<br>balloon vs flat.</h2>
+<pre class="sm"><span class="kw">const</span> { <span class="prop">pipeline</span> } = <span class="fn">require</span>(<span class="str">'stream/promises'</span>);
+<span class="kw">const</span> <span class="var">fs</span> = <span class="fn">require</span>(<span class="str">'fs'</span>);
+
+<span class="com">// BAD: manual data → heap grows</span>
+<span class="kw">const</span> <span class="fn">bad</span> = () =&gt; {
+  <span class="kw">const</span> <span class="var">r</span> = <span class="var">fs</span>.<span class="prop">createReadStream</span>(<span class="str">'/dev/urandom'</span>, { <span class="prop">end</span>: <span class="num">1e9</span> });
+  <span class="kw">const</span> <span class="var">w</span> = <span class="var">fs</span>.<span class="prop">createWriteStream</span>(<span class="str">'/dev/null'</span>);
+<span class="hi-red">  <span class="var">r</span>.<span class="prop">on</span>(<span class="str">'data'</span>, <span class="var">c</span> =&gt; <span class="var">w</span>.<span class="prop">write</span>(<span class="var">c</span>)); <span class="com">// RSS: grows → OOM</span></span>
+  <span class="var">setInterval</span>(() =&gt; <span class="var">console</span>.<span class="prop">log</span>(<span class="var">process</span>.<span class="prop">memoryUsage</span>().<span class="prop">rss</span>), <span class="num">500</span>);
+};
+
+<span class="com">// GOOD: pipeline → constant memory</span>
+<span class="kw">const</span> <span class="fn">good</span> = <span class="kw">async</span> () =&gt; {
+<span class="hi">  <span class="kw">await</span> <span class="fn">pipeline</span>(<span class="var">fs</span>.<span class="prop">createReadStream</span>(<span class="str">'/dev/urandom'</span>,{<span class="prop">end</span>:<span class="num">1e9</span>}),
+                 <span class="var">fs</span>.<span class="prop">createWriteStream</span>(<span class="str">'/dev/null'</span>)); <span class="com">// RSS: flat</span></span>
+  <span class="var">setInterval</span>(() =&gt; <span class="var">console</span>.<span class="prop">log</span>(<span class="var">process</span>.<span class="prop">memoryUsage</span>().<span class="prop">rss</span>), <span class="num">500</span>);
+};</pre>
+    <p class="caption" style="margin-top: 4px;">bad(): rss climbs → crash &nbsp;|&nbsp; good(): rss stays ~30MB</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">oom.js</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2 style="font-size: 48px; margin-bottom: 18px;">Quick recap</h2>
+    <ul class="recap-list">
+      <li>slow sink + fast source = <span class="key">heap balloon → OOM</span></li>
+      <li><span class="key">.write()</span> returns <span style="color: var(--conflict);">false</span> when buffer is full — that's the signal</li>
+      <li><span class="key">.pipe()</span> handles pause/resume automatically</li>
+      <li><span class="key">pipeline()</span> = backpressure + error propagation + cleanup</li>
+      <li>never use manual <span class="key">'data'</span> handler without checking return value</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: Buffer — the byte primitive you ignored →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clause Order ≠ Execution Order — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;          /* postgres blue */
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;          /* mint — success / index */
+    --merge: #ffb454;           /* amber — highlight / sql kw */
+    --conflict: #ff7a8a;        /* coral — errors */
+    --staged: #c8a8ff;          /* lavender — refs */
+    --head: #ffb454;            /* amber for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  pre.xs { font-size: 15px; padding: 18px 22px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: rgba(255,122,138,0.12); border-left: 3px solid var(--conflict); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-ok { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-amber { background: rgba(255,180,84,0.12); border-left: 3px solid var(--merge); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.conflict { border-color: var(--conflict); color: var(--conflict); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 24px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Two-column layout */
+  .two-col { display: flex; gap: 28px; flex: 1; min-height: 0; }
+  .col { flex: 1; display: flex; flex-direction: column; }
+  .col-head {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 6px 6px 0 0;
+    margin-bottom: 0;
+  }
+  .col-head.written { background: rgba(200,168,255,0.12); color: var(--staged); border: 1px solid var(--staged); border-bottom: none; }
+  .col-head.exec { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); border-bottom: none; }
+  .order-list {
+    list-style: none; padding: 0; margin: 0;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 0 6px 6px 6px;
+    overflow: hidden;
+    flex: 1;
+  }
+  .order-list li {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+  }
+  .order-list li:last-child { border-bottom: none; }
+  .step-num { color: var(--text-dim); font-size: 14px; width: 22px; text-align: right; flex-shrink: 0; }
+  .step-kw { font-weight: 600; }
+  .step-kw.written-kw { color: var(--staged); }
+  .step-kw.exec-kw { color: var(--accent); }
+  .step-kw.select-late { color: var(--merge); }
+  .step-desc { color: var(--text-dim); font-size: 13px; font-family: 'Inter', sans-serif; margin-left: auto; }
+
+  /* Pipeline diagram styles */
+  .pipeline { display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: center; }
+  .pipe-row { display: flex; align-items: center; gap: 10px; }
+  .pipe-box {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    font-weight: 600;
+    min-width: 170px;
+    text-align: center;
+  }
+  .pipe-box.accent { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .pipe-box.mint { border-color: var(--branch); color: var(--branch); background: rgba(126,231,184,0.1); }
+  .pipe-box.amber { border-color: var(--merge); color: var(--merge); background: rgba(255,180,84,0.1); }
+  .pipe-box.coral { border-color: var(--conflict); color: var(--conflict); background: rgba(255,122,138,0.1); }
+  .pipe-box.lavender { border-color: var(--staged); color: var(--staged); background: rgba(200,168,255,0.1); }
+  .pipe-desc {
+    font-size: 16px;
+    color: var(--text-dim);
+    font-family: 'Inter', sans-serif;
+    flex: 1;
+  }
+  .pipe-arrow { color: var(--text-dim); font-size: 18px; font-family: 'JetBrains Mono', monospace; }
+  .data-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .data-count.big { background: rgba(74,144,194,0.15); color: var(--accent); border: 1px solid rgba(74,144,194,0.3); }
+  .data-count.med { background: rgba(255,180,84,0.12); color: var(--merge); border: 1px solid rgba(255,180,84,0.3); }
+  .data-count.small { background: rgba(126,231,184,0.12); color: var(--branch); border: 1px solid rgba(126,231,184,0.3); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">query.sql</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">-- #</span> post 10 · clause order</div>
+    <h1>What you write<br>≠ what <span class="accent-text">runs</span>.</h1>
+    <div class="cover-tagline">SQL has two orders.<br>Most devs only know one.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">hook.sql</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> the uncomfortable truth</div>
+    <h2><span style="color: var(--staged);">SELECT</span> is first.<br>It runs <span style="color: var(--accent);">second-to-last</span>.</h2>
+    <p class="lede">You write SELECT at the top of every query. The engine evaluates it near the bottom. That one fact explains 80% of SQL surprises.</p>
+
+    <div style="display: flex; gap: 20px; margin-top: 8px;">
+      <div style="flex:1; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 22px 26px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--staged); letter-spacing: 0.08em; margin-bottom: 14px; text-transform: uppercase;">You write</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 19px; line-height: 2; color: var(--staged);">
+          SELECT<br>FROM<br>WHERE<br>GROUP BY<br>HAVING<br>ORDER BY<br>LIMIT
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; color: var(--text-dim); font-size: 36px;">≠</div>
+      <div style="flex:1; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 22px 26px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 14px; text-transform: uppercase;">Engine runs</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 19px; line-height: 2; color: var(--accent);">
+          FROM<br>WHERE<br>GROUP BY<br>HAVING<br><span style="color: var(--merge);">SELECT</span><br>ORDER BY<br>LIMIT
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SIDE-BY-SIDE WRITTEN VS EXECUTION ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">eval_order.sql</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> two orders, side by side</div>
+    <h2 style="font-size: 46px; margin-bottom: 20px;">Written order vs Execution order</h2>
+    <div class="two-col">
+      <div class="col">
+        <div class="col-head written">Written order</div>
+        <ul class="order-list">
+          <li><span class="step-num">1</span><span class="step-kw written-kw">SELECT</span><span class="step-desc">what to return</span></li>
+          <li><span class="step-num">2</span><span class="step-kw written-kw">FROM</span><span class="step-desc">which table(s)</span></li>
+          <li><span class="step-num">3</span><span class="step-kw written-kw">WHERE</span><span class="step-desc">row filter</span></li>
+          <li><span class="step-num">4</span><span class="step-kw written-kw">GROUP BY</span><span class="step-desc">aggregate</span></li>
+          <li><span class="step-num">5</span><span class="step-kw written-kw">HAVING</span><span class="step-desc">group filter</span></li>
+          <li><span class="step-num">6</span><span class="step-kw written-kw">ORDER BY</span><span class="step-desc">sort</span></li>
+          <li><span class="step-num">7</span><span class="step-kw written-kw">LIMIT</span><span class="step-desc">cut rows</span></li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="col-head exec">Execution order</div>
+        <ul class="order-list">
+          <li><span class="step-num">1</span><span class="step-kw exec-kw">FROM</span><span class="step-desc">load rows + joins</span></li>
+          <li><span class="step-num">2</span><span class="step-kw exec-kw">WHERE</span><span class="step-desc">filter raw rows</span></li>
+          <li><span class="step-num">3</span><span class="step-kw exec-kw">GROUP BY</span><span class="step-desc">form groups</span></li>
+          <li><span class="step-num">4</span><span class="step-kw exec-kw">HAVING</span><span class="step-desc">filter groups</span></li>
+          <li><span class="step-num">5</span><span class="step-kw select-late">SELECT</span><span class="step-desc">⟵ happens here!</span></li>
+          <li><span class="step-num">6</span><span class="step-kw exec-kw">ORDER BY</span><span class="step-desc">sort results</span></li>
+          <li><span class="step-num">7</span><span class="step-kw exec-kw">LIMIT</span><span class="step-desc">trim output</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: PIPELINE FLOW SVG ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pipeline.sql</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> data flows through stages</div>
+    <h2 style="font-size: 48px; margin-bottom: 18px;">Each stage <span style="color: var(--accent);">shrinks</span> the data.</h2>
+
+    <svg width="100%" viewBox="0 0 920 570" style="margin: 0 0 10px;">
+      <defs>
+        <marker id="pa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#4a90c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Stage boxes -->
+      <!-- FROM -->
+      <rect x="20" y="20" width="130" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="85" y="52" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600">FROM</text>
+      <text x="790" y="52" text-anchor="start" fill="#6a7a98" font-family="Inter, sans-serif" font-size="14">all rows loaded</text>
+
+      <!-- WHERE -->
+      <rect x="20" y="115" width="130" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="85" y="147" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600">WHERE</text>
+      <text x="790" y="147" text-anchor="start" fill="#6a7a98" font-family="Inter, sans-serif" font-size="14">row-level filter</text>
+
+      <!-- GROUP BY -->
+      <rect x="20" y="210" width="130" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="85" y="242" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">GROUP BY</text>
+      <text x="790" y="242" text-anchor="start" fill="#6a7a98" font-family="Inter, sans-serif" font-size="14">collapse into groups</text>
+
+      <!-- HAVING -->
+      <rect x="20" y="305" width="130" height="52" rx="8" fill="#141d2e" stroke="#4a90c2" stroke-width="2"/>
+      <text x="85" y="337" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="20" font-weight="600">HAVING</text>
+      <text x="790" y="337" text-anchor="start" fill="#6a7a98" font-family="Inter, sans-serif" font-size="14">group-level filter</text>
+
+      <!-- SELECT (highlighted) -->
+      <rect x="14" y="396" width="142" height="56" rx="8" fill="rgba(255,180,84,0.12)" stroke="#ffb454" stroke-width="2.5"/>
+      <text x="85" y="430" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="20" font-weight="700">SELECT</text>
+      <text x="790" y="430" text-anchor="start" fill="#ffb454" font-family="Inter, sans-serif" font-size="14">aliases born here ←</text>
+
+      <!-- ORDER BY -->
+      <rect x="20" y="497" width="130" height="52" rx="8" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="85" y="529" text-anchor="middle" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">ORDER BY</text>
+
+      <!-- LIMIT -->
+      <rect x="20" y="560" width="130" height="0" rx="8" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+
+      <!-- Arrows between stages -->
+      <line x1="85" y1="72" x2="85" y2="114" stroke="#4a90c2" stroke-width="2" marker-end="url(#pa)"/>
+      <line x1="85" y1="167" x2="85" y2="209" stroke="#4a90c2" stroke-width="2" marker-end="url(#pa)"/>
+      <line x1="85" y1="262" x2="85" y2="304" stroke="#4a90c2" stroke-width="2" marker-end="url(#pa)"/>
+      <line x1="85" y1="357" x2="85" y2="395" stroke="#4a90c2" stroke-width="2" marker-end="url(#pa)"/>
+      <line x1="85" y1="452" x2="85" y2="496" stroke="#4a90c2" stroke-width="2" marker-end="url(#pa)"/>
+
+      <!-- Data flow bar on the right showing volume shrinking -->
+      <!-- Full rows bar -->
+      <rect x="210" y="20" width="540" height="52" rx="6" fill="rgba(74,144,194,0.18)" stroke="rgba(74,144,194,0.4)" stroke-width="1"/>
+      <text x="480" y="52" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="16">1,000,000 rows</text>
+
+      <rect x="210" y="115" width="360" height="52" rx="6" fill="rgba(74,144,194,0.18)" stroke="rgba(74,144,194,0.4)" stroke-width="1"/>
+      <text x="390" y="147" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="16">120,000 rows</text>
+
+      <rect x="210" y="210" width="180" height="52" rx="6" fill="rgba(126,231,184,0.15)" stroke="rgba(126,231,184,0.4)" stroke-width="1"/>
+      <text x="300" y="242" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="16">8,500 groups</text>
+
+      <rect x="210" y="305" width="100" height="52" rx="6" fill="rgba(126,231,184,0.15)" stroke="rgba(126,231,184,0.4)" stroke-width="1"/>
+      <text x="260" y="337" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="15">420 groups</text>
+
+      <rect x="210" y="396" width="100" height="56" rx="6" fill="rgba(255,180,84,0.15)" stroke="rgba(255,180,84,0.5)" stroke-width="1.5"/>
+      <text x="260" y="430" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="15">420 rows</text>
+
+      <rect x="210" y="497" width="100" height="52" rx="6" fill="rgba(74,144,194,0.1)" stroke="rgba(74,144,194,0.25)" stroke-width="1"/>
+      <text x="260" y="529" text-anchor="middle" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="15">420 sorted</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: THE BUG / ALIAS IN WHERE ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">alias_bug.sql</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> the classic bug</div>
+    <h2 style="font-size: 48px; margin-bottom: 14px;">Alias in <span style="color: var(--conflict);">WHERE</span>? Error.</h2>
+    <p class="lede" style="margin-bottom: 14px;">SELECT hasn't run yet. Aliases don't exist at WHERE time.</p>
+
+    <pre class="sm"><span class="com">-- ❌ BROKEN: alias 't' used before it exists</span>
+<span class="kw">SELECT</span> email, total <span class="kw">AS</span> <span class="hi"><span class="fn">t</span></span>
+<span class="kw">FROM</span>   orders
+<span class="hi"><span class="kw">WHERE</span>  <span class="fn">t</span> &gt; <span class="num">100</span>;</span>
+<span class="com">-- ERROR: column "t" does not exist</span></pre>
+
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+      <div style="flex:1; height:1px; background: var(--border);"></div>
+      <div style="color: var(--text-dim); font-size: 14px; font-family: 'JetBrains Mono', monospace;">fixes</div>
+      <div style="flex:1; height:1px; background: var(--border);"></div>
+    </div>
+
+    <div style="display: flex; gap: 16px;">
+      <div style="flex:1;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--branch); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;">Option 1 — original column</div>
+        <pre class="sm" style="margin:0;"><span class="kw">SELECT</span> email, total <span class="kw">AS</span> t
+<span class="kw">FROM</span>   orders
+<span class="hi-ok"><span class="kw">WHERE</span>  <span class="fn">total</span> &gt; <span class="num">100</span>;</span></pre>
+      </div>
+      <div style="flex:1;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--branch); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;">Option 2 — CTE</div>
+        <pre class="sm" style="margin:0;"><span class="kw">WITH</span> base <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> email, total <span class="kw">AS</span> t
+  <span class="kw">FROM</span> orders
+)
+<span class="hi-ok"><span class="kw">SELECT</span> * <span class="kw">FROM</span> base <span class="kw">WHERE</span> t &gt; <span class="num">100</span>;</span></pre>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: WHERE VS HAVING ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">having_vs_where.sql</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> most confused pair in SQL</div>
+    <h2 style="font-size: 46px; margin-bottom: 12px;"><span style="color: var(--accent);">WHERE</span> ≠ <span style="color: var(--branch);">HAVING</span></h2>
+
+    <div style="display: flex; gap: 20px; margin-bottom: 14px;">
+      <div style="flex:1;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px;">WHERE — filters rows</div>
+        <pre class="sm" style="margin: 0 0 10px;"><span class="kw">SELECT</span> user_id, <span class="fn">COUNT</span>(*)
+<span class="kw">FROM</span>   orders
+<span class="hi-ok"><span class="kw">WHERE</span>  status = <span class="str">'paid'</span></span>
+<span class="kw">GROUP BY</span> user_id;</pre>
+        <div style="background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 15px; color: var(--text-muted);">
+          Runs <strong style="color: var(--accent);">before</strong> GROUP BY.<br>
+          Filters individual rows.<br>
+          <span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">Cannot use aggregates.</span>
+        </div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--branch); margin-bottom: 8px;">HAVING — filters groups</div>
+        <pre class="sm" style="margin: 0 0 10px;"><span class="kw">SELECT</span> user_id, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> n
+<span class="kw">FROM</span>   orders
+<span class="kw">GROUP BY</span> user_id
+<span class="hi-ok"><span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) &gt; <span class="num">5</span>;</span></pre>
+        <div style="background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 15px; color: var(--text-muted);">
+          Runs <strong style="color: var(--branch);">after</strong> GROUP BY.<br>
+          Filters whole groups.<br>
+          <span style="color: var(--branch); font-family: 'JetBrains Mono', monospace;">Can use aggregates.</span>
+        </div>
+      </div>
+    </div>
+
+    <svg width="100%" viewBox="0 0 820 90" style="margin-top: 4px;">
+      <defs>
+        <marker id="ph" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M1 1L9 5L1 9" fill="none" stroke="#6a7a98" stroke-width="2"/>
+        </marker>
+      </defs>
+      <rect x="10" y="25" width="100" height="36" rx="6" fill="#141d2e" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="60" y="48" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">FROM</text>
+
+      <line x1="110" y1="43" x2="148" y2="43" stroke="#6a7a98" stroke-width="1.5" marker-end="url(#ph)"/>
+
+      <rect x="150" y="25" width="110" height="36" rx="6" fill="rgba(74,144,194,0.15)" stroke="#4a90c2" stroke-width="2"/>
+      <text x="205" y="48" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="14" font-weight="700">WHERE ✂</text>
+
+      <line x1="260" y1="43" x2="298" y2="43" stroke="#6a7a98" stroke-width="1.5" marker-end="url(#ph)"/>
+
+      <rect x="300" y="25" width="120" height="36" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="360" y="48" text-anchor="middle" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="14">GROUP BY</text>
+
+      <line x1="420" y1="43" x2="458" y2="43" stroke="#6a7a98" stroke-width="1.5" marker-end="url(#ph)"/>
+
+      <rect x="460" y="25" width="120" height="36" rx="6" fill="rgba(126,231,184,0.12)" stroke="#7ee7b8" stroke-width="2"/>
+      <text x="520" y="48" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="14" font-weight="700">HAVING ✂</text>
+
+      <line x1="580" y1="43" x2="618" y2="43" stroke="#6a7a98" stroke-width="1.5" marker-end="url(#ph)"/>
+
+      <rect x="620" y="25" width="100" height="36" rx="6" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="670" y="48" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">SELECT</text>
+
+      <text x="205" y="80" text-anchor="middle" fill="#4a90c2" font-family="Inter, sans-serif" font-size="12">rows</text>
+      <text x="520" y="80" text-anchor="middle" fill="#7ee7b8" font-family="Inter, sans-serif" font-size="12">groups</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">see_it_yourself.sql</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> all clauses, one query</div>
+    <h2 style="font-size: 46px; margin-bottom: 12px;">Every clause. <span style="color: var(--accent);">Annotated.</span></h2>
+    <p class="lede" style="margin-bottom: 12px; font-size: 22px;">Paste this. Mentally trace the execution order.</p>
+
+    <pre class="sm"><span class="hi-amber"><span class="kw">SELECT</span>   user_id, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> c</span>  <span class="com">-- ⑤ select: alias 'c' born here</span>
+<span class="kw">FROM</span>     orders                   <span class="com">-- ① load rows first</span>
+<span class="kw">WHERE</span>    total &gt; <span class="num">0</span>               <span class="com">-- ② filter rows (no aliases!)</span>
+<span class="kw">GROUP BY</span> user_id                  <span class="com">-- ③ collapse into groups</span>
+<span class="kw">HAVING</span>   <span class="fn">COUNT</span>(*) &gt; <span class="num">5</span>           <span class="com">-- ④ filter groups (agg ok)</span>
+<span class="kw">ORDER BY</span> c <span class="kw">DESC</span>                  <span class="com">-- ⑥ 'c' visible here ✓</span>
+<span class="kw">LIMIT</span>    <span class="num">10</span>;                      <span class="com">-- ⑦ trim output last</span></pre>
+
+    <div style="display: flex; gap: 14px; margin-top: 6px;">
+      <div style="flex:1; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--conflict); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em;">Why this fails</div>
+        <pre style="margin:0; font-size: 14px; padding: 10px 14px;"><span class="kw">WHERE</span> c &gt; <span class="num">5</span>  <span class="com">-- ❌ 'c' not born yet</span></pre>
+      </div>
+      <div style="flex:1; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--branch); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em;">Why this works</div>
+        <pre style="margin:0; font-size: 14px; padding: 10px 14px;"><span class="kw">ORDER BY</span> c <span class="com">-- ✓ SELECT already ran</span></pre>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.sql</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- #</span> tl;dr</div>
+    <h2 style="font-size: 52px; margin-bottom: 22px;">Quick recap</h2>
+    <ul class="recap-list">
+      <li>Execution: <span class="key">FROM→WHERE→GROUP→HAVING→SELECT→ORDER→LIMIT</span></li>
+      <li><span class="key">SELECT</span> aliases visible in <span class="key">ORDER BY</span> only — not WHERE/HAVING</li>
+      <li><span class="key">WHERE</span> filters rows (pre-aggregation)</li>
+      <li><span class="key">HAVING</span> filters groups (post-aggregation)</li>
+      <li>Confused? Wrap in a CTE — makes order explicit</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: B-tree vs hash vs GIN vs BRIN — pick the right index →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rewriting History — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* reason / ingredient cards */
+  .cards-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 8px 0 24px; }
+  .cards-2x2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin: 8px 0 24px; }
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px;
+    display: flex; flex-direction: column;
+  }
+  .card .num-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+  .card .ttl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .card .desc {
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--text-muted);
+  }
+  .card.danger { border-color: var(--conflict); }
+  .card.danger .ttl { color: var(--conflict); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">rewrite.git</div>
+    <div class="slide-num">20 / 20</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> the nuclear option</div>
+    <h1>Rewriting<br><span class="accent-text">history</span>.</h1>
+    <div class="cover-tagline">When you committed something<br>you shouldn't have.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: WHY REWRITE ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">why.git</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> 3 reasons people reach for this</div>
+    <h2>When you <span style="color: var(--accent);">must</span> rewrite.</h2>
+    <p class="lede">Three situations where you cannot just "make a new commit" — you have to go back and edit the past.</p>
+
+    <div class="cards-3">
+      <div class="card">
+        <div class="num-tag">01</div>
+        <div class="ttl" style="color: var(--conflict);">secrets</div>
+        <div class="desc">API key, password, or <code style="color: var(--staged); font-family: 'JetBrains Mono', monospace;">.env</code> committed by accident. Now in history forever.</div>
+      </div>
+      <div class="card">
+        <div class="num-tag">02</div>
+        <div class="ttl" style="color: var(--staged);">big files</div>
+        <div class="desc">Binary that should've used LFS. Now bloating <code style="color: var(--merge); font-family: 'JetBrains Mono', monospace;">.git/</code> for everyone, forever.</div>
+      </div>
+      <div class="card">
+        <div class="num-tag">03</div>
+        <div class="ttl" style="color: var(--head);">mistakes</div>
+        <div class="desc">Wrong author email, sensitive data in commit message, accidental merge of the wrong branch.</div>
+      </div>
+    </div>
+
+    <p class="body-text muted">All 3 require touching past commits — which means <span style="color: var(--accent);">new SHAs</span> for every commit after.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: IREBASE RECAP ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">irebase.git</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> small rewrites: irebase</div>
+    <h2>For the last <span style="color: var(--accent);">N</span> commits:<br><code style="font-family: 'JetBrains Mono', monospace; font-size: 48px;">rebase -i</code>.</h2>
+    <p class="lede">Already covered in post 10. Good for tidying recent commits. Not for cleaning historical secrets or big files.</p>
+<pre><span class="com">$ git rebase -i HEAD~5</span>
+<span class="com"># squash / reword / drop your last 5 commits</span>
+
+<span class="kw">pick</span>   <span class="sha">a3f8e90</span> add login form
+<span class="prop">squash</span> <span class="sha">b72cf81</span> fix typo
+<span class="prop">squash</span> <span class="sha">c91e3b4</span> fix another typo
+<span class="prop">reword</span> <span class="sha">d4a1cc7</span> WIP
+<span class="kw">drop</span>   <span class="sha">e08f2a1</span> oops debug log</pre>
+    <p class="body-text muted">Beyond ~20 commits or across the whole history? <span style="color: var(--accent);">Need a real tool.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: FILTER-REPO ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">filter-repo.git</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the modern tool</div>
+    <h2><code style="font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 52px;">git filter-repo</code><br>= the modern way.</h2>
+    <p class="lede">Built by git maintainers as the replacement for the deprecated <code style="color: var(--text); font-family: 'JetBrains Mono', monospace;">filter-branch</code>. Fast. Safe-ish. Requires <code style="color: var(--staged); font-family: 'JetBrains Mono', monospace;">pip install git-filter-repo</code>.</p>
+<pre class="sm"><span class="com"># remove a secrets file from all history</span>
+<span class="com">$</span> git filter-repo <span class="prop">--path</span> <span class="str">.env</span> <span class="prop">--invert-paths</span>
+
+<span class="com"># remove all .psd files from history</span>
+<span class="com">$</span> git filter-repo <span class="prop">--path-glob</span> <span class="str">'*.psd'</span> <span class="prop">--invert-paths</span>
+
+<span class="com"># replace a string everywhere</span>
+<span class="com">$</span> git filter-repo <span class="prop">--replace-text</span> &lt;(echo <span class="str">"API_KEY_123==&gt;REMOVED"</span>)</pre>
+    <p class="body-text muted">Works on a fresh clone (it refuses to touch your dev repo by default — <span style="color: var(--branch);">safe</span>).</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: BFG ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">bfg.git</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the friendly tool</div>
+    <h2><span style="color: var(--accent);">BFG</span> = simpler,<br>slightly different.</h2>
+    <p class="lede">Java tool. 10–100x faster than <code style="color: var(--text); font-family: 'JetBrains Mono', monospace;">filter-branch</code>, smaller feature set, much easier syntax.</p>
+<pre class="sm"><span class="com"># remove all files over 50 MB from history</span>
+<span class="com">$</span> bfg <span class="prop">--strip-blobs-bigger-than</span> <span class="num">50M</span>
+
+<span class="com"># remove .env from all commits</span>
+<span class="com">$</span> bfg <span class="prop">--delete-files</span> <span class="str">.env</span>
+
+<span class="com"># replace secrets in text files</span>
+<span class="com">$</span> bfg <span class="prop">--replace-text</span> <span class="str">secrets.txt</span></pre>
+    <p class="body-text muted">Pick <span style="color: var(--accent);">filter-repo</span> for power, <span style="color: var(--accent);">BFG</span> for one-liners. Both work.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: AFTER REWRITE ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">after.git</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the mandatory cleanup</div>
+    <h2><span style="color: var(--accent);">Force-push</span><br>+ warn everyone.</h2>
+    <p class="lede">Every commit after the rewrite point has a new SHA. The remote's history must be replaced. Collaborators must re-clone.</p>
+<pre class="sm"><span class="com">$</span> git push <span class="prop">--force-with-lease</span> origin <span class="prop">--all</span>
+<span class="com">$</span> git push <span class="prop">--force-with-lease</span> origin <span class="prop">--tags</span>
+<span class="com">$</span> git gc <span class="prop">--aggressive</span> <span class="prop">--prune=now</span>   <span class="com"># reclaim local space</span>
+
+<span class="com"># tell teammates: re-clone, don't pull.</span></pre>
+    <p class="body-text" style="color: var(--conflict);">Open PRs against the rewritten branch will break. <span style="color: var(--text);">Plan ahead.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: CAVEATS ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">caveats.git</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> don't skip this</div>
+    <h2>What rewriting <span style="color: var(--accent);">can't</span> save.</h2>
+    <p class="lede">Rewriting the local graph is the easy part. Cleaning up the fallout is the hard part.</p>
+
+    <div class="cards-2x2">
+      <div class="card danger">
+        <div class="num-tag">01</div>
+        <div class="ttl">once pushed, secrets stay</div>
+        <div class="desc">GitHub/GitLab keep them in events, forks, and caches. <span style="color: var(--conflict);">Rotate the secret.</span></div>
+      </div>
+      <div class="card">
+        <div class="num-tag">02</div>
+        <div class="ttl" style="color: var(--staged);">PRs &amp; CI break</div>
+        <div class="desc">Open PRs, build artifacts, and CI pipelines all reference old SHAs. They die.</div>
+      </div>
+      <div class="card">
+        <div class="num-tag">03</div>
+        <div class="ttl" style="color: var(--head);">public forks</div>
+        <div class="desc">You can't rewrite theirs. Once it's out there, it's out there. Bad news travels.</div>
+      </div>
+      <div class="card">
+        <div class="num-tag">04</div>
+        <div class="ttl" style="color: var(--branch);">always backup first</div>
+        <div class="desc">Clone the repo somewhere safe before rewriting. Disasters are reversible only if you have a copy.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: SERIES FINALE ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">series.git</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> 20 posts. one mental model.</div>
+    <h2>That's the <span style="color: var(--accent);">series</span>.</h2>
+    <ul class="recap-list">
+      <li><span class="key">git is a graph</span> (P1) — commits + edges, branches as labels</li>
+      <li><span class="key">.git/</span> is files (P2) — objects, refs, HEAD, index</li>
+      <li><span class="key">3 trees</span> + <span class="key">branches = pointers</span> (P3–4) — the state model</li>
+      <li><span class="key">merge / rebase / conflicts / reflog / stash</span> (P5–8) — daily workflow</li>
+      <li><span class="key">reset / revert / restore / cherry-pick / bisect / recover</span> (P9–12) — power moves</li>
+      <li><span class="key">PRs / force-with-lease / hooks / nested repos</span> (P13–16) — collaboration</li>
+      <li><span class="key">push internals / packfiles / LFS / rewrite</span> (P17–20) — the deep end</li>
+      <li>That's git. Now go <span style="color: var(--accent);">break things</span> — and recover them.</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">The whole series lives at <span style="color: var(--accent); font-family: 'JetBrains Mono', monospace;">@sensei_vara</span>. Hit follow.</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

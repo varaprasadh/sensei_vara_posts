@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MVCC — Your Row Has Versions, Not Locks — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;
+    --merge: #ffb454;
+    --conflict: #ff7a8a;
+    --staged: #c8a8ff;
+    --head: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* MVCC-specific */
+  .tuple-box {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 14px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--text);
+  }
+  .tuple-box.dead {
+    border-color: var(--conflict);
+    opacity: 0.65;
+    text-decoration: line-through;
+    text-decoration-color: var(--conflict);
+  }
+  .tuple-box.live {
+    border-color: var(--branch);
+  }
+  .tuple-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .tuple-fields { color: var(--text-muted); }
+  .tuple-fields .xmin { color: var(--branch); }
+  .tuple-fields .xmax { color: var(--conflict); }
+  .tuple-fields .xmax-inf { color: var(--text-dim); }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .badge.dead { background: rgba(255, 122, 138, 0.15); color: var(--conflict); border: 1px solid var(--conflict); }
+  .badge.live { background: rgba(126, 231, 184, 0.15); color: var(--branch); border: 1px solid var(--branch); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">mvcc.sql</span>
+    <span class="slide-num">01 / 08</span>
+  </div>
+  <div class="content">
+    <div class="cover-content">
+      <div class="label"><span class="prompt">-- </span>post #12 · internals</div>
+      <h1>Your row has <span class="accent-text">versions</span>.<br>Not locks.</h1>
+      <div class="cover-tagline">How Postgres lets readers and writers<br>coexist without a traffic jam.</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: HOOK ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">mvcc.sql</span>
+    <span class="slide-num">02 / 08</span>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span>the thing most devs assume</div>
+    <h2>UPDATE doesn't<br>overwrite.</h2>
+    <p class="lede">Most devs picture UPDATE as an in-place edit — like changing a cell in Excel. Postgres doesn't do that.</p>
+    <p class="body-text">Instead it <strong style="color:var(--branch)">writes a brand-new row version</strong> and marks the old one as dead.</p>
+    <p class="body-text">The old row stays on disk — just invisible to new transactions. That's the entire trick.</p>
+    <div class="center-row" style="margin-top: 12px;">
+      <span class="pill merge">UPDATE</span>
+      <span class="arrow">≠</span>
+      <span class="pill">overwrite</span>
+    </div>
+    <div class="center-row">
+      <span class="pill merge">UPDATE</span>
+      <span class="arrow">=</span>
+      <span class="pill branch">new row version</span>
+      <span class="arrow">+</span>
+      <span class="pill" style="border-color:var(--conflict);color:var(--conflict)">old marked dead</span>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: SVG BEFORE/AFTER UPDATE ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">xmin_xmax</span>
+    <span class="slide-num">03 / 08</span>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span>tuple headers: xmin + xmax</div>
+    <h2 style="font-size:46px;margin-bottom:18px;">Every row carries a birth<br>and death certificate.</h2>
+    <svg viewBox="0 0 920 560" width="920" height="560" style="display:block;max-width:100%;margin:0 auto;">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#4a90c2"/>
+        </marker>
+        <marker id="arr-coral" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ff7a8a"/>
+        </marker>
+        <marker id="arr-mint" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#7ee7b8"/>
+        </marker>
+      </defs>
+
+      <!-- BEFORE label -->
+      <text x="30" y="36" font-family="JetBrains Mono, monospace" font-size="15" fill="#6a7a98" letter-spacing="2">BEFORE UPDATE</text>
+      <!-- BEFORE tuple -->
+      <rect x="30" y="50" width="380" height="110" rx="8" fill="#141d2e" stroke="#36456a" stroke-width="1.5"/>
+      <text x="50" y="78" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98">tuple v1</text>
+      <text x="50" y="104" font-family="JetBrains Mono, monospace" font-size="17" fill="#e6edf3">id=1, name=<tspan fill="#7ee7b8">'Alice'</tspan></text>
+      <text x="50" y="132" font-family="JetBrains Mono, monospace" font-size="16">
+        <tspan fill="#7ee7b8">xmin=100</tspan>
+        <tspan fill="#6a7a98" dx="16">xmax=</tspan><tspan fill="#6a7a98">∞</tspan>
+      </text>
+      <text x="360" y="78" font-family="Inter, sans-serif" font-size="13" fill="#7ee7b8" text-anchor="end">● live</text>
+
+      <!-- Arrow down: UPDATE txn 101 -->
+      <line x1="220" y1="165" x2="220" y2="210" stroke="#4a90c2" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="120" y="175" width="200" height="30" rx="6" fill="#0e1626" stroke="#243049"/>
+      <text x="220" y="195" font-family="JetBrains Mono, monospace" font-size="14" fill="#ffb454" text-anchor="middle">UPDATE  (txid=101)</text>
+
+      <!-- AFTER label -->
+      <text x="30" y="248" font-family="JetBrains Mono, monospace" font-size="15" fill="#6a7a98" letter-spacing="2">AFTER UPDATE</text>
+
+      <!-- OLD tuple (dead) -->
+      <rect x="30" y="262" width="380" height="110" rx="8" fill="#141d2e" stroke="#ff7a8a" stroke-width="1.5" opacity="0.7"/>
+      <text x="50" y="290" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98">tuple v1  (dead)</text>
+      <text x="50" y="316" font-family="JetBrains Mono, monospace" font-size="17" fill="#93a3bf" text-decoration="line-through">id=1, name='Alice'</text>
+      <text x="50" y="344" font-family="JetBrains Mono, monospace" font-size="16">
+        <tspan fill="#7ee7b8">xmin=100</tspan>
+        <tspan fill="#6a7a98" dx="16">xmax=</tspan><tspan fill="#ff7a8a">101</tspan>
+      </text>
+      <text x="360" y="290" font-family="Inter, sans-serif" font-size="13" fill="#ff7a8a" text-anchor="end">✕ dead</text>
+
+      <!-- Arrow to new tuple -->
+      <line x1="430" y1="316" x2="490" y2="316" stroke="#7ee7b8" stroke-width="2" marker-end="url(#arr-mint)"/>
+      <text x="460" y="308" font-family="JetBrains Mono, monospace" font-size="12" fill="#7ee7b8" text-anchor="middle">new</text>
+
+      <!-- NEW tuple (live) -->
+      <rect x="500" y="262" width="400" height="110" rx="8" fill="#141d2e" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="520" y="290" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98">tuple v2  (live)</text>
+      <text x="520" y="316" font-family="JetBrains Mono, monospace" font-size="17" fill="#e6edf3">id=1, name=<tspan fill="#7ee7b8">'Bob'</tspan></text>
+      <text x="520" y="344" font-family="JetBrains Mono, monospace" font-size="16">
+        <tspan fill="#7ee7b8">xmin=101</tspan>
+        <tspan fill="#6a7a98" dx="16">xmax=</tspan><tspan fill="#6a7a98">∞</tspan>
+      </text>
+      <text x="880" y="290" font-family="Inter, sans-serif" font-size="13" fill="#7ee7b8" text-anchor="end">● live</text>
+
+      <!-- Legend -->
+      <rect x="30" y="420" width="860" height="120" rx="8" fill="#0e1626" stroke="#243049"/>
+      <text x="60" y="450" font-family="Inter, sans-serif" font-size="15" fill="#93a3bf" font-weight="600">xmin</text>
+      <text x="60" y="474" font-family="Inter, sans-serif" font-size="14" fill="#6a7a98">transaction that created this tuple</text>
+      <text x="310" y="450" font-family="Inter, sans-serif" font-size="15" fill="#93a3bf" font-weight="600">xmax</text>
+      <text x="310" y="474" font-family="Inter, sans-serif" font-size="14" fill="#6a7a98">transaction that deleted it (∞ = alive)</text>
+      <text x="620" y="450" font-family="Inter, sans-serif" font-size="15" fill="#93a3bf" font-weight="600">snapshot rule</text>
+      <text x="620" y="474" font-family="Inter, sans-serif" font-size="14" fill="#6a7a98">see tuple if xmin ≤ my_txid &lt; xmax</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: SNAPSHOT — CONCURRENT TRANSACTIONS ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">snapshot</span>
+    <span class="slide-num">04 / 08</span>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span>each transaction sees its own snapshot</div>
+    <h2 style="font-size:44px;margin-bottom:16px;">You see what existed<br>when you started.</h2>
+    <svg viewBox="0 0 920 490" width="920" height="490" style="display:block;max-width:100%;margin:0 auto;">
+      <defs>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#4a90c2"/>
+        </marker>
+      </defs>
+
+      <!-- Timeline axis -->
+      <line x1="80" y1="60" x2="840" y2="60" stroke="#36456a" stroke-width="1.5"/>
+      <text x="80" y="46" font-family="JetBrains Mono, monospace" font-size="13" fill="#6a7a98">time →</text>
+      <!-- tick marks -->
+      <line x1="160" y1="52" x2="160" y2="68" stroke="#36456a" stroke-width="1"/>
+      <line x1="340" y1="52" x2="340" y2="68" stroke="#36456a" stroke-width="1"/>
+      <line x1="520" y1="52" x2="520" y2="68" stroke="#36456a" stroke-width="1"/>
+      <line x1="700" y1="52" x2="700" y2="68" stroke="#36456a" stroke-width="1"/>
+      <text x="155" y="84" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">t1</text>
+      <text x="335" y="84" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">t2</text>
+      <text x="515" y="84" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">t3</text>
+      <text x="695" y="84" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">t4</text>
+
+      <!-- Txn A bar -->
+      <rect x="155" y="110" width="400" height="60" rx="8" fill="#1a2a42" stroke="#4a90c2" stroke-width="1.5"/>
+      <text x="175" y="138" font-family="JetBrains Mono, monospace" font-size="16" fill="#4a90c2" font-weight="600">Txn A  (xid=200)</text>
+      <text x="175" y="158" font-family="JetBrains Mono, monospace" font-size="13" fill="#93a3bf">START → snapshot taken at t1</text>
+
+      <!-- Snapshot bubble A -->
+      <rect x="155" y="185" width="400" height="44" rx="6" fill="#0e1626" stroke="#243049"/>
+      <text x="355" y="212" font-family="JetBrains Mono, monospace" font-size="14" fill="#7ee7b8" text-anchor="middle">sees: name='Alice'  (row as of t1)</text>
+
+      <!-- Txn B bar -->
+      <rect x="335" y="270" width="400" height="60" rx="8" fill="#1f2a1a" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="355" y="298" font-family="JetBrains Mono, monospace" font-size="16" fill="#7ee7b8" font-weight="600">Txn B  (xid=201)</text>
+      <text x="355" y="318" font-family="JetBrains Mono, monospace" font-size="13" fill="#93a3bf">UPDATEs name → 'Bob' at t3</text>
+
+      <!-- Snapshot bubble B -->
+      <rect x="515" y="345" width="320" height="44" rx="6" fill="#0e1626" stroke="#243049"/>
+      <text x="675" y="372" font-family="JetBrains Mono, monospace" font-size="14" fill="#ffb454" text-anchor="middle">committed at t3 → new version</text>
+
+      <!-- Key callout -->
+      <rect x="80" y="410" width="760" height="60" rx="8" fill="#141d2e" stroke="#36456a"/>
+      <text x="460" y="438" font-family="Inter, sans-serif" font-size="16" fill="#e6edf3" text-anchor="middle" font-weight="600">Txn A reads at t4 — still sees 'Alice'.</text>
+      <text x="460" y="460" font-family="Inter, sans-serif" font-size="14" fill="#93a3bf" text-anchor="middle">Txn B's commit is after A's snapshot. Invisible to A. No blocking either way.</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: THE BIG WIN — NO BLOCKING ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">txid</span>
+    <span class="slide-num">05 / 08</span>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span>readers never block writers. writers never block readers.</div>
+    <h2 style="font-size:48px;margin-bottom:18px;">Two sessions.<br>Zero waiting.</h2>
+    <pre class="sm"><span class="com">-- Session 1 (xid=300): heavy writer</span>
+<span class="kw">UPDATE</span> orders <span class="kw">SET</span> status = <span class="str">'shipped'</span>
+<span class="kw">WHERE</span> id <span class="kw">BETWEEN</span> <span class="num">1</span> <span class="kw">AND</span> <span class="num">100000</span>;
+<span class="com">-- updating 100k rows…</span>
+
+<span class="com">-- Session 2 (xid=301): concurrent reader</span>
+<span class="hi"><span class="kw">SELECT</span> <span class="fn">count</span>(*) <span class="kw">FROM</span> orders;  <span class="com">-- no lock. returns instantly.</span></span>
+<span class="com">-- sees snapshot from before session 1 started</span>
+<span class="com">-- no waiting, no blocking</span></pre>
+    <div class="center-row" style="margin-top: 8px; gap: 20px;">
+      <div style="text-align:center;">
+        <div class="pill accent" style="font-size:17px;padding:12px 20px;">readers</div>
+        <div style="font-size:14px;color:var(--text-dim);margin-top:8px;">see consistent snapshot</div>
+      </div>
+      <div style="font-size:32px;color:var(--text-dim);">⟂</div>
+      <div style="text-align:center;">
+        <div class="pill branch" style="font-size:17px;padding:12px 20px;">writers</div>
+        <div style="font-size:14px;color:var(--text-dim);margin-top:8px;">write new versions</div>
+      </div>
+    </div>
+    <p class="body-text muted" style="font-size:20px;margin-top:16px;">They operate on <em>different versions</em> of the same data. No coordination needed.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: THE TAX — DEAD TUPLES ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">bloat.sql</span>
+    <span class="slide-num">06 / 08</span>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span>the cost of versioning</div>
+    <h2 style="font-size:48px;margin-bottom:14px;">Every UPDATE leaves<br>a corpse.</h2>
+    <svg viewBox="0 0 920 380" width="920" height="380" style="display:block;max-width:100%;margin:0 auto;">
+      <!-- Page box label -->
+      <text x="30" y="26" font-family="JetBrains Mono, monospace" font-size="14" fill="#6a7a98" letter-spacing="1">8KB PAGE — after many UPDATEs</text>
+
+      <!-- Page border -->
+      <rect x="30" y="36" width="860" height="280" rx="10" fill="#0e1626" stroke="#243049" stroke-width="1.5"/>
+
+      <!-- Grid of tuples (7 cols x 3 rows = 21 slots) -->
+      <!-- Row 1 -->
+      <!-- dead tuples: gray/coral -->
+      <rect x="56"  y="60"  width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="110" y="86"  font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+      <text x="110" y="104" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a7a98" text-anchor="middle">xmax=201</text>
+
+      <rect x="180" y="60"  width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="234" y="86"  font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+      <text x="234" y="104" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a7a98" text-anchor="middle">xmax=202</text>
+
+      <!-- live tuple -->
+      <rect x="304" y="60"  width="108" height="64" rx="6" fill="#142114" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="358" y="86"  font-family="JetBrains Mono, monospace" font-size="12" fill="#7ee7b8" text-anchor="middle">live</text>
+      <text x="358" y="104" font-family="JetBrains Mono, monospace" font-size="10" fill="#93a3bf" text-anchor="middle">id=5</text>
+
+      <rect x="428" y="60"  width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="482" y="86"  font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+      <text x="482" y="104" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a7a98" text-anchor="middle">xmax=210</text>
+
+      <rect x="552" y="60"  width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="606" y="86"  font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+      <text x="606" y="104" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a7a98" text-anchor="middle">xmax=215</text>
+
+      <rect x="676" y="60"  width="108" height="64" rx="6" fill="#142114" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="730" y="86"  font-family="JetBrains Mono, monospace" font-size="12" fill="#7ee7b8" text-anchor="middle">live</text>
+      <text x="730" y="104" font-family="JetBrains Mono, monospace" font-size="10" fill="#93a3bf" text-anchor="middle">id=9</text>
+
+      <rect x="800" y="60"  width="60" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="830" y="93"  font-family="JetBrains Mono, monospace" font-size="11" fill="#ff7a8a" text-anchor="middle">dead</text>
+
+      <!-- Row 2 -->
+      <rect x="56"  y="144" width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="110" y="170" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+      <text x="110" y="188" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a7a98" text-anchor="middle">xmax=230</text>
+
+      <rect x="180" y="144" width="108" height="64" rx="6" fill="#142114" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="234" y="170" font-family="JetBrains Mono, monospace" font-size="12" fill="#7ee7b8" text-anchor="middle">live</text>
+      <text x="234" y="188" font-family="JetBrains Mono, monospace" font-size="10" fill="#93a3bf" text-anchor="middle">id=1</text>
+
+      <rect x="304" y="144" width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="358" y="170" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+      <text x="358" y="188" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a7a98" text-anchor="middle">xmax=235</text>
+
+      <rect x="428" y="144" width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="482" y="170" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+      <text x="482" y="188" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a7a98" text-anchor="middle">xmax=240</text>
+
+      <rect x="552" y="144" width="108" height="64" rx="6" fill="#142114" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="606" y="170" font-family="JetBrains Mono, monospace" font-size="12" fill="#7ee7b8" text-anchor="middle">live</text>
+      <text x="606" y="188" font-family="JetBrains Mono, monospace" font-size="10" fill="#93a3bf" text-anchor="middle">id=3</text>
+
+      <rect x="676" y="144" width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="730" y="170" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+      <text x="730" y="188" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a7a98" text-anchor="middle">xmax=250</text>
+
+      <rect x="800" y="144" width="60" height="64" rx="6" fill="#142114" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="830" y="177" font-family="JetBrains Mono, monospace" font-size="11" fill="#7ee7b8" text-anchor="middle">live</text>
+
+      <!-- Row 3: mostly dead, some empty -->
+      <rect x="56"  y="228" width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="110" y="260" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+
+      <rect x="180" y="228" width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="234" y="260" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+
+      <rect x="304" y="228" width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.6"/>
+      <text x="358" y="260" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+
+      <rect x="428" y="228" width="108" height="64" rx="6" fill="#142114" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="482" y="260" font-family="JetBrains Mono, monospace" font-size="12" fill="#7ee7b8" text-anchor="middle">live</text>
+
+      <rect x="552" y="228" width="108" height="64" rx="6" fill="#1f1428" stroke="#ff7a8a" stroke-width="1" opacity="0.5"/>
+      <text x="606" y="260" font-family="JetBrains Mono, monospace" font-size="12" fill="#ff7a8a" text-anchor="middle">dead</text>
+
+      <rect x="676" y="228" width="184" height="64" rx="6" fill="#0e1626" stroke="#243049" stroke-dasharray="5,4"/>
+      <text x="768" y="260" font-family="JetBrains Mono, monospace" font-size="12" fill="#6a7a98" text-anchor="middle">empty — wasted space</text>
+    </svg>
+    <p class="body-text muted" style="font-size:19px;margin-top:8px;"><span style="color:var(--conflict)">Red = dead tuples</span> — still on disk, invisible to queries. Page fills with garbage. VACUUM reclaims them.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: SEE IT YOURSELF ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">mvcc.sql</span>
+    <span class="slide-num">07 / 08</span>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span>try it in psql right now</div>
+    <h2 style="font-size:46px;margin-bottom:18px;">See xmin, xmax<br>with your own eyes.</h2>
+    <pre class="sm"><span class="com">-- check your current transaction id</span>
+<span class="kw">SELECT</span> <span class="fn">txid_current</span>();
+<span class="com">-- → 4019</span>
+
+<span class="com">-- inspect tuple headers directly</span>
+<span class="hi"><span class="kw">SELECT</span> xmin, xmax, id, name <span class="kw">FROM</span> users <span class="kw">WHERE</span> id = <span class="num">1</span>;</span>
+<span class="com">-- xmin | xmax | id | name</span>
+<span class="com">-- -----+------+----+-------</span>
+<span class="com">--  100 |    0 |  1 | Alice   ← xmax=0 means ∞ (alive)</span>
+
+<span class="com">-- now update it</span>
+<span class="kw">UPDATE</span> users <span class="kw">SET</span> name = <span class="str">'Bob'</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
+
+<span class="com">-- re-check — new xmin, old row vanished from SELECT</span>
+<span class="kw">SELECT</span> xmin, xmax, id, name <span class="kw">FROM</span> users <span class="kw">WHERE</span> id = <span class="num">1</span>;
+<span class="com">-- xmin | xmax | id | name</span>
+<span class="com">-- -----+------+----+-----</span>
+<span class="com">--  4019|    0 |  1 | Bob     ← new tuple, born in txid 4019</span></pre>
+    <p class="body-text muted" style="font-size:20px;margin-top:6px;">The old tuple (xmax=4019) is still on the page — invisible to you, visible to VACUUM.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <span class="tab">mvcc.sql</span>
+    <span class="slide-num">08 / 08</span>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">-- </span>recap</div>
+    <h2 style="font-size:44px;margin-bottom:22px;">MVCC in five lines.</h2>
+    <ul class="recap-list">
+      <li><span class="key">UPDATE</span> = new row version + old marked dead (<span class="key">xmax</span> set)</li>
+      <li>Each txn takes a <span class="key">snapshot</span> — sees only rows committed before it started</li>
+      <li>Readers never block writers; writers never block readers</li>
+      <li>Dead tuples accumulate → <span style="color:var(--conflict)">table bloat</span></li>
+      <li><span class="key">VACUUM</span> reclaims dead space, keeps pages lean</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">next: <strong>VACUUM</strong> — why your DB takes out the trash →</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

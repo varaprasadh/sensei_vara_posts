@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>A Database is a File — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-elev: #141d2e;
+    --bg-code: #0e1626;
+    --border: #243049;
+    --border-strong: #36456a;
+    --text: #e6edf3;
+    --text-muted: #93a3bf;
+    --text-dim: #6a7a98;
+    --accent: #4a90c2;          /* postgres blue */
+    --accent-soft: rgba(74, 144, 194, 0.15);
+    --branch: #7ee7b8;          /* mint — success / index */
+    --merge: #ffb454;           /* amber — highlight / sql kw */
+    --conflict: #ff7a8a;        /* coral — errors */
+    --staged: #c8a8ff;          /* lavender — refs */
+    --head: #ffb454;            /* amber for HEAD-like emphasis */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 130, 170, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 130, 170, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+
+<style>
+  html, body { margin: 0 !important; padding: 0 !important; background: #0a0e14 !important; }
+  body { display: block !important; gap: 0 !important; }
+  .slide { border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">pg_class</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">psql=#</span> zoom in: file → page → row</div>
+    <h2>File contains <span style="color: var(--merge);">pages</span>.<br>Pages contain <span style="color: var(--branch);">tuples</span>.</h2>
+
+    <svg width="100%" viewBox="0 0 900 420" style="margin: 8px 0 0;">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#4a90c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- FILE block -->
+      <rect x="30" y="80" width="200" height="260" rx="10" fill="#141d2e" stroke="#4a90c2" stroke-width="2.5"/>
+      <text x="130" y="54" text-anchor="middle" fill="#4a90c2" font-family="JetBrains Mono, monospace" font-size="17" font-weight="600">base/16384/16421</text>
+      <text x="130" y="72" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="14">table file (heap)</text>
+      <!-- page dividers inside file -->
+      <rect x="50" y="100" width="160" height="50" rx="5" fill="#0e1626" stroke="#36456a" stroke-width="1.2"/>
+      <text x="130" y="131" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="15">page 0  (8KB)</text>
+      <rect x="50" y="158" width="160" height="50" rx="5" fill="#0e1626" stroke="#36456a" stroke-width="1.2"/>
+      <text x="130" y="189" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="15">page 1  (8KB)</text>
+      <rect x="50" y="216" width="160" height="50" rx="5" fill="#0e1626" stroke="#36456a" stroke-width="1.2"/>
+      <text x="130" y="247" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="15">page 2  (8KB)</text>
+      <text x="130" y="302" text-anchor="middle" fill="#6a7a98" font-family="JetBrains Mono, monospace" font-size="16">…</text>
+
+      <!-- arrow FILE → PAGE -->
+      <line x1="230" y1="200" x2="290" y2="200" stroke="#4a90c2" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <!-- PAGE block (zoom of page 1) -->
+      <rect x="290" y="80" width="240" height="260" rx="10" fill="#141d2e" stroke="#ffb454" stroke-width="2.5"/>
+      <text x="410" y="54" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="17" font-weight="600">page 1</text>
+      <text x="410" y="72" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="14">8192 bytes exactly</text>
+      <!-- header -->
+      <rect x="308" y="98" width="204" height="38" rx="4" fill="#0e1626" stroke="#36456a" stroke-width="1"/>
+      <text x="410" y="122" text-anchor="middle" fill="#c8a8ff" font-family="JetBrains Mono, monospace" font-size="13">PageHeader (24 B)</text>
+      <!-- item pointers -->
+      <rect x="308" y="144" width="204" height="28" rx="4" fill="#0e1626" stroke="#36456a" stroke-width="1"/>
+      <text x="410" y="163" text-anchor="middle" fill="#93a3bf" font-family="JetBrains Mono, monospace" font-size="13">ItemId array →</text>
+      <!-- tuples -->
+      <rect x="308" y="180" width="204" height="40" rx="4" fill="#1a2438" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="410" y="205" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="14">tuple (row) 1</text>
+      <rect x="308" y="228" width="204" height="40" rx="4" fill="#1a2438" stroke="#7ee7b8" stroke-width="1.5"/>
+      <text x="410" y="253" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="14">tuple (row) 2</text>
+      <!-- free space -->
+      <rect x="308" y="276" width="204" height="38" rx="4" fill="#0e1626" stroke="#243049" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="410" y="300" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="13">free space</text>
+
+      <!-- arrow PAGE → TUPLE -->
+      <line x1="530" y1="200" x2="590" y2="200" stroke="#4a90c2" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <!-- TUPLE block -->
+      <rect x="590" y="130" width="270" height="140" rx="10" fill="#141d2e" stroke="#7ee7b8" stroke-width="2.5"/>
+      <text x="725" y="106" text-anchor="middle" fill="#7ee7b8" font-family="JetBrains Mono, monospace" font-size="17" font-weight="600">tuple (row)</text>
+      <text x="725" y="124" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="14">variable length bytes</text>
+      <text x="725" y="162" text-anchor="middle" fill="#c8a8ff" font-family="JetBrains Mono, monospace" font-size="13">HeapTupleHeader</text>
+      <text x="725" y="180" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="12">(xmin, xmax, ctid…)</text>
+      <line x1="620" y1="192" x2="840" y2="192" stroke="#243049" stroke-width="1"/>
+      <text x="725" y="215" text-anchor="middle" fill="#ffb454" font-family="JetBrains Mono, monospace" font-size="13">col₁ | col₂ | col₃ …</text>
+      <text x="725" y="240" text-anchor="middle" fill="#93a3bf" font-family="Inter, sans-serif" font-size="12">your actual data</text>
+
+      <!-- bottom legend -->
+      <text x="450" y="390" text-anchor="middle" fill="#6a7a98" font-family="Inter, sans-serif" font-size="15" font-style="italic">SELECT reads pages from disk into shared_buffers — one 8KB chunk at a time</text>
+    </svg>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+</body>
+</html>

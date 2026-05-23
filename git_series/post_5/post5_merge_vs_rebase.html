@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Merge vs Rebase, Finally — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-elev: #13181f;
+    --bg-code: #0f1419;
+    --border: #252b35;
+    --border-strong: #3a4150;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f1502f;          /* git red-orange */
+    --accent-soft: rgba(241, 80, 47, 0.15);
+    --branch: #7ee787;          /* branch / success */
+    --merge: #79c0ff;           /* merge / info */
+    --conflict: #ff7b72;        /* conflict / error */
+    --staged: #ffd866;          /* staged / warn */
+    --head: #d2a8ff;            /* HEAD / special ref */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #04070b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .controls { position: fixed; top: 16px; right: 16px; z-index: 100; }
+  .controls button { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .slide {
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    position: relative; overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    padding: 70px 80px;
+  }
+  .slide::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 50px; position: relative; z-index: 1; }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; min-height: 0; }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 { font-size: 80px; font-weight: 800; line-height: 1.05; margin: 0 0 24px; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 0 0 24px; letter-spacing: -0.015em; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .label .prompt { color: var(--text-dim); }
+  .lede { font-size: 26px; line-height: 1.45; color: var(--text-muted); margin: 0 0 30px; max-width: 92%; }
+  .body-text { font-size: 24px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--conflict); }
+  .fn { color: var(--head); }
+  .str { color: var(--branch); }
+  .num { color: var(--merge); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--merge); }
+  .prop { color: var(--accent); }
+  .sha { color: var(--staged); }
+  .hi { background: var(--accent-soft); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+
+  .cover-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .cover-content h1 { font-size: 110px; line-height: 1; letter-spacing: -0.03em; }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline { font-size: 30px; color: var(--text-muted); margin-top: 32px; font-weight: 400; }
+
+  .pill {
+    display: inline-flex; align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.branch { border-color: var(--branch); color: var(--branch); }
+  .pill.merge { border-color: var(--merge); color: var(--merge); }
+  .pill.head { border-color: var(--head); color: var(--head); }
+  .pill.staged { border-color: var(--staged); color: var(--staged); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+  .center-row { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 16px 0 24px; flex-wrap: wrap; }
+
+  .recap-list { list-style: none; padding: 0; margin: 0; }
+  .recap-list li {
+    font-size: 26px; line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 18px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text { font-size: 24px; color: var(--text); margin-bottom: 8px; }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 8px 0 16px; }
+  .compare .panel {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 26px 22px;
+  }
+  .compare .panel.merge-panel { border-color: rgba(121, 192, 255, 0.5); }
+  .compare .panel.rebase-panel { border-color: rgba(126, 231, 135, 0.5); }
+  .compare .panel-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+  .compare .panel.merge-panel .panel-title { color: var(--merge); }
+  .compare .panel.rebase-panel .panel-title { color: var(--branch); }
+  .compare ul { list-style: none; padding: 0; margin: 0; }
+  .compare li {
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 10px;
+    padding-left: 28px;
+    position: relative;
+  }
+  .compare li.pro::before {
+    content: "✓"; position: absolute; left: 0; color: var(--branch); font-weight: 700;
+  }
+  .compare li.con::before {
+    content: "✗"; position: absolute; left: 0; color: var(--conflict); font-weight: 700;
+  }
+
+  .rule {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 18px;
+  }
+  .rule .rule-q {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--staged);
+    margin-bottom: 8px;
+  }
+  .rule .rule-a {
+    font-size: 24px;
+    color: var(--text);
+    line-height: 1.45;
+  }
+  .rule .rule-a .key {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+  }
+
+  .warning-box {
+    background: rgba(255, 123, 114, 0.08);
+    border: 1px solid var(--conflict);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 18px;
+    color: var(--text);
+    font-size: 22px;
+    line-height: 1.5;
+  }
+  .warning-box .warn-key { color: var(--conflict); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls"><button onclick="window.print()">Print / Save PDF</button></div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">merge.git</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label"><span class="prompt">$ #</span> end the debate</div>
+    <h1>Merge vs rebase,<br><span class="accent-text">finally</span>.</h1>
+    <div class="cover-tagline">The right answer is "it depends" —<br>but here's how to pick.</div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: THE DIVERGED SETUP ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">diverge.git</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the setup</div>
+    <h2>You and a teammate<br><span style="color: var(--accent);">diverged</span>.</h2>
+    <p class="lede">You both started from commit <span style="font-family:'JetBrains Mono', monospace; color: var(--staged);">b72c</span>. Then both committed. Now what?</p>
+
+    <svg width="100%" viewBox="0 0 900 360" style="margin: 8px 0 16px;">
+      <defs>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#f1502f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- base -->
+      <circle cx="100" cy="180" r="40" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="100" y="185" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="15">a3f8</text>
+      <circle cx="240" cy="180" r="40" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="240" y="185" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="15">b72c</text>
+      <line x1="200" y1="180" x2="140" y2="180" stroke="#f1502f" stroke-width="2" marker-end="url(#a2)"/>
+
+      <!-- main goes up: b72c → e89d → f01a -->
+      <circle cx="420" cy="100" r="40" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="420" y="105" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="15">e89d</text>
+      <circle cx="580" cy="100" r="40" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="580" y="105" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="15">f01a</text>
+
+      <!-- feature goes down: b72c → c91e → d4a1 -->
+      <circle cx="420" cy="260" r="40" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="420" y="265" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="15">c91e</text>
+      <circle cx="580" cy="260" r="40" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="580" y="265" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="15">d4a1</text>
+
+      <!-- edges to shared parent b72c -->
+      <line x1="380" y1="115" x2="276" y2="168" stroke="#f1502f" stroke-width="2" marker-end="url(#a2)"/>
+      <line x1="380" y1="250" x2="276" y2="192" stroke="#f1502f" stroke-width="2" marker-end="url(#a2)"/>
+      <line x1="540" y1="100" x2="460" y2="100" stroke="#f1502f" stroke-width="2" marker-end="url(#a2)"/>
+      <line x1="540" y1="260" x2="460" y2="260" stroke="#f1502f" stroke-width="2" marker-end="url(#a2)"/>
+
+      <!-- branch labels -->
+      <rect x="628" y="84" width="100" height="32" rx="6" fill="#13181f" stroke="#7ee787" stroke-width="1.5"/>
+      <text x="678" y="105" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="14">main</text>
+      <line x1="628" y1="100" x2="610" y2="100" stroke="#7ee787" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <rect x="628" y="244" width="120" height="32" rx="6" fill="#13181f" stroke="#d2a8ff" stroke-width="1.5"/>
+      <text x="688" y="265" text-anchor="middle" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="14">feature</text>
+      <line x1="628" y1="260" x2="610" y2="260" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <!-- HEAD on feature -->
+      <rect x="628" y="284" width="78" height="28" rx="6" fill="#13181f" stroke="#d2a8ff" stroke-width="1.5"/>
+      <text x="667" y="303" text-anchor="middle" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="13">HEAD</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px; text-align: center;">Same root. <span style="color: var(--accent);">Two paths.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: WHAT MERGE DOES ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">git merge</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> option A</div>
+    <h2><span style="color: var(--accent);">Merge</span> = new commit.</h2>
+    <p class="lede">Creates a new commit with two parents. Both histories preserved exactly as they happened.</p>
+
+    <svg width="100%" viewBox="0 0 900 380" style="margin: 8px 0 16px;">
+      <defs>
+        <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#f1502f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="a3b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#79c0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- base -->
+      <circle cx="90" cy="190" r="36" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="90" y="195" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">a3f8</text>
+      <circle cx="220" cy="190" r="36" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="220" y="195" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">b72c</text>
+      <line x1="184" y1="190" x2="126" y2="190" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+
+      <!-- main upper -->
+      <circle cx="380" cy="110" r="36" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="380" y="115" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">e89d</text>
+      <circle cx="520" cy="110" r="36" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="520" y="115" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">f01a</text>
+
+      <!-- feature lower -->
+      <circle cx="380" cy="270" r="36" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="380" y="275" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">c91e</text>
+      <circle cx="520" cy="270" r="36" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="520" y="275" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">d4a1</text>
+
+      <!-- merge -->
+      <circle cx="720" cy="190" r="48" fill="#13181f" stroke="#79c0ff" stroke-width="2.5"/>
+      <text x="720" y="186" text-anchor="middle" fill="#79c0ff" font-family="JetBrains Mono, monospace" font-size="13">merge</text>
+      <text x="720" y="206" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="13">7e2d</text>
+
+      <!-- edges to base -->
+      <line x1="344" y1="123" x2="252" y2="180" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="344" y1="257" x2="252" y2="200" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="484" y1="110" x2="416" y2="110" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="484" y1="270" x2="416" y2="270" stroke="#f1502f" stroke-width="2" marker-end="url(#a3)"/>
+
+      <!-- merge → two parents (blue arrows) -->
+      <line x1="678" y1="170" x2="556" y2="125" stroke="#79c0ff" stroke-width="2" marker-end="url(#a3b)"/>
+      <line x1="678" y1="210" x2="556" y2="255" stroke="#79c0ff" stroke-width="2" marker-end="url(#a3b)"/>
+
+      <!-- main label (now on merge) -->
+      <rect x="780" y="174" width="100" height="32" rx="6" fill="#13181f" stroke="#7ee787" stroke-width="1.5"/>
+      <text x="830" y="195" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="14">main</text>
+      <line x1="780" y1="190" x2="768" y2="190" stroke="#7ee787" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <text x="720" y="270" text-anchor="middle" fill="#79c0ff" font-family="Inter, sans-serif" font-size="14" font-style="italic">two parents ↑</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px; text-align: center;">Real history. <span style="color: var(--merge);">Plus a junction point.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: WHAT REBASE DOES ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">git rebase</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> option B</div>
+    <h2><span style="color: var(--accent);">Rebase</span> = replay.</h2>
+    <p class="lede">Takes your commits and replays them on top of the other branch. Linear history. New commit SHAs.</p>
+
+    <svg width="100%" viewBox="0 0 900 380" style="margin: 8px 0 16px;">
+      <defs>
+        <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#f1502f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="a4f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L9 5L2 9" fill="none" stroke="#3a4150" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- base + main on top row -->
+      <circle cx="90" cy="120" r="36" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="90" y="125" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">a3f8</text>
+      <circle cx="220" cy="120" r="36" fill="#13181f" stroke="#f1502f" stroke-width="2"/>
+      <text x="220" y="125" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">b72c</text>
+      <circle cx="350" cy="120" r="36" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="350" y="125" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">e89d</text>
+      <circle cx="480" cy="120" r="36" fill="#13181f" stroke="#7ee787" stroke-width="2"/>
+      <text x="480" y="125" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="14">f01a</text>
+      <!-- replayed feature commits -->
+      <circle cx="620" cy="120" r="36" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="620" y="125" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="13">c91e'</text>
+      <circle cx="760" cy="120" r="36" fill="#13181f" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="760" y="125" text-anchor="middle" fill="#ffd866" font-family="JetBrains Mono, monospace" font-size="13">d4a1'</text>
+
+      <!-- linear edges -->
+      <line x1="184" y1="120" x2="126" y2="120" stroke="#f1502f" stroke-width="2" marker-end="url(#a4)"/>
+      <line x1="314" y1="120" x2="256" y2="120" stroke="#f1502f" stroke-width="2" marker-end="url(#a4)"/>
+      <line x1="444" y1="120" x2="386" y2="120" stroke="#f1502f" stroke-width="2" marker-end="url(#a4)"/>
+      <line x1="584" y1="120" x2="516" y2="120" stroke="#f1502f" stroke-width="2" marker-end="url(#a4)"/>
+      <line x1="724" y1="120" x2="656" y2="120" stroke="#f1502f" stroke-width="2" marker-end="url(#a4)"/>
+
+      <!-- branch labels -->
+      <rect x="430" y="50" width="100" height="28" rx="6" fill="#13181f" stroke="#7ee787" stroke-width="1.5"/>
+      <text x="480" y="69" text-anchor="middle" fill="#7ee787" font-family="JetBrains Mono, monospace" font-size="13">main</text>
+      <line x1="480" y1="78" x2="480" y2="88" stroke="#7ee787" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <rect x="710" y="50" width="100" height="28" rx="6" fill="#13181f" stroke="#d2a8ff" stroke-width="1.5"/>
+      <text x="760" y="69" text-anchor="middle" fill="#d2a8ff" font-family="JetBrains Mono, monospace" font-size="13">feature</text>
+      <line x1="760" y1="78" x2="760" y2="88" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <!-- faded old feature commits -->
+      <circle cx="350" cy="280" r="32" fill="#0f1419" stroke="#3a4150" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="350" y="285" text-anchor="middle" fill="#3a4150" font-family="JetBrains Mono, monospace" font-size="12">c91e</text>
+      <circle cx="480" cy="280" r="32" fill="#0f1419" stroke="#3a4150" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="480" y="285" text-anchor="middle" fill="#3a4150" font-family="JetBrains Mono, monospace" font-size="12">d4a1</text>
+      <line x1="318" y1="280" x2="244" y2="148" stroke="#3a4150" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a4f)"/>
+      <line x1="448" y1="280" x2="382" y2="280" stroke="#3a4150" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a4f)"/>
+      <text x="415" y="335" text-anchor="middle" fill="#3a4150" font-family="Inter, sans-serif" font-size="14" font-style="italic">(old commits — orphaned)</text>
+    </svg>
+
+    <p class="body-text muted" style="font-size: 22px; text-align: center;"><span style="color: var(--branch);">Linear.</span> Clean. But the commits are technically <span style="color: var(--accent);">new</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: PROS / CONS ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">compare.git</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> side-by-side</div>
+    <h2><span style="color: var(--accent);">Trade-offs</span>.</h2>
+    <p class="lede">Neither is "better." They optimize for different things.</p>
+
+    <div class="compare">
+      <div class="panel merge-panel">
+        <div class="panel-title">MERGE</div>
+        <ul>
+          <li class="pro">preserves real history</li>
+          <li class="pro">safe on shared branches</li>
+          <li class="pro">no SHA rewrites</li>
+          <li class="con">messy graph over time</li>
+          <li class="con">extra merge commits</li>
+          <li class="con">harder to read <code style="font-family:'JetBrains Mono',monospace;color:var(--text-muted);">git log</code></li>
+        </ul>
+      </div>
+      <div class="panel rebase-panel">
+        <div class="panel-title">REBASE</div>
+        <ul>
+          <li class="pro">linear history</li>
+          <li class="pro">clean log, easy to read</li>
+          <li class="pro">no junk merge commits</li>
+          <li class="con">rewrites SHAs</li>
+          <li class="con">dangerous on shared branches</li>
+          <li class="con">hides actual order of events</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="body-text muted" style="font-size: 22px; text-align: center; margin-top: 12px;">Merge keeps the <span style="color: var(--merge);">truth</span>. Rebase keeps it <span style="color: var(--branch);">tidy</span>.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: WHEN TO USE WHICH ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">when.git</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the rule of thumb</div>
+    <h2>Pick by <span style="color: var(--accent);">audience</span>.</h2>
+    <p class="lede">The question isn't merge or rebase. It's: <span style="color: var(--text);">has anyone else seen these commits yet?</span></p>
+
+    <div class="rule">
+      <div class="rule-q">$ # local only?</div>
+      <div class="rule-a">→ <span class="key">rebase</span> before opening a PR. Clean up your story so reviewers see one tidy line of commits.</div>
+    </div>
+
+    <div class="rule">
+      <div class="rule-q">$ # pushed / shared?</div>
+      <div class="rule-a">→ <span class="key">merge</span>. Don't rewrite what others may have pulled — you'll break their local branches.</div>
+    </div>
+
+    <p class="body-text muted" style="font-size: 22px; margin-top: 8px;">Many teams: <span style="color: var(--branch);">rebase locally</span>, <span style="color: var(--merge);">merge into main</span>. Best of both.</p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: THE GOLDEN RULE ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">golden.git</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> the only rule that matters</div>
+    <h2><span style="color: var(--conflict);">Never</span> rebase <span style="color: var(--accent);">shared</span> history.</h2>
+    <p class="lede">Rebase rewrites commits as new SHAs. If others already pulled the old ones, their branches now point at ghosts.</p>
+
+    <div class="warning-box">
+      Force-push after a rebase and you <span class="warn-key">overwrite</span> the shared branch. Teammates' commits — gone from <code style="font-family:'JetBrains Mono',monospace; color: var(--conflict);">origin</code>. Their next pull tells them history "diverged" from a place that no longer exists.
+    </div>
+
+<pre class="sm"><span class="com"># you:</span>
+$ <span class="kw">git</span> rebase main feature/x   <span class="com"># rewrites SHAs</span>
+$ <span class="kw">git</span> push <span class="prop">--force</span>            <span class="com"># ← nukes teammate's commits</span>
+
+<span class="com"># teammate, an hour later:</span>
+<span class="kw">fatal</span>: your branch has diverged...</pre>
+
+    <p class="body-text muted" style="font-size: 20px;">Rule: <span style="color: var(--conflict);">if it's pushed and others use it, leave the SHAs alone.</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP + HOOK ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">recap.git</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label"><span class="prompt">$ #</span> tl;dr</div>
+    <h2>Quick recap</h2>
+    <ul class="recap-list">
+      <li><span class="key">merge</span> — new commit with 2 parents, history preserved</li>
+      <li><span class="key">rebase</span> — replay your commits on a new base, linear story</li>
+      <li>merge = <span style="color: var(--merge);">safe</span>; rebase = <span style="color: var(--branch);">pretty</span> (but rewrites)</li>
+      <li>private branch? <span class="key">Rebase</span> freely</li>
+      <li>shared branch? <span class="key">Merge</span> only</li>
+      <li>Golden rule: never rebase what others have pulled</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Next: conflicts — stay calm 👇</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save & share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>
