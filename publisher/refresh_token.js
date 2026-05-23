@@ -5,7 +5,7 @@
 const token = process.env.IG_ACCESS_TOKEN;
 if (!token) { console.error('missing IG_ACCESS_TOKEN'); process.exit(1); }
 
-const url = new URL('https://graph.facebook.com/v25.0/refresh_access_token');
+const url = new URL('https://graph.instagram.com/refresh_access_token');
 url.searchParams.set('grant_type', 'ig_refresh_token');
 url.searchParams.set('access_token', token);
 

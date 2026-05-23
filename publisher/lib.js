@@ -4,7 +4,10 @@ import path from 'node:path';
 
 export const ROOT = path.resolve(new URL('..', import.meta.url).pathname);
 export const QUEUE_PATH = path.join(ROOT, 'publisher', 'queue.json');
-export const GRAPH = 'https://graph.facebook.com/v25.0';
+// Host depends on login method. We use Instagram API *with Instagram Login*
+// (tokens starting with IGAA...), so graph.instagram.com is correct.
+// If you switch to Facebook Login, change this to graph.facebook.com.
+export const GRAPH = 'https://graph.instagram.com/v25.0';
 
 // Each series declares how to find its post folders. Captions live in
 // <series>/captions.json (see schema in convert_captions.js).
