@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-24T12:25:14.022Z",
-  "last_published_at": "2026-05-24T12:25:44.971Z",
+  "generated_at": "2026-05-24T18:23:47.010Z",
+  "last_published_at": "2026-05-24T18:24:25.301Z",
   "queue": [
     {
       "series": "ai_series",
@@ -245,9 +245,9 @@
         "slide_08.png"
       ],
       "caption": "There's a new protocol becoming the USB-C of AI.\nThe big labs are racing to support it.\nIf you build with AI, you'll meet it soon.\nHere's the simplest explainer I could write. ⬇️\n\n#ai #aiagents #llm #mcp #anthropic #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #claude #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-24T18:24:25.301Z",
+      "media_id": "17938292700236679"
     },
     {
       "series": "ai_series",
