@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-24T07:08:32.862Z",
-  "last_published_at": "2026-05-24T07:09:13.938Z",
+  "generated_at": "2026-05-24T12:25:14.022Z",
+  "last_published_at": "2026-05-24T12:25:44.971Z",
   "queue": [
     {
       "series": "ai_series",
@@ -226,9 +226,9 @@
         "slide_08.png"
       ],
       "caption": "Your single agent hit a wall.\nMore tools won't fix it.\nMore rules won't fix it.\nThe answer is hiring. ⬇️\n\n#ai #aiagents #llm #multiagent #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-24T12:25:44.971Z",
+      "media_id": "17930620548276790"
     },
     {
       "series": "ai_series",
