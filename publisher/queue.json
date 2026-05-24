@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-24T00:42:51.320Z",
-  "last_published_at": "2026-05-24T00:43:27.059Z",
+  "generated_at": "2026-05-24T07:08:32.862Z",
+  "last_published_at": "2026-05-24T07:09:13.938Z",
   "queue": [
     {
       "series": "ai_series",
@@ -207,9 +207,9 @@
         "slide_08.png"
       ],
       "caption": "There's a 2022 paper that defined how every real AI agent thinks today.\nMost builders use the pattern without knowing the name.\nOnce you see it, you can't unsee it. ⬇️\n\n#ai #aiagents #llm #react #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #promptengineering #anthropic",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-24T07:09:13.938Z",
+      "media_id": "18201961888353178"
     },
     {
       "series": "ai_series",
