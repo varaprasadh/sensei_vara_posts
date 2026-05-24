@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-23T18:22:40.785Z",
-  "last_published_at": "2026-05-23T18:23:14.481Z",
+  "generated_at": "2026-05-24T00:42:51.320Z",
+  "last_published_at": "2026-05-24T00:43:27.059Z",
   "queue": [
     {
       "series": "ai_series",
@@ -188,9 +188,9 @@
         "slide_08.png"
       ],
       "caption": "Why is RAG suddenly everywhere?\nBecause giving the model an open-book exam beats hoping it remembers.\nHere's the whole pattern in 8 slides. ⬇️\n\n#ai #llm #rag #vectordb #embeddings #buildwithai #aidev #aibuilders #buildinpublic #softwareengineering #anthropic #openai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-24T00:43:27.059Z",
+      "media_id": "18118400344818297"
     },
     {
       "series": "ai_series",
