@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-24T18:23:47.010Z",
-  "last_published_at": "2026-05-24T18:24:25.301Z",
+  "generated_at": "2026-05-25T00:44:18.577Z",
+  "last_published_at": "2026-05-25T00:45:31.534Z",
   "queue": [
     {
       "series": "ai_series",
@@ -264,9 +264,9 @@
         "slide_08.png"
       ],
       "caption": "Most builders pay the same price for the same prompt — 100 times a day.\nThere's a button most don't press.\nIt cuts input cost 50–90%. ⬇️\n\n#ai #llm #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #openai #aicost #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-25T00:45:31.534Z",
+      "media_id": "18087641843625715"
     },
     {
       "series": "ai_series",
