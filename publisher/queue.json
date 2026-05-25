@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-25T13:10:41.614Z",
-  "last_published_at": "2026-05-25T13:11:34.487Z",
+  "generated_at": "2026-05-25T18:35:15.904Z",
+  "last_published_at": "2026-05-25T18:35:49.554Z",
   "queue": [
     {
       "series": "ai_series",
@@ -321,9 +321,9 @@
         "slide_08.png"
       ],
       "caption": "Hallucinations aren't a moral failing of the model.\nThey're a structural side effect of how it works.\nOnce you see this, you stop blaming the AI — and start fixing the system. ⬇️\n\n#ai #llm #aidev #aiagents #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #promptengineering #anthropic #openai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-25T18:35:49.554Z",
+      "media_id": "18002769236752458"
     },
     {
       "series": "ai_series",
