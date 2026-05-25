@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-25T07:36:27.671Z",
-  "last_published_at": "2026-05-25T07:36:59.600Z",
+  "generated_at": "2026-05-25T13:10:41.614Z",
+  "last_published_at": "2026-05-25T13:11:34.487Z",
   "queue": [
     {
       "series": "ai_series",
@@ -302,9 +302,9 @@
         "slide_08.png"
       ],
       "caption": "Unit tests don't work for agents.\nSo how do teams that ship the good ones actually know they're good?\nIt's a totally different harness. ⬇️\n\n#ai #llm #aidev #aiagents #aitesting #evals #buildwithai #buildinpublic #aibuilders #softwareengineering #devops #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-25T13:11:34.487Z",
+      "media_id": "18020405591832750"
     },
     {
       "series": "ai_series",
