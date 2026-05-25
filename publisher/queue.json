@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-25T00:44:18.577Z",
-  "last_published_at": "2026-05-25T00:45:31.534Z",
+  "generated_at": "2026-05-25T07:36:27.671Z",
+  "last_published_at": "2026-05-25T07:36:59.600Z",
   "queue": [
     {
       "series": "ai_series",
@@ -283,9 +283,9 @@
         "slide_08.png"
       ],
       "caption": "Temperature isn't \"how creative\" the model is.\nIt's something stranger — and more useful.\nPlus the 4 knobs nobody on your team has ever tuned. ⬇️\n\n#ai #llm #aidev #promptengineering #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #anthropic #openai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-25T07:36:59.600Z",
+      "media_id": "18317516797277186"
     },
     {
       "series": "ai_series",
