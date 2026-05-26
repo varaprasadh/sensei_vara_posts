@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-25T18:35:15.904Z",
-  "last_published_at": "2026-05-25T18:35:49.554Z",
+  "generated_at": "2026-05-26T00:42:32.879Z",
+  "last_published_at": "2026-05-26T00:43:14.528Z",
   "queue": [
     {
       "series": "ai_series",
@@ -340,9 +340,9 @@
         "slide_08.png"
       ],
       "caption": "The most important number when building with AI is the one nobody calculates:\nthe bill.\nLet's do the napkin math. ⬇️\n\n#ai #llm #aidev #aiagents #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #aicost #anthropic #openai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-26T00:43:14.528Z",
+      "media_id": "18213225220331091"
     },
     {
       "series": "ai_series",
