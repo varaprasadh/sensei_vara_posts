@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-26T07:15:09.463Z",
-  "last_published_at": "2026-05-26T07:15:41.513Z",
+  "generated_at": "2026-05-26T13:01:23.582Z",
+  "last_published_at": "2026-05-26T13:01:59.214Z",
   "queue": [
     {
       "series": "ai_series",
@@ -378,9 +378,9 @@
         "slide_08.png"
       ],
       "caption": "Everyone calls it an agent.\nMost of the time it's just a for-loop with extra API calls.\nHere's the one question that tells you which to build. ⬇️\n\n#ai #aiagents #llm #agents #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #genai #aiarchitecture",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-26T13:01:59.214Z",
+      "media_id": "18092788328249853"
     },
     {
       "series": "ai_series",
