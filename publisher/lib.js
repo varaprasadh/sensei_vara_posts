@@ -87,12 +87,16 @@ export async function createImageContainer({ igUserId, imageUrl, token }) {
   }, token);
 }
 
-export async function createCarouselContainer({ igUserId, children, caption, token }) {
-  return ig('POST', `/${igUserId}/media`, {
+export async function createCarouselContainer({ igUserId, children, caption, collaborators, token }) {
+  const params = {
     media_type: 'CAROUSEL',
     children: children.join(','),
     caption,
-  }, token);
+  };
+  if (collaborators?.length) {
+    params.collaborators = JSON.stringify(collaborators);
+  }
+  return ig('POST', `/${igUserId}/media`, params, token);
 }
 
 export async function pollContainerStatus({ containerId, token, timeoutMs = 120000 }) {

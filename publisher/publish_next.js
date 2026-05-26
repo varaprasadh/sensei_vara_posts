@@ -53,6 +53,7 @@ const carousel = await createCarouselContainer({
   igUserId,
   children: childIds,
   caption: next.caption,
+  collaborators: ['edge_runr.png'],
   token,
 });
 console.log(`  carousel container: ${carousel.id}`);
