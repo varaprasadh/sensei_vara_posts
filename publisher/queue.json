@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-26T13:01:23.582Z",
-  "last_published_at": "2026-05-26T13:01:59.214Z",
+  "generated_at": "2026-05-26T18:49:43.859Z",
+  "last_published_at": "2026-05-26T18:50:34.206Z",
   "queue": [
     {
       "series": "ai_series",
@@ -397,9 +397,9 @@
         "slide_08.png"
       ],
       "caption": "Everyone building RAG apps obsesses over the model, the vector DB, the prompt.\nNobody talks about chunking.\nIt's the unsexy half — and it's why your retrieval breaks. ⬇️\n\n#ai #rag #chunking #vectordb #embeddings #llm #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-26T18:50:34.206Z",
+      "media_id": "17957522792962586"
     },
     {
       "series": "ai_series",
