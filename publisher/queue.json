@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-26T00:42:32.879Z",
-  "last_published_at": "2026-05-26T00:43:14.528Z",
+  "generated_at": "2026-05-26T07:15:09.463Z",
+  "last_published_at": "2026-05-26T07:15:41.513Z",
   "queue": [
     {
       "series": "ai_series",
@@ -359,9 +359,9 @@
         "slide_08.png"
       ],
       "caption": "The model doesn't run your code.\nIt never has.\nHere's what actually happens between your API call and the function result. ⬇️\n\n#ai #llm #functioncalling #toolcalling #aiagents #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #anthropic #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-26T07:15:41.513Z",
+      "media_id": "18093899200969659"
     },
     {
       "series": "ai_series",
