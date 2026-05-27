@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-27T00:44:09.480Z",
-  "last_published_at": "2026-05-27T00:44:51.333Z",
+  "generated_at": "2026-05-27T07:28:54.199Z",
+  "last_published_at": "2026-05-27T07:29:33.983Z",
   "queue": [
     {
       "series": "ai_series",
@@ -435,9 +435,9 @@
         "slide_08.png"
       ],
       "caption": "It worked in the demo.\nThen real traffic hit.\n5 prod-grade failure modes your staging env will never catch — and the survival kit to handle them. ⬇️\n\n#ai #aiagents #production #observability #llm #agents #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #debugging",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-27T07:29:33.983Z",
+      "media_id": "18088954196367341"
     },
     {
       "series": "ai_series",
