@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-27T13:11:39.032Z",
-  "last_published_at": "2026-05-27T13:12:18.651Z",
+  "generated_at": "2026-05-27T18:48:41.935Z",
+  "last_published_at": "2026-05-27T18:49:23.740Z",
   "queue": [
     {
       "series": "ai_series",
@@ -473,9 +473,9 @@
         "slide_08.png"
       ],
       "caption": "GPT-4V, Claude, Gemini — they don't \"see\" images.\nHere's what they actually do — patches, embeddings, and why your 1080p photo costs 1,100 tokens. ⬇️\n\n#ai #multimodal #vision #llm #aidev #buildwithai #buildinpublic #aibuilders #gpt4v #softwareengineering #anthropic #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-27T18:49:23.740Z",
+      "media_id": "18113350189881404"
     },
     {
       "series": "ai_series",
