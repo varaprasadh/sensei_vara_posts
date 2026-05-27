@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-26T18:49:43.859Z",
-  "last_published_at": "2026-05-26T18:50:34.206Z",
+  "generated_at": "2026-05-27T00:44:09.480Z",
+  "last_published_at": "2026-05-27T00:44:51.333Z",
   "queue": [
     {
       "series": "ai_series",
@@ -416,9 +416,9 @@
         "slide_08.png"
       ],
       "caption": "Your RAG pipeline retrieves the right docs.\nSometimes.\nHere's why vector search keeps failing you — and the fix in 2 stages. ⬇️\n\n#ai #rag #reranking #vectordb #embeddings #llm #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-27T00:44:51.333Z",
+      "media_id": "18085226927566857"
     },
     {
       "series": "ai_series",
