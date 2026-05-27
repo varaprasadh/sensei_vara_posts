@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-27T07:28:54.199Z",
-  "last_published_at": "2026-05-27T07:29:33.983Z",
+  "generated_at": "2026-05-27T13:11:39.032Z",
+  "last_published_at": "2026-05-27T13:12:18.651Z",
   "queue": [
     {
       "series": "ai_series",
@@ -454,9 +454,9 @@
         "slide_08.png"
       ],
       "caption": "Your LLM call is slow.\nYou've stared at the logs.\nYou blame the model.\nBut it's not the model — it's where in the pipeline the time is going. ⬇️\n\n#ai #llm #latency #performance #aidev #buildwithai #buildinpublic #aibuilders #softwareengineering #genai #anthropic #openai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-27T13:12:18.651Z",
+      "media_id": "17959764489069928"
     },
     {
       "series": "ai_series",
