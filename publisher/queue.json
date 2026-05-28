@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-28T00:40:30.914Z",
-  "last_published_at": "2026-05-28T00:41:20.836Z",
+  "generated_at": "2026-05-28T07:22:43.318Z",
+  "last_published_at": "2026-05-28T07:23:18.135Z",
   "queue": [
     {
       "series": "ai_series",
@@ -511,9 +511,9 @@
         "slide_08.png"
       ],
       "caption": "You don't always need GPT-5.\nSometimes a 7B model on your laptop is faster — and free.\nHere's when local actually wins. ⬇️\n\n#ai #llm #ollama #locallm #llama #opensource #privacyai #selfhosted #mlops #aidev #buildinpublic #softwareengineering",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-28T07:23:18.135Z",
+      "media_id": "17877269070664331"
     },
     {
       "series": "ai_series",
@@ -568,6 +568,234 @@
         "slide_08.png"
       ],
       "caption": "Can an LLM critique its own output and get better?\nSometimes yes. Often no.\nHere's the line — and the pattern that actually works in production. ⬇️\n\n#ai #aiagents #reflection #dspy #llm #promptengineering #selfimproving #metaprompting #agenticai #aidev #buildinpublic #aiengineering",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_31",
+      "post_number": 31,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Same model. Same question.\nOne prompt gets 30% accuracy.\nThe other gets 90%.\nThe difference is 5 words you're probably not using. ⬇️\n\n#ai #llm #chainofthought #promptengineering #cot #aidev #buildwithai #buildinpublic #reasoning #softwareengineering #genai #aiprompts",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_32",
+      "post_number": 32,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your system prompt is not a secret.\nYour users can override it.\nAnd there's no perfect fix.\nHere's what you're up against. ⬇️\n\n#ai #llm #promptinjection #aisecurity #aidev #buildwithai #buildinpublic #appsec #softwareengineering #genai #llmsecurity #owasp",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_33",
+      "post_number": 33,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Copilot doesn't read your mind.\nIt reads your open files, your cursor, your repo.\nThen it predicts what you'd type next.\nHere's the actual architecture. ⬇️\n\n#ai #llm #copilot #claudecode #aidev #buildwithai #buildinpublic #codingassistant #softwareengineering #devtools #aicoding #genai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_34",
+      "post_number": 34,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "The big model knows everything.\nBut it costs $15/M tokens.\nWhat if a $0.25 model could learn its tricks?\nThat's distillation. ⬇️\n\n#ai #llm #distillation #finetuning #aidev #buildwithai #buildinpublic #mlops #softwareengineering #genai #modeloptimization #aiengineering",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_35",
+      "post_number": 35,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You're using the same model for everything.\n\"What's 2+2\" and \"Rewrite my legal contract.\"\nOne costs 60× more than it should.\nThere's a smarter way. ⬇️\n\n#ai #llm #modelrouting #llmops #aidev #buildwithai #buildinpublic #costoptimization #softwareengineering #genai #anthropic #aiengineering",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_36",
+      "post_number": 36,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "You're sending 10,000 API calls.\nOne. At. A. Time.\nThere's a way to do it 50% cheaper\nand skip rate limits entirely. ⬇️\n\n#ai #llm #batchapi #llmops #aidev #buildwithai #buildinpublic #datapipeline #softwareengineering #genai #anthropic #scalability",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_37",
+      "post_number": 37,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Context windows went from 4K to 1M tokens.\nThat's a whole codebase in one prompt.\nBut more context doesn't mean better answers.\nHere's what actually changes. ⬇️\n\n#ai #llm #contextwindow #longcontext #aidev #buildwithai #buildinpublic #rag #softwareengineering #genai #anthropic #tokens",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_38",
+      "post_number": 38,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Same question, different words.\nYour API doesn't know they're the same.\nSo you pay twice.\nThere's a cache that understands meaning. ⬇️\n\n#ai #llm #caching #semanticcache #aidev #buildwithai #buildinpublic #embeddings #softwareengineering #genai #vectordb #costoptimization",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_39",
+      "post_number": 39,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Your agent makes 5 tool calls.\nEach takes 200ms.\n1 second total — sequential.\nOr 200ms — parallel.\nHere's the architecture. ⬇️\n\n#ai #aiagents #llm #toolcalling #aidev #buildwithai #buildinpublic #concurrency #softwareengineering #genai #performance #agenticai",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_40",
+      "post_number": 40,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "\"Looks right to me.\"\nThat's not testing.\nYour LLM app ships with zero tests.\nAnd you wonder why it breaks in prod. ⬇️\n\n#ai #llm #testing #evals #aidev #buildwithai #buildinpublic #qualityassurance #softwareengineering #genai #mlops #cicd",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_41",
+      "post_number": 41,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "Every LLM — GPT, Claude, Llama — runs on the same architecture.\nPublished in 2017. 8 pages.\nTitle: \"Attention Is All You Need.\"\nHere's what it actually means. ⬇️\n\n#ai #llm #transformer #attention #aidev #buildwithai #buildinpublic #deeplearning #softwareengineering #genai #machinelearning #neuralnetwork",
+      "status": "pending",
+      "published_at": null,
+      "media_id": null
+    },
+    {
+      "series": "ai_series",
+      "folder": "post_42",
+      "post_number": 42,
+      "slides": [
+        "slide_01.png",
+        "slide_02.png",
+        "slide_03.png",
+        "slide_04.png",
+        "slide_05.png",
+        "slide_06.png",
+        "slide_07.png",
+        "slide_08.png"
+      ],
+      "caption": "RAG retrieves once and hopes for the best.\nA retrieval agent retrieves, reads, re-queries, and decides when it has enough.\nSame data. Very different results. ⬇️\n\n#ai #llm #rag #aiagents #retrieval #aidev #buildwithai #buildinpublic #vectordb #softwareengineering #genai #agenticrag",
       "status": "pending",
       "published_at": null,
       "media_id": null
