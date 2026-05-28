@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-28T13:16:26.742Z",
-  "last_published_at": "2026-05-28T13:17:11.743Z",
+  "generated_at": "2026-05-28T18:54:13.170Z",
+  "last_published_at": "2026-05-28T18:54:54.643Z",
   "queue": [
     {
       "series": "ai_series",
@@ -549,9 +549,9 @@
         "slide_08.png"
       ],
       "caption": "Your LLM app will be jailbroken, prompt-injected, and leak secrets.\nThe question isn't if. It's when.\nHere's how to slow that down. ⬇️\n\n#ai #aisecurity #promptinjection #guardrails #llm #llmsecurity #mlops #aiengineering #piiprotection #ratelimiting #aidev #softwareengineering",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-28T18:54:54.643Z",
+      "media_id": "18094680842218804"
     },
     {
       "series": "ai_series",
