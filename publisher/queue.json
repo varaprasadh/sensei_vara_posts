@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-27T18:48:41.935Z",
-  "last_published_at": "2026-05-27T18:49:23.740Z",
+  "generated_at": "2026-05-28T00:40:30.914Z",
+  "last_published_at": "2026-05-28T00:41:20.836Z",
   "queue": [
     {
       "series": "ai_series",
@@ -492,9 +492,9 @@
         "slide_08.png"
       ],
       "caption": "You ask. It pauses.\nThen replies a full second later.\nThat one second is why voice AI feels broken — and the whole architecture is built around shaving it down. ⬇️\n\n#ai #voiceagents #realtime #latency #speechtotext #texttospeech #llm #streaming #aidev #buildwithai #buildinpublic #aiengineering",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-28T00:41:20.836Z",
+      "media_id": "17890664601513198"
     },
     {
       "series": "ai_series",
