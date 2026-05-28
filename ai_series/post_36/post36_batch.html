@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Batch APIs — Carousel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-elev: #161b22;
+    --bg-code: #1c2128;
+    --border: #30363d;
+    --border-strong: #484f58;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #f78166;
+    --accent-2: #d2a8ff;
+    --green: #7ee787;
+    --blue: #79c0ff;
+    --yellow: #ffd866;
+    --pink: #ff7b72;
+    --purple: #d2a8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #050810;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+  .controls {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+    display: flex;
+    gap: 8px;
+  }
+  .controls button {
+    background: #161b22;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .controls button:hover { background: #21262d; }
+
+  .slide {
+    width: 1080px;
+    height: 1080px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    padding: 70px 80px;
+  }
+
+  .slide::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 118, 129, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 118, 129, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .editor-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 50px;
+    position: relative;
+    z-index: 1;
+  }
+  .dots { display: flex; gap: 7px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+  .tab {
+    margin-left: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .slide-num {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+    min-height: 0;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+    position: relative;
+    z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer .handle { color: var(--text-muted); }
+  .footer .swipe { color: var(--accent); }
+
+  h1 {
+    font-size: 80px;
+    font-weight: 800;
+    line-height: 1.05;
+    margin: 0 0 24px;
+    letter-spacing: -0.02em;
+  }
+  h2 {
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0 0 24px;
+    letter-spacing: -0.015em;
+  }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 18px;
+    letter-spacing: 0.05em;
+  }
+  .lede {
+    font-size: 26px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    margin: 0 0 30px;
+    max-width: 92%;
+  }
+  .body-text {
+    font-size: 24px;
+    line-height: 1.55;
+    color: var(--text);
+    margin: 0 0 20px;
+  }
+  .body-text.muted { color: var(--text-muted); }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin: 0 0 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    line-height: 1.55;
+    overflow: hidden;
+    color: var(--text);
+  }
+  pre.sm { font-size: 17px; padding: 22px 26px; line-height: 1.6; }
+  .kw { color: var(--pink); }
+  .fn { color: var(--purple); }
+  .str { color: var(--green); }
+  .num { color: var(--blue); }
+  .com { color: var(--text-dim); font-style: italic; }
+  .var { color: var(--blue); }
+  .prop { color: var(--accent); }
+  .hi { background: rgba(247, 129, 102, 0.15); border-left: 3px solid var(--accent); padding-left: 10px; margin-left: -13px; display: block; }
+  .hi-green { background: rgba(126, 231, 135, 0.12); border-left: 3px solid var(--green); padding-left: 10px; margin-left: -13px; display: block; }
+
+  /* Cover */
+  .cover-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cover-content h1 {
+    font-size: 92px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .cover-content .accent-text { color: var(--accent); }
+  .cover-tagline {
+    font-size: 28px;
+    color: var(--text-muted);
+    margin-top: 32px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  /* Compare */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .panel {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+  }
+  .panel .ptitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .panel .ptag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+  }
+  .panel .ptag.a { background: rgba(247, 129, 102, 0.15); color: var(--accent); }
+  .panel .ptag.b { background: rgba(121, 192, 255, 0.15); color: var(--blue); }
+  .panel .ptag.c { background: rgba(126, 231, 135, 0.15); color: var(--green); }
+  .panel .ptag.d { background: rgba(255, 123, 114, 0.15); color: var(--pink); }
+  .panel .ptag.e { background: rgba(210, 168, 255, 0.15); color: var(--purple); }
+  .panel pre {
+    font-size: 15px;
+    padding: 14px 16px;
+    margin: 0 0 12px;
+    line-height: 1.5;
+  }
+  .panel .reply {
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.5;
+    font-style: italic;
+    border-top: 1px dashed var(--border);
+    padding-top: 12px;
+  }
+  .panel .reply::before {
+    content: "→ ";
+    color: var(--accent);
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Ingredients grid */
+  .ingredients {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .ingredient {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .ingredient .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .ingredient .name {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .ingredient .desc {
+    font-size: 17px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  /* Steps / pipeline */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .step {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .step .snum {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    background: rgba(247, 129, 102, 0.12);
+    border: 1px solid rgba(247, 129, 102, 0.3);
+    border-radius: 6px;
+    padding: 4px 10px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .step .sbody { flex: 1; }
+  .step .sname {
+    font-size: 21px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .step .sdesc {
+    font-size: 17px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+  .step-arrow {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text-dim);
+    line-height: 1;
+  }
+
+  /* Good/Bad two-col */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .col-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 22px;
+  }
+  .col-card.good { border-color: rgba(126, 231, 135, 0.35); }
+  .col-card.bad  { border-color: rgba(255, 123, 114, 0.35); }
+  .col-card .ctitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+  .col-card.good .ctitle { color: var(--green); }
+  .col-card.bad  .ctitle { color: var(--pink); }
+  .col-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .col-card li {
+    font-size: 18px;
+    line-height: 1.45;
+    color: var(--text);
+    padding-left: 22px;
+    position: relative;
+  }
+  .col-card.good li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+  .col-card.bad li::before {
+    content: "✗";
+    position: absolute;
+    left: 0;
+    color: var(--pink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+  .col-card li .sub {
+    display: block;
+    font-size: 15px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* Recap */
+  .recap-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .recap-list li {
+    font-size: 24px;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+  }
+  .recap-list li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .recap-list .key { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+  .recap-list .src { color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 18px; }
+
+  .cta {
+    margin-top: auto;
+    padding: 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-align: center;
+  }
+  .cta-text {
+    font-size: 24px;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  .cta-handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Pills */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pill.accent { border-color: var(--accent); color: var(--accent); }
+  .pill.green { border-color: var(--green); color: var(--green); }
+  .pill.blue { border-color: var(--blue); color: var(--blue); }
+  .pill.purple { border-color: var(--purple); color: var(--purple); }
+  .arrow { color: var(--text-dim); font-size: 26px; font-family: 'JetBrains Mono', monospace; }
+
+  /* Cost reality bars */
+  .cost-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .cost-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--text-muted);
+    width: 180px;
+    flex-shrink: 0;
+  }
+  .cost-bar-wrap {
+    flex: 1;
+    height: 22px;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .cost-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+  }
+  .cost-bar-fill.one { background: linear-gradient(90deg, #79c0ff, #58a6ff); width: 33%; }
+  .cost-bar-fill.two { background: linear-gradient(90deg, #ffd866, #e5b800); width: 66%; }
+  .cost-bar-fill.three { background: linear-gradient(90deg, #f78166, #ff4d2e); width: 100%; }
+  .cost-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    width: 70px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .cost-val.one { color: var(--blue); }
+  .cost-val.two { color: var(--yellow); }
+  .cost-val.three { color: var(--accent); }
+
+  @media print {
+    body { background: white; padding: 0; gap: 0; }
+    .controls { display: none; }
+    .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<div class="slide" id="s1">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">batch.js</div>
+    <div class="slide-num">01 / 08</div>
+  </div>
+  <div class="content cover-content">
+    <div class="label">// batch APIs</div>
+    <h1>Process 10K<br>documents<br>while you<br><span class="accent-text">sleep</span>.</h1>
+    <div class="cover-tagline">
+      50% cheaper. Higher throughput.<br>
+      No rate limits to fight.
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2: WHAT ARE BATCH APIs ============ -->
+<div class="slide" id="s2">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">batch.js</div>
+    <div class="slide-num">02 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// the concept</div>
+    <h2>What <span style="color: var(--blue);">batch</span> APIs are.</h2>
+    <p class="lede">Instead of sending requests one at a time, submit thousands at once. Get results back within 24 hours.</p>
+    <div class="compare">
+      <div class="panel">
+        <div class="ptitle">// real-time API</div>
+        <span class="ptag d">synchronous</span>
+<pre>request → wait → response
+request → wait → response
+request → wait → response
+<span class="com">// one at a time</span>
+<span class="com">// immediate results</span>
+<span class="hi"><span class="com">// full price</span></span></pre>
+        <div class="reply">Good for user-facing apps that need instant responses.</div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">// batch API</div>
+        <span class="ptag c">asynchronous</span>
+<pre>[req1, req2, ... req10000]
+    ↓ upload
+    ↓ processing...
+    ↓ poll status
+[res1, res2, ... res10000]
+<span class="hi-green"><span class="com">// 50% off</span></span></pre>
+        <div class="reply">Perfect for offline processing where latency doesn't matter.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 3: WHY BATCH EXISTS ============ -->
+<div class="slide" id="s3">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">batch.js</div>
+    <div class="slide-num">03 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// why it exists</div>
+    <h2>The economics of <span style="color: var(--green);">waiting</span>.</h2>
+    <p class="lede">API providers have GPU idle time. You trade latency for massive discounts.</p>
+    <div class="ingredients">
+      <div class="ingredient">
+        <div class="num">01 — cost</div>
+        <div class="name">50% cheaper</div>
+        <div class="desc">Anthropic, OpenAI both offer half-price for batch. On 1M requests, that's thousands saved.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">02 — throughput</div>
+        <div class="name">No rate limits</div>
+        <div class="desc">Batch bypasses per-minute rate limits. Submit 100K requests without throttling.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">03 — reliability</div>
+        <div class="name">Auto-retry built in</div>
+        <div class="desc">Failed requests retry automatically. No 429 errors to handle in your code.</div>
+      </div>
+      <div class="ingredient">
+        <div class="num">04 — simplicity</div>
+        <div class="name">Fire and forget</div>
+        <div class="desc">Submit before bed, download results in the morning. No long-running processes to babysit.</div>
+      </div>
+    </div>
+    <p class="body-text muted" style="font-size: 20px;">The deal: <span style="color: var(--green); font-family: 'JetBrains Mono', monospace;">you give up immediacy → provider fills GPU idle time → everyone wins</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4: HOW TO USE ============ -->
+<div class="slide" id="s4">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">batch.js</div>
+    <div class="slide-num">04 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// the workflow</div>
+    <h2>Four steps to <span style="color: var(--purple);">batch</span>.</h2>
+    <p class="lede">Upload JSONL, create batch, poll for completion, download results.</p>
+    <div class="pipeline">
+      <div class="step">
+        <div class="snum">step 1</div>
+        <div class="sbody">
+          <div class="sname">Prepare JSONL</div>
+          <div class="sdesc">One JSON object per line. Each has a custom_id + your normal API request params.</div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="step">
+        <div class="snum">step 2</div>
+        <div class="sbody">
+          <div class="sname">Upload &amp; create batch</div>
+          <div class="sdesc">Upload the file, then POST to /batches with the file ID. Returns a batch_id.</div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="step">
+        <div class="snum">step 3</div>
+        <div class="sbody">
+          <div class="sname">Poll status</div>
+          <div class="sdesc">GET /batches/{id} until status = "ended". Typically 1-24 hours depending on size.</div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="step">
+        <div class="snum">step 4</div>
+        <div class="sbody">
+          <div class="sname">Download results</div>
+          <div class="sdesc">Fetch the results file. Each line has your custom_id + the model's response.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 5: CODE EXAMPLE ============ -->
+<div class="slide" id="s5">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">batch.js</div>
+    <div class="slide-num">05 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// practical example</div>
+    <h2>Processing <span style="color: var(--accent);">10K</span> docs.</h2>
+    <p class="lede">Classify 10,000 support tickets overnight for $12 instead of $24.</p>
+<pre class="sm"><span class="com">// 1. build the JSONL file</span>
+<span class="kw">const</span> <span class="var">lines</span> = <span class="var">tickets</span>.<span class="fn">map</span>((<span class="var">t</span>, <span class="var">i</span>) => <span class="fn">JSON.stringify</span>({
+  <span class="prop">custom_id</span>: <span class="str">`ticket-${<span class="var">i</span>}`</span>,
+  <span class="prop">params</span>: {
+    <span class="prop">model</span>: <span class="str">"claude-sonnet-4-20250514"</span>,
+    <span class="prop">max_tokens</span>: <span class="num">256</span>,
+    <span class="prop">messages</span>: [{
+      <span class="prop">role</span>: <span class="str">"user"</span>,
+      <span class="prop">content</span>: <span class="str">`Classify: ${<span class="var">t</span>.<span class="prop">text</span>}`</span>
+    }]
+  }
+}));
+
+<span class="com">// 2. create the batch</span>
+<span class="kw">const</span> <span class="var">batch</span> = <span class="kw">await</span> <span class="var">anthropic</span>.<span class="prop">batches</span>.<span class="fn">create</span>({
+<span class="hi-green">  <span class="prop">requests</span>: <span class="var">lines</span></span>
+});
+
+<span class="com">// 3. poll until done</span>
+<span class="kw">while</span> (<span class="var">batch</span>.<span class="prop">status</span> !== <span class="str">"ended"</span>) {
+  <span class="kw">await</span> <span class="fn">sleep</span>(<span class="num">60_000</span>);
+  <span class="var">batch</span> = <span class="kw">await</span> <span class="var">anthropic</span>.<span class="prop">batches</span>.<span class="fn">retrieve</span>(<span class="var">batch</span>.<span class="prop">id</span>);
+}</pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6: BATCH VS REAL-TIME ============ -->
+<div class="slide" id="s6">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">batch.js</div>
+    <div class="slide-num">06 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// when to use which</div>
+    <h2>Batch vs <span style="color: var(--accent);">real-time</span>.</h2>
+    <p class="lede">Not everything should be batched. Here's the decision framework.</p>
+    <div class="two-col">
+      <div class="col-card good">
+        <div class="ctitle">// use batch</div>
+        <ul>
+          <li>Bulk document classification
+            <span class="sub">Thousands of PDFs, emails, or tickets.</span>
+          </li>
+          <li>Dataset enrichment
+            <span class="sub">Add summaries, tags, or translations to existing data.</span>
+          </li>
+          <li>Eval &amp; testing
+            <span class="sub">Run prompts against test sets. Cheapest way to evaluate.</span>
+          </li>
+          <li>Content generation
+            <span class="sub">Generate product descriptions, SEO content at scale.</span>
+          </li>
+        </ul>
+      </div>
+      <div class="col-card bad">
+        <div class="ctitle">// use real-time</div>
+        <ul>
+          <li>Chat / conversational UI
+            <span class="sub">Users expect instant responses.</span>
+          </li>
+          <li>Interactive code assistants
+            <span class="sub">Developer tools need sub-second feedback.</span>
+          </li>
+          <li>Real-time moderation
+            <span class="sub">Content must be checked before it goes live.</span>
+          </li>
+          <li>Agentic workflows
+            <span class="sub">Each step depends on the previous result.</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <p class="body-text muted" style="font-size: 20px;">Rule of thumb: <span style="color: var(--green); font-family: 'JetBrains Mono', monospace;">no human waiting? → batch it</span></p>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 7: TIPS ============ -->
+<div class="slide" id="s7">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">batch.js</div>
+    <div class="slide-num">07 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// production tips</div>
+    <h2>Batch like a <span style="color: var(--green);">pro</span>.</h2>
+    <p class="lede">Hard-won lessons from processing millions of batch requests.</p>
+<pre class="sm"><span class="com">// tip 1: always set custom_id</span>
+<span class="hi-green"><span class="prop">custom_id</span>: <span class="str">`doc-${<span class="var">doc</span>.<span class="prop">id</span>}-v${<span class="var">version</span>}`</span></span>
+<span class="com">// → lets you match results back to source</span>
+
+<span class="com">// tip 2: chunk large batches</span>
+<span class="com">// 50K requests? split into 5 batches of 10K</span>
+<span class="com">// → parallel processing, partial results if one fails</span>
+
+<span class="com">// tip 3: idempotency</span>
+<span class="com">// design so re-running the same batch is safe</span>
+<span class="com">// → crashed at 60%? just resubmit</span>
+
+<span class="com">// tip 4: use max_tokens wisely</span>
+<span class="hi"><span class="prop">max_tokens</span>: <span class="num">100</span>  <span class="com">// not 4096!</span></span>
+<span class="com">// → lower max = faster processing + less cost</span>
+
+<span class="com">// tip 5: validate JSONL before upload</span>
+<span class="com">// one malformed line = entire batch rejected</span></pre>
+  </div>
+  <div class="footer">
+    <span class="handle">@sensei_vara</span>
+    <span class="swipe">swipe →</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 8: RECAP ============ -->
+<div class="slide" id="s8">
+  <div class="editor-bar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab">batch.js</div>
+    <div class="slide-num">08 / 08</div>
+  </div>
+  <div class="content">
+    <div class="label">// tl;dr</div>
+    <h2>Batch = scale + <span style="color: var(--accent);">savings</span>.</h2>
+    <ul class="recap-list">
+      <li><span class="key">50% cheaper</span> — trade latency for half the cost</li>
+      <li><span class="key">No rate limits</span> — submit 100K requests without throttling</li>
+      <li><span class="key">JSONL in, JSONL out</span> — upload requests, poll, download results</li>
+      <li><span class="key">Use for offline work</span> — classification, enrichment, evals, content gen</li>
+      <li><span class="key">Keep real-time for users</span> — anything with a human waiting = real-time API</li>
+    </ul>
+    <div class="cta">
+      <div class="cta-text">Scaling your AI pipeline?</div>
+      <div class="cta-handle">@sensei_vara</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="handle">follow for more</span>
+    <span class="swipe">save &amp; share ♡</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -639,5 +639,269 @@
       "#buildinpublic",
       "#aiengineering"
     ]
+  },
+  "31": {
+    "title": "Chain-of-thought prompting",
+    "variants": {
+      "mystery_hook": "Same model. Same question.\nOne prompt gets 30% accuracy.\nThe other gets 90%.\nThe difference is 5 words you're probably not using. ⬇️",
+      "direct_value": "Chain-of-thought prompting: why \"let's think step by step\" works, when to use few-shot CoT vs zero-shot, and the tasks where it doubles accuracy overnight. ⬇️",
+      "short_punchy": "\"Let's think step by step.\"\n5 words. 2× accuracy.\nHere's why. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#chainofthought",
+      "#promptengineering",
+      "#cot",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#reasoning",
+      "#softwareengineering",
+      "#genai",
+      "#aiprompts"
+    ]
+  },
+  "32": {
+    "title": "Prompt injection: attack & defense",
+    "variants": {
+      "mystery_hook": "Your system prompt is not a secret.\nYour users can override it.\nAnd there's no perfect fix.\nHere's what you're up against. ⬇️",
+      "direct_value": "Prompt injection: how user input hijacks your system prompt, direct vs indirect attacks, and the defense patterns that actually reduce risk in production. ⬇️",
+      "short_punchy": "\"Ignore previous instructions.\"\nThat's an attack.\nAnd your app is probably vulnerable. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#promptinjection",
+      "#aisecurity",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#appsec",
+      "#softwareengineering",
+      "#genai",
+      "#llmsecurity",
+      "#owasp"
+    ]
+  },
+  "33": {
+    "title": "How AI coding assistants work",
+    "variants": {
+      "mystery_hook": "Copilot doesn't read your mind.\nIt reads your open files, your cursor, your repo.\nThen it predicts what you'd type next.\nHere's the actual architecture. ⬇️",
+      "direct_value": "How AI coding assistants work under the hood: context gathering, fill-in-the-middle, tool-use loops, and why they sometimes hallucinate APIs that don't exist. ⬇️",
+      "short_punchy": "It's not magic.\nIt's context + prediction.\nHere's how Copilot actually works. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#copilot",
+      "#claudecode",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#codingassistant",
+      "#softwareengineering",
+      "#devtools",
+      "#aicoding",
+      "#genai"
+    ]
+  },
+  "34": {
+    "title": "Knowledge distillation",
+    "variants": {
+      "mystery_hook": "The big model knows everything.\nBut it costs $15/M tokens.\nWhat if a $0.25 model could learn its tricks?\nThat's distillation. ⬇️",
+      "direct_value": "Knowledge distillation: how to train a small, cheap model to mimic a large, expensive one. The teacher-student pattern, when it beats fine-tuning, and the 10× cost savings. ⬇️",
+      "short_punchy": "Big model teaches small model.\nSmall model gets 90% as good.\nAt 10% the cost. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#distillation",
+      "#finetuning",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#mlops",
+      "#softwareengineering",
+      "#genai",
+      "#modeloptimization",
+      "#aiengineering"
+    ]
+  },
+  "35": {
+    "title": "Model routing: picking the right brain",
+    "variants": {
+      "mystery_hook": "You're using the same model for everything.\n\"What's 2+2\" and \"Rewrite my legal contract.\"\nOne costs 60× more than it should.\nThere's a smarter way. ⬇️",
+      "direct_value": "Model routing: how to classify incoming requests and route them to the right model (Haiku/Sonnet/Opus). Cascade patterns, cost savings, and the router code that does it. ⬇️",
+      "short_punchy": "Don't use Opus for \"hello.\"\nRoute requests to the right model.\nSave 80% on API costs. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#modelrouting",
+      "#llmops",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#costoptimization",
+      "#softwareengineering",
+      "#genai",
+      "#anthropic",
+      "#aiengineering"
+    ]
+  },
+  "36": {
+    "title": "Batch APIs: async at scale",
+    "variants": {
+      "mystery_hook": "You're sending 10,000 API calls.\nOne. At. A. Time.\nThere's a way to do it 50% cheaper\nand skip rate limits entirely. ⬇️",
+      "direct_value": "Batch APIs: upload a JSONL, get results hours later at half the cost. How to use them, when they beat real-time, and the pipeline for processing 10K+ documents. ⬇️",
+      "short_punchy": "10K requests. Half the price.\nNo rate limits.\nBatch API. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#batchapi",
+      "#llmops",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#datapipeline",
+      "#softwareengineering",
+      "#genai",
+      "#anthropic",
+      "#scalability"
+    ]
+  },
+  "37": {
+    "title": "Long-context models: what changes",
+    "variants": {
+      "mystery_hook": "Context windows went from 4K to 1M tokens.\nThat's a whole codebase in one prompt.\nBut more context doesn't mean better answers.\nHere's what actually changes. ⬇️",
+      "direct_value": "Long-context models: what 200K–1M token windows unlock, the \"lost in the middle\" problem, cost math, and when to stuff the context vs use RAG. ⬇️",
+      "short_punchy": "1M tokens = 10 novels.\nBut the model forgets the middle.\nHere's the tradeoff. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#contextwindow",
+      "#longcontext",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#rag",
+      "#softwareengineering",
+      "#genai",
+      "#anthropic",
+      "#tokens"
+    ]
+  },
+  "38": {
+    "title": "Semantic caching",
+    "variants": {
+      "mystery_hook": "Same question, different words.\nYour API doesn't know they're the same.\nSo you pay twice.\nThere's a cache that understands meaning. ⬇️",
+      "direct_value": "Semantic caching: embed the query, find similar past queries, return the cached response. Architecture, similarity thresholds, and when it saves 60%+ on API costs. ⬇️",
+      "short_punchy": "\"What's the weather?\" = \"How's the weather?\"\nYour cache should know that.\nSemantic cache does. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#caching",
+      "#semanticcache",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#embeddings",
+      "#softwareengineering",
+      "#genai",
+      "#vectordb",
+      "#costoptimization"
+    ]
+  },
+  "39": {
+    "title": "Parallel tool calls: faster agents",
+    "variants": {
+      "mystery_hook": "Your agent makes 5 tool calls.\nEach takes 200ms.\n1 second total — sequential.\nOr 200ms — parallel.\nHere's the architecture. ⬇️",
+      "direct_value": "Parallel tool calls: how models request multiple tools at once, how to implement Promise.all dispatch, dependency graphs, and when NOT to parallelize. ⬇️",
+      "short_punchy": "5 tools. 200ms each.\nSequential: 1 second.\nParallel: 200ms.\nDo the math. →"
+    },
+    "tags": [
+      "#ai",
+      "#aiagents",
+      "#llm",
+      "#toolcalling",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#concurrency",
+      "#softwareengineering",
+      "#genai",
+      "#performance",
+      "#agenticai"
+    ]
+  },
+  "40": {
+    "title": "Testing LLM apps (beyond vibes)",
+    "variants": {
+      "mystery_hook": "\"Looks right to me.\"\nThat's not testing.\nYour LLM app ships with zero tests.\nAnd you wonder why it breaks in prod. ⬇️",
+      "direct_value": "Testing LLM apps: golden examples, eval suites, regression tests for model upgrades, A/B testing prompts, and the CI pipeline that catches regressions before users do. ⬇️",
+      "short_punchy": "\"It looks right\" isn't a test.\nEval suites are.\nHere's how to build one. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#testing",
+      "#evals",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#qualityassurance",
+      "#softwareengineering",
+      "#genai",
+      "#mlops",
+      "#cicd"
+    ]
+  },
+  "41": {
+    "title": "The transformer, simplified",
+    "variants": {
+      "mystery_hook": "Every LLM — GPT, Claude, Llama — runs on the same architecture.\nPublished in 2017. 8 pages.\nTitle: \"Attention Is All You Need.\"\nHere's what it actually means. ⬇️",
+      "direct_value": "The transformer architecture, simplified: tokens → embeddings → self-attention → output. Key-query-value explained without the math, and why it replaced everything before it. ⬇️",
+      "short_punchy": "One architecture.\nEvery major LLM.\nAttention is all you need. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#transformer",
+      "#attention",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#deeplearning",
+      "#softwareengineering",
+      "#genai",
+      "#machinelearning",
+      "#neuralnetwork"
+    ]
+  },
+  "42": {
+    "title": "Retrieval agents vs RAG pipelines",
+    "variants": {
+      "mystery_hook": "RAG retrieves once and hopes for the best.\nA retrieval agent retrieves, reads, re-queries, and decides when it has enough.\nSame data. Very different results. ⬇️",
+      "direct_value": "Retrieval agents vs RAG pipelines: when static retrieve-then-generate is enough, when you need an agent that decides what to search, and the hybrid pattern that works best. ⬇️",
+      "short_punchy": "RAG: one search, one answer.\nRetrieval agent: search until right.\nKnow which you need. →"
+    },
+    "tags": [
+      "#ai",
+      "#llm",
+      "#rag",
+      "#aiagents",
+      "#retrieval",
+      "#aidev",
+      "#buildwithai",
+      "#buildinpublic",
+      "#vectordb",
+      "#softwareengineering",
+      "#genai",
+      "#agenticrag"
+    ]
   }
 }
