@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-28T07:22:43.318Z",
-  "last_published_at": "2026-05-28T07:23:18.135Z",
+  "generated_at": "2026-05-28T13:16:26.742Z",
+  "last_published_at": "2026-05-28T13:17:11.743Z",
   "queue": [
     {
       "series": "ai_series",
@@ -530,9 +530,9 @@
         "slide_08.png"
       ],
       "caption": "Every team eventually asks: should we fine-tune?\nAlmost every time the answer is no.\nHere's the decision tree that gets it right. ⬇️\n\n#ai #llm #finetuning #lora #promptengineering #rag #mlops #machinelearning #aiengineering #aidev #buildinpublic #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-28T13:17:11.743Z",
+      "media_id": "18089597795594181"
     },
     {
       "series": "ai_series",
