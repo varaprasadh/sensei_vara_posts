@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-29T00:46:54.428Z",
-  "last_published_at": "2026-05-29T00:47:39.107Z",
+  "generated_at": "2026-05-29T07:22:45.580Z",
+  "last_published_at": "2026-05-29T07:23:19.942Z",
   "queue": [
     {
       "series": "ai_series",
@@ -587,9 +587,9 @@
         "slide_08.png"
       ],
       "caption": "Same model. Same question.\nOne prompt gets 30% accuracy.\nThe other gets 90%.\nThe difference is 5 words you're probably not using. ⬇️\n\n#ai #llm #chainofthought #promptengineering #cot #aidev #buildwithai #buildinpublic #reasoning #softwareengineering #genai #aiprompts",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-29T07:23:19.942Z",
+      "media_id": "18108363272310375"
     },
     {
       "series": "ai_series",
