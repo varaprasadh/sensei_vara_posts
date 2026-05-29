@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-29T07:22:45.580Z",
-  "last_published_at": "2026-05-29T07:23:19.942Z",
+  "generated_at": "2026-05-29T13:07:35.492Z",
+  "last_published_at": "2026-05-29T13:08:18.221Z",
   "queue": [
     {
       "series": "ai_series",
@@ -606,9 +606,9 @@
         "slide_08.png"
       ],
       "caption": "Your system prompt is not a secret.\nYour users can override it.\nAnd there's no perfect fix.\nHere's what you're up against. ⬇️\n\n#ai #llm #promptinjection #aisecurity #aidev #buildwithai #buildinpublic #appsec #softwareengineering #genai #llmsecurity #owasp",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-29T13:08:18.221Z",
+      "media_id": "18074797115289363"
     },
     {
       "series": "ai_series",
