@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-29T13:07:35.492Z",
-  "last_published_at": "2026-05-29T13:08:18.221Z",
+  "generated_at": "2026-05-29T18:53:30.462Z",
+  "last_published_at": "2026-05-29T18:54:12.420Z",
   "queue": [
     {
       "series": "ai_series",
@@ -625,9 +625,9 @@
         "slide_08.png"
       ],
       "caption": "Copilot doesn't read your mind.\nIt reads your open files, your cursor, your repo.\nThen it predicts what you'd type next.\nHere's the actual architecture. ⬇️\n\n#ai #llm #copilot #claudecode #aidev #buildwithai #buildinpublic #codingassistant #softwareengineering #devtools #aicoding #genai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-29T18:54:12.420Z",
+      "media_id": "17975066570880166"
     },
     {
       "series": "ai_series",
