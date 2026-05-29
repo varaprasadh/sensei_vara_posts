@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-28T18:54:13.170Z",
-  "last_published_at": "2026-05-28T18:54:54.643Z",
+  "generated_at": "2026-05-29T00:46:54.428Z",
+  "last_published_at": "2026-05-29T00:47:39.107Z",
   "queue": [
     {
       "series": "ai_series",
@@ -568,9 +568,9 @@
         "slide_08.png"
       ],
       "caption": "Can an LLM critique its own output and get better?\nSometimes yes. Often no.\nHere's the line — and the pattern that actually works in production. ⬇️\n\n#ai #aiagents #reflection #dspy #llm #promptengineering #selfimproving #metaprompting #agenticai #aidev #buildinpublic #aiengineering",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-29T00:47:39.107Z",
+      "media_id": "18004884158873898"
     },
     {
       "series": "ai_series",
