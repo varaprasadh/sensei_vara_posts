@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-29T18:53:30.462Z",
-  "last_published_at": "2026-05-29T18:54:12.420Z",
+  "generated_at": "2026-05-30T00:42:41.839Z",
+  "last_published_at": "2026-05-30T00:43:21.388Z",
   "queue": [
     {
       "series": "ai_series",
@@ -644,9 +644,9 @@
         "slide_08.png"
       ],
       "caption": "The big model knows everything.\nBut it costs $15/M tokens.\nWhat if a $0.25 model could learn its tricks?\nThat's distillation. ⬇️\n\n#ai #llm #distillation #finetuning #aidev #buildwithai #buildinpublic #mlops #softwareengineering #genai #modeloptimization #aiengineering",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-30T00:43:21.388Z",
+      "media_id": "18099848765033864"
     },
     {
       "series": "ai_series",
