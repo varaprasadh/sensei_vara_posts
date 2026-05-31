@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-30T18:24:57.839Z",
-  "last_published_at": "2026-05-30T18:25:38.240Z",
+  "generated_at": "2026-05-31T00:46:10.424Z",
+  "last_published_at": "2026-05-31T00:46:49.955Z",
   "queue": [
     {
       "series": "ai_series",
@@ -720,9 +720,9 @@
         "slide_08.png"
       ],
       "caption": "Same question, different words.\nYour API doesn't know they're the same.\nSo you pay twice.\nThere's a cache that understands meaning. ⬇️\n\n#ai #llm #caching #semanticcache #aidev #buildwithai #buildinpublic #embeddings #softwareengineering #genai #vectordb #costoptimization",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-31T00:46:49.955Z",
+      "media_id": "17984472237006539"
     },
     {
       "series": "ai_series",
