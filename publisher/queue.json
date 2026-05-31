@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-31T00:46:10.424Z",
-  "last_published_at": "2026-05-31T00:46:49.955Z",
+  "generated_at": "2026-05-31T07:20:48.751Z",
+  "last_published_at": "2026-05-31T07:21:22.707Z",
   "queue": [
     {
       "series": "ai_series",
@@ -739,9 +739,9 @@
         "slide_08.png"
       ],
       "caption": "Your agent makes 5 tool calls.\nEach takes 200ms.\n1 second total — sequential.\nOr 200ms — parallel.\nHere's the architecture. ⬇️\n\n#ai #aiagents #llm #toolcalling #aidev #buildwithai #buildinpublic #concurrency #softwareengineering #genai #performance #agenticai",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-31T07:21:22.707Z",
+      "media_id": "17927261628319906"
     },
     {
       "series": "ai_series",
