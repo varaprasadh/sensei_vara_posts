@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-31T07:20:48.751Z",
-  "last_published_at": "2026-05-31T07:21:22.707Z",
+  "generated_at": "2026-05-31T12:30:23.165Z",
+  "last_published_at": "2026-05-31T12:31:01.510Z",
   "queue": [
     {
       "series": "ai_series",
@@ -758,9 +758,9 @@
         "slide_08.png"
       ],
       "caption": "\"Looks right to me.\"\nThat's not testing.\nYour LLM app ships with zero tests.\nAnd you wonder why it breaks in prod. ⬇️\n\n#ai #llm #testing #evals #aidev #buildwithai #buildinpublic #qualityassurance #softwareengineering #genai #mlops #cicd",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-31T12:31:01.510Z",
+      "media_id": "17901086199448058"
     },
     {
       "series": "ai_series",
