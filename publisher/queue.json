@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-31T12:30:23.165Z",
-  "last_published_at": "2026-05-31T12:31:01.510Z",
+  "generated_at": "2026-05-31T18:26:13.474Z",
+  "last_published_at": "2026-05-31T18:26:53.786Z",
   "queue": [
     {
       "series": "ai_series",
@@ -777,9 +777,9 @@
         "slide_08.png"
       ],
       "caption": "Every LLM — GPT, Claude, Llama — runs on the same architecture.\nPublished in 2017. 8 pages.\nTitle: \"Attention Is All You Need.\"\nHere's what it actually means. ⬇️\n\n#ai #llm #transformer #attention #aidev #buildwithai #buildinpublic #deeplearning #softwareengineering #genai #machinelearning #neuralnetwork",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-05-31T18:26:53.786Z",
+      "media_id": "17883880818580024"
     },
     {
       "series": "ai_series",
