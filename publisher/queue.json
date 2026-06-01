@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-01T00:48:23.357Z",
-  "last_published_at": "2026-06-01T00:48:59.771Z",
+  "generated_at": "2026-06-01T07:48:36.240Z",
+  "last_published_at": "2026-06-01T07:49:18.048Z",
   "queue": [
     {
       "series": "ai_series",
@@ -815,9 +815,9 @@
         "slide_08.png"
       ],
       "caption": "Every git tutorial shows branches as forking trees.\nThat's a lie.\nOnce you see what your repo actually is, every command makes sense.\nSwipe → for the mental model that fixes everything. 👇\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #programming #coding #devtips #versioncontrol #techthread",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-01T07:49:18.048Z",
+      "media_id": "18118135060686215"
     },
     {
       "series": "git_series",
