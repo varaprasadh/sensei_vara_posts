@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-31T18:26:13.474Z",
-  "last_published_at": "2026-05-31T18:26:53.786Z",
+  "generated_at": "2026-06-01T00:48:23.357Z",
+  "last_published_at": "2026-06-01T00:48:59.771Z",
   "queue": [
     {
       "series": "ai_series",
@@ -796,9 +796,9 @@
         "slide_08.png"
       ],
       "caption": "RAG retrieves once and hopes for the best.\nA retrieval agent retrieves, reads, re-queries, and decides when it has enough.\nSame data. Very different results. ⬇️\n\n#ai #llm #rag #aiagents #retrieval #aidev #buildwithai #buildinpublic #vectordb #softwareengineering #genai #agenticrag",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-01T00:48:59.771Z",
+      "media_id": "18003153971947448"
     },
     {
       "series": "git_series",
