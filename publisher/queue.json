@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-01T14:03:19.920Z",
-  "last_published_at": "2026-06-01T14:04:03.386Z",
+  "generated_at": "2026-06-01T19:39:39.172Z",
+  "last_published_at": "2026-06-01T19:40:13.789Z",
   "queue": [
     {
       "series": "ai_series",
@@ -853,9 +853,9 @@
         "slide_08.png"
       ],
       "caption": "\"Where are my changes?\" is the most-asked question in git.\nThe answer is always one of 3 places.\nIf you know them, you never panic again. ⬇️\n\n#git #github #softwareengineering #buildinpublic #devthread #webdev #programming #coding #devtips #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-01T19:40:13.789Z",
+      "media_id": "17930529270296429"
     },
     {
       "series": "git_series",
