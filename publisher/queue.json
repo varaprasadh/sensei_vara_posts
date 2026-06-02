@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-01T19:39:39.172Z",
-  "last_published_at": "2026-06-01T19:40:13.789Z",
+  "generated_at": "2026-06-02T00:49:27.746Z",
+  "last_published_at": "2026-06-02T00:50:07.406Z",
   "queue": [
     {
       "series": "ai_series",
@@ -872,9 +872,9 @@
         "slide_08.png"
       ],
       "caption": "You think branches are folders of code.\nThey're not.\nA branch in git is one text file holding one number.\nOnce this clicks, branch operations feel free. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #programming #coding #devtips #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-02T00:50:07.406Z",
+      "media_id": "18019220816844641"
     },
     {
       "series": "git_series",
