@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-02T07:40:32.973Z",
-  "last_published_at": "2026-06-02T07:41:12.598Z",
+  "generated_at": "2026-06-02T13:18:53.989Z",
+  "last_published_at": "2026-06-02T13:19:30.736Z",
   "queue": [
     {
       "series": "ai_series",
@@ -910,9 +910,9 @@
         "slide_08.png"
       ],
       "caption": "That `<<<<<<<` marker isn't an error.\nIt's git asking you a question.\nHere's how to answer it without panic. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-02T13:19:30.736Z",
+      "media_id": "18126051214714147"
     },
     {
       "series": "git_series",
