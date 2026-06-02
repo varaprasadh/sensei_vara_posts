@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-02T13:18:53.989Z",
-  "last_published_at": "2026-06-02T13:19:30.736Z",
+  "generated_at": "2026-06-02T19:16:31.402Z",
+  "last_published_at": "2026-06-02T19:17:20.730Z",
   "queue": [
     {
       "series": "ai_series",
@@ -929,9 +929,9 @@
         "slide_08.png"
       ],
       "caption": "You ran `git reset --hard` and watched 8 commits disappear.\nThey're not gone.\nThey're never gone.\nHere's how to find them. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-02T19:17:20.730Z",
+      "media_id": "17908252752419534"
     },
     {
       "series": "git_series",
