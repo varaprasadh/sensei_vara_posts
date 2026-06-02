@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-02T00:49:27.746Z",
-  "last_published_at": "2026-06-02T00:50:07.406Z",
+  "generated_at": "2026-06-02T07:40:32.973Z",
+  "last_published_at": "2026-06-02T07:41:12.598Z",
   "queue": [
     {
       "series": "ai_series",
@@ -891,9 +891,9 @@
         "slide_08.png"
       ],
       "caption": "There's a 10-year debate that splits dev teams in half.\nBoth sides are right. Both sides are wrong.\nHere's the one rule that ends it. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #programming #coding #devtips #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-02T07:41:12.598Z",
+      "media_id": "17953051467144930"
     },
     {
       "series": "git_series",
