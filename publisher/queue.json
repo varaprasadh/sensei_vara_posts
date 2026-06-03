@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-03T07:44:04.982Z",
-  "last_published_at": "2026-06-03T07:44:43.560Z",
+  "generated_at": "2026-06-03T13:39:53.915Z",
+  "last_published_at": "2026-06-03T13:40:30.379Z",
   "queue": [
     {
       "series": "ai_series",
@@ -986,9 +986,9 @@
         "slide_08.png"
       ],
       "caption": "Before you open that PR — wait.\nThere are 2 commands that turn your messy commits into a clean story.\nThe reviewers will love you. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-03T13:40:30.379Z",
+      "media_id": "18065590367687280"
     },
     {
       "series": "git_series",
