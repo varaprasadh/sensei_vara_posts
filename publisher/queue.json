@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-03T13:39:53.915Z",
-  "last_published_at": "2026-06-03T13:40:30.379Z",
+  "generated_at": "2026-06-03T19:21:28.647Z",
+  "last_published_at": "2026-06-03T19:22:08.973Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1005,9 +1005,9 @@
         "slide_08.png"
       ],
       "caption": "A bug appeared in your last 200 commits.\nReading every one would take all day.\nThere's a way to find it in 8 tests. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #debugging",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-03T19:22:08.973Z",
+      "media_id": "18015150191894414"
     },
     {
       "series": "git_series",
