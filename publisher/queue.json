@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-03T00:54:52.707Z",
-  "last_published_at": "2026-06-03T00:55:28.131Z",
+  "generated_at": "2026-06-03T07:44:04.982Z",
+  "last_published_at": "2026-06-03T07:44:43.560Z",
   "queue": [
     {
       "series": "ai_series",
@@ -967,9 +967,9 @@
         "slide_08.png"
       ],
       "caption": "There are 4 verbs in git that all \"undo\" something.\nMost devs use the wrong one.\nThe right one depends on what you're trying to unmake. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-03T07:44:43.560Z",
+      "media_id": "18012346046901097"
     },
     {
       "series": "git_series",
