@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-02T19:16:31.402Z",
-  "last_published_at": "2026-06-02T19:17:20.730Z",
+  "generated_at": "2026-06-03T00:54:52.707Z",
+  "last_published_at": "2026-06-03T00:55:28.131Z",
   "queue": [
     {
       "series": "ai_series",
@@ -948,9 +948,9 @@
         "slide_08.png"
       ],
       "caption": "`git stash` is everyone's panic button.\nBut it's also a power tool 90% of devs never unlock.\nHere's everything past the basics. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #cli",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-03T00:55:28.131Z",
+      "media_id": "18321396910260692"
     },
     {
       "series": "git_series",
