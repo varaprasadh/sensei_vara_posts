@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-03T19:21:28.647Z",
-  "last_published_at": "2026-06-03T19:22:08.973Z",
+  "generated_at": "2026-06-04T00:54:32.091Z",
+  "last_published_at": "2026-06-04T00:55:02.819Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1024,9 +1024,9 @@
         "slide_08.png"
       ],
       "caption": "Force-pushed over your teammate's work?\nReset-hard nuked your branch?\nDon't panic.\nIf it was committed, it's still in there. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-04T00:55:02.819Z",
+      "media_id": "17915101224392325"
     },
     {
       "series": "git_series",
