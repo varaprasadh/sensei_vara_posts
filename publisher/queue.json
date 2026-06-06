@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-06T13:28:27.324Z",
-  "last_published_at": "2026-06-06T13:28:58.574Z",
+  "generated_at": "2026-06-06T18:28:38.993Z",
+  "last_published_at": "2026-06-06T18:29:22.814Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1062,9 +1062,9 @@
         "slide_08.png"
       ],
       "caption": "There's one flag that turns \"I overwrote my teammate's work\" into \"git refused to push.\"\nMost devs never type it.\nYou should. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #versioncontrol",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-06T18:29:22.814Z",
+      "media_id": "18423895297134081"
     },
     {
       "series": "git_series",
