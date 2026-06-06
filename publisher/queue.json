@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-04T00:54:32.091Z",
-  "last_published_at": "2026-06-04T00:55:02.819Z",
+  "generated_at": "2026-06-06T13:28:27.324Z",
+  "last_published_at": "2026-06-06T13:28:58.574Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1043,9 +1043,9 @@
         "slide_08.png"
       ],
       "caption": "There's no `git pull-request` command.\nPRs aren't a git feature at all.\nOnce you see what they really are, you'll review them better. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #codereview #pullrequest",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-06T13:28:58.574Z",
+      "media_id": "18094823123235173"
     },
     {
       "series": "git_series",
