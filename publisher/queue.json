@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-07T00:48:07.213Z",
-  "last_published_at": "2026-06-07T00:48:43.660Z",
+  "generated_at": "2026-06-07T07:25:55.446Z",
+  "last_published_at": "2026-06-07T07:26:31.922Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1100,9 +1100,9 @@
         "slide_08.png"
       ],
       "caption": "Your repo depends on another repo.\nThere are 3 ways to wire that up.\nEach has a tax. Pick the one you're willing to pay. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #monorepo #devtips #programming #coding",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-07T07:26:31.922Z",
+      "media_id": "17901128388444489"
     },
     {
       "series": "git_series",
