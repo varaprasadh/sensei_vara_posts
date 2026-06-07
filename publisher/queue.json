@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-07T07:25:55.446Z",
-  "last_published_at": "2026-06-07T07:26:31.922Z",
+  "generated_at": "2026-06-07T12:35:04.779Z",
+  "last_published_at": "2026-06-07T12:35:34.832Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1119,9 +1119,9 @@
         "slide_08.png"
       ],
       "caption": "`git push` runs 4 distinct phases.\nYou've never thought about any of them.\nYou should. They explain every weird push error you've ever seen. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #networking",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-07T12:35:34.832Z",
+      "media_id": "18329240770249035"
     },
     {
       "series": "git_series",
