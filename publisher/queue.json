@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-07T12:35:04.779Z",
-  "last_published_at": "2026-06-07T12:35:34.832Z",
+  "generated_at": "2026-06-07T18:29:01.748Z",
+  "last_published_at": "2026-06-07T18:29:51.279Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1138,9 +1138,9 @@
         "slide_08.png"
       ],
       "caption": "You ran `du -sh .git/` and it said 0.5 GB.\nYou committed mostly text.\nWhere did all that space go? ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devops #programming #coding #performance",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-07T18:29:51.279Z",
+      "media_id": "18040787495598786"
     },
     {
       "series": "git_series",
