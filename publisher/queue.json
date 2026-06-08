@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-07T18:29:01.748Z",
-  "last_published_at": "2026-06-07T18:29:51.279Z",
+  "generated_at": "2026-06-08T00:48:48.931Z",
+  "last_published_at": "2026-06-08T00:49:22.925Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1157,9 +1157,9 @@
         "slide_08.png"
       ],
       "caption": "Committed a 50 MB file once?\nIt's in your repo. Forever.\nUntil you learn this. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #coding #gamedev #ml",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-08T00:49:22.925Z",
+      "media_id": "18024487253831133"
     },
     {
       "series": "git_series",
