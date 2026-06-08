@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-08T00:48:48.931Z",
-  "last_published_at": "2026-06-08T00:49:22.925Z",
+  "generated_at": "2026-06-08T07:44:33.807Z",
+  "last_published_at": "2026-06-08T07:45:05.161Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1176,9 +1176,9 @@
         "slide_08.png"
       ],
       "caption": "You committed a secret.\nOr a 200 MB binary.\nOr a typo in 47 commit messages.\nThere's a way to wipe it from history — but read this first. ⬇️\n\n#git #github #softwareengineering #devthread #buildinpublic #webdev #devops #devtips #programming #coding #security",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-08T07:45:05.161Z",
+      "media_id": "17974800246023565"
     },
     {
       "series": "db_series",
