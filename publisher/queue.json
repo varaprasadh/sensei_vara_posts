@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-08T07:44:33.807Z",
-  "last_published_at": "2026-06-08T07:45:05.161Z",
+  "generated_at": "2026-06-22T19:10:33.255Z",
+  "last_published_at": "2026-06-22T19:11:21.805Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1195,9 +1195,9 @@
         "slide_08.png"
       ],
       "caption": "Everyone talks about databases like they're magic black boxes.\nThey're not.\nOnce you see what your DB actually is, every performance question changes. ⬇️\n\n#postgres #postgresql #sql #database #softwareengineering #devthread #backend #programming #databases #devtips",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-22T19:11:21.805Z",
+      "media_id": "18126873511578971"
     },
     {
       "series": "db_series",
