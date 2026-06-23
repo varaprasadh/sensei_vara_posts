@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-23T07:16:42.128Z",
-  "last_published_at": "2026-06-23T07:17:20.100Z",
+  "generated_at": "2026-06-23T12:59:03.373Z",
+  "last_published_at": "2026-06-23T12:59:37.102Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1252,9 +1252,9 @@
         "slide_08.png"
       ],
       "caption": "\"Just add an index\" is the most repeated advice in databases.\nAlmost nobody knows what that actually does.\nHere's the real structure. ⬇️\n\n#postgres #postgresql #sql #database #backend #softwareengineering #devthread #dba #programming #devtips #datamodeling",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-23T12:59:37.102Z",
+      "media_id": "18132353005582494"
     },
     {
       "series": "db_series",
