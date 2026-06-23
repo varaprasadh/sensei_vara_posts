@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-22T19:10:33.255Z",
-  "last_published_at": "2026-06-22T19:11:21.805Z",
+  "generated_at": "2026-06-23T00:45:20.466Z",
+  "last_published_at": "2026-06-23T00:46:00.729Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1214,9 +1214,9 @@
         "slide_08.png"
       ],
       "caption": "Postgres doesn't read rows.\nIt doesn't read columns either.\nIt reads 8KB chunks. And that one fact changes how you think about every query. ⬇️\n\n#postgres #postgresql #database #dba #backend #softwareengineering #devthread #sql #databases #programming #devtips",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-23T00:46:00.729Z",
+      "media_id": "18196950103365596"
     },
     {
       "series": "db_series",
