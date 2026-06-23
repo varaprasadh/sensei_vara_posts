@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-23T12:59:03.373Z",
-  "last_published_at": "2026-06-23T12:59:37.102Z",
+  "generated_at": "2026-06-23T18:43:34.818Z",
+  "last_published_at": "2026-06-23T18:44:14.492Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1271,9 +1271,9 @@
         "slide_08.png"
       ],
       "caption": "You've been optimizing the wrong thing.\nYour slow query isn't slow for the reason you think.\nThe proof is one command away. ⬇️\n\n#postgres #postgresql #sql #database #backend #dba #devthread #softwareengineering #databases #devtips #performance",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-23T18:44:14.492Z",
+      "media_id": "18012776201713154"
     },
     {
       "series": "db_series",
