@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-24T00:40:29.769Z",
-  "last_published_at": "2026-06-24T00:41:04.849Z",
+  "generated_at": "2026-06-24T07:13:30.354Z",
+  "last_published_at": "2026-06-24T07:14:03.432Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1309,9 +1309,9 @@
         "slide_08.png"
       ],
       "caption": "Every JOIN you've written is secretly a loop.\nSometimes it's 3 nested ones.\nPostgres picks which kind — and the wrong pick is why your query is slow. ⬇️\n\n#postgres #postgresql #sql #database #backend #dba #devthread #softwareengineering #databases #programming #performance",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-24T07:14:03.432Z",
+      "media_id": "18008157197937642"
     },
     {
       "series": "db_series",
