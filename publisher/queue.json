@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-24T07:13:30.354Z",
-  "last_published_at": "2026-06-24T07:14:03.432Z",
+  "generated_at": "2026-06-24T12:46:28.462Z",
+  "last_published_at": "2026-06-24T12:47:07.724Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1328,9 +1328,9 @@
         "slide_08.png"
       ],
       "caption": "You have an index on `email`.\nYour query is still slow.\nYou wrapped a function around it. That's the entire problem. ⬇️\n\n#postgres #postgresql #sql #database #dba #backend #devthread #softwareengineering #programming #devtips #datamodeling",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-24T12:47:07.724Z",
+      "media_id": "18046224398630878"
     },
     {
       "series": "db_series",
