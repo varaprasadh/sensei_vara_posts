@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-24T12:46:28.462Z",
-  "last_published_at": "2026-06-24T12:47:07.724Z",
+  "generated_at": "2026-06-24T18:37:15.084Z",
+  "last_published_at": "2026-06-24T18:37:55.336Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1347,9 +1347,9 @@
         "slide_08.png"
       ],
       "caption": "`WHERE email != 'test@test.com'` won't return rows where email is NULL.\nMost devs are surprised by this.\nSQL runs on 3-valued logic — not 2. ⬇️\n\n#sql #postgres #postgresql #database #databases #softwareengineering #devthread #backend #programming #devtips",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-24T18:37:55.336Z",
+      "media_id": "18086190305396602"
     },
     {
       "series": "db_series",
