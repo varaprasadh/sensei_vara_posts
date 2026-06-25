@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-25T12:49:37.210Z",
-  "last_published_at": "2026-06-25T12:50:07.572Z",
+  "generated_at": "2026-06-25T18:46:38.373Z",
+  "last_published_at": "2026-06-25T18:47:17.238Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1423,9 +1423,9 @@
         "slide_08.png"
       ],
       "caption": "Your table keeps growing even though you DELETE everything.\nDisk space doesn't come back.\nThis isn't a bug. It's MVCC's tax — and VACUUM is the payment. ⬇️\n\n#postgres #postgresql #database #dba #backend #softwareengineering #devthread #sql #databases #devtips",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-25T18:47:17.238Z",
+      "media_id": "18083347640637401"
     },
     {
       "series": "db_series",
