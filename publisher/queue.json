@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-24T18:37:15.084Z",
-  "last_published_at": "2026-06-24T18:37:55.336Z",
+  "generated_at": "2026-06-25T00:45:25.778Z",
+  "last_published_at": "2026-06-25T00:46:07.302Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1366,9 +1366,9 @@
         "slide_08.png"
       ],
       "caption": "You write SQL in one order.\nPostgres runs it in a different order entirely.\nThat gap explains every \"why can't I use my alias here?\" error. ⬇️\n\n#sql #postgres #postgresql #database #backend #softwareengineering #devthread #webdev #programming #devtips",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-25T00:46:07.302Z",
+      "media_id": "18087966902102324"
     },
     {
       "series": "db_series",
