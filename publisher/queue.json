@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-25T00:45:25.778Z",
-  "last_published_at": "2026-06-25T00:46:07.302Z",
+  "generated_at": "2026-06-25T07:13:46.563Z",
+  "last_published_at": "2026-06-25T07:14:23.111Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1385,9 +1385,9 @@
         "slide_08.png"
       ],
       "caption": "There are 4 index types in Postgres.\nMost devs only know one.\nThe other 3 are faster for the queries you're probably running. ⬇️\n\n#postgres #postgresql #database #dba #sql #backend #devthread #softwareengineering #databases #programming #performance",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-25T07:14:23.111Z",
+      "media_id": "18099206206937533"
     },
     {
       "series": "db_series",
