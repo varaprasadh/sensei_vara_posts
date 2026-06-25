@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-25T07:13:46.563Z",
-  "last_published_at": "2026-06-25T07:14:23.111Z",
+  "generated_at": "2026-06-25T12:49:37.210Z",
+  "last_published_at": "2026-06-25T12:50:07.572Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1404,9 +1404,9 @@
         "slide_08.png"
       ],
       "caption": "Two transactions read the same row at the same time without blocking each other.\nNo lock.\nHow is that possible? ⬇️\n\n#postgres #postgresql #database #dba #backend #devthread #softwareengineering #sql #databases #programming",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-25T12:50:07.572Z",
+      "media_id": "18077724971316213"
     },
     {
       "series": "db_series",
