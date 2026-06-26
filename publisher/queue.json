@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-26T07:20:06.356Z",
-  "last_published_at": "2026-06-26T07:20:46.017Z",
+  "generated_at": "2026-06-26T12:45:43.728Z",
+  "last_published_at": "2026-06-26T12:46:30.092Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1480,9 +1480,9 @@
         "slide_08.png"
       ],
       "caption": "Normalization has a reputation for being academic and slow.\nBoth are wrong.\n8 slides. Real schema. No theory. ⬇️\n\n#sql #database #datamodeling #postgres #postgresql #backend #softwareengineering #devthread #databases #programming #dba",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-26T12:46:30.092Z",
+      "media_id": "17972489511065917"
     },
     {
       "series": "db_series",
