@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-26T00:46:46.634Z",
-  "last_published_at": "2026-06-26T00:47:22.504Z",
+  "generated_at": "2026-06-26T07:20:06.356Z",
+  "last_published_at": "2026-06-26T07:20:46.017Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1461,9 +1461,9 @@
         "slide_08.png"
       ],
       "caption": "You ran the same query twice in one transaction.\nDifferent results.\nThis isn't a bug. It's the default isolation level working exactly as designed. ⬇️\n\n#postgres #postgresql #database #dba #sql #backend #devthread #softwareengineering #databases #programming #devtips",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-26T07:20:46.017Z",
+      "media_id": "17896624377473244"
     },
     {
       "series": "db_series",
