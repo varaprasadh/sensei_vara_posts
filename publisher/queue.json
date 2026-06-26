@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-26T12:45:43.728Z",
-  "last_published_at": "2026-06-26T12:46:30.092Z",
+  "generated_at": "2026-06-26T18:38:06.093Z",
+  "last_published_at": "2026-06-26T18:38:41.217Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1499,9 +1499,9 @@
         "slide_08.png"
       ],
       "caption": "\"We removed foreign keys for performance\" is the most dangerous sentence in database design.\nYou traded a constraint for a bug that's already in your data. ⬇️\n\n#sql #postgres #postgresql #database #datamodeling #backend #softwareengineering #devthread #databases #dba #programming",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-26T18:38:41.217Z",
+      "media_id": "17902722846296170"
     },
     {
       "series": "db_series",
