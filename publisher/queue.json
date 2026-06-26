@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-25T18:46:38.373Z",
-  "last_published_at": "2026-06-25T18:47:17.238Z",
+  "generated_at": "2026-06-26T00:46:46.634Z",
+  "last_published_at": "2026-06-26T00:47:22.504Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1442,9 +1442,9 @@
         "slide_08.png"
       ],
       "caption": "When you COMMIT a transaction, Postgres writes to disk twice.\nThe second write is what makes it safe to cut the power.\nMost devs have no idea this exists. ⬇️\n\n#postgres #postgresql #database #dba #backend #softwareengineering #devthread #sql #databases #programming",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-26T00:47:22.504Z",
+      "media_id": "18344621800221698"
     },
     {
       "series": "db_series",
