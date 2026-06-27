@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-27T00:44:05.975Z",
-  "last_published_at": "2026-06-27T00:44:42.784Z",
+  "generated_at": "2026-06-27T07:06:37.303Z",
+  "last_published_at": "2026-06-27T07:07:19.960Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1537,9 +1537,9 @@
         "slide_08.png"
       ],
       "caption": "JSONB feels like escaping schema design.\nIt is — and that freedom has a bill.\nHere's when it saves you and when it buries you. ⬇️\n\n#postgres #postgresql #database #sql #datamodeling #backend #softwareengineering #devthread #databases #programming #dba",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-27T07:07:19.960Z",
+      "media_id": "18064430648719333"
     },
     {
       "series": "db_series",
