@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-27T12:29:09.171Z",
-  "last_published_at": "2026-06-27T12:29:43.960Z",
+  "generated_at": "2026-06-27T18:26:29.757Z",
+  "last_published_at": "2026-06-27T18:27:19.481Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1575,9 +1575,9 @@
         "slide_08.png"
       ],
       "caption": "Everyone says \"Node is just JavaScript.\"\nIt's not.\nUnder the hood there are three separate engines doing three different jobs.\nOnce you see them, `require('fs')` never looks the same. ⬇️\n\n#nodejs #javascript #backend #softwareengineering #devthread #webdev #programming #coding #v8 #buildinpublic",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-27T18:27:19.481Z",
+      "media_id": "18605584204020621"
     },
     {
       "series": "node_series",
