@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-27T07:06:37.303Z",
-  "last_published_at": "2026-06-27T07:07:19.960Z",
+  "generated_at": "2026-06-27T12:29:09.171Z",
+  "last_published_at": "2026-06-27T12:29:43.960Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1556,9 +1556,9 @@
         "slide_08.png"
       ],
       "caption": "Your app works fine in dev.\nIn prod, with 10k users, it fires 10,001 queries per page.\nThe logs have been lying to you this whole time. ⬇️\n\n#postgres #postgresql #sql #database #backend #webdev #softwareengineering #devthread #databases #programming #performance #buildinpublic",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-27T12:29:43.960Z",
+      "media_id": "17978943666046172"
     },
     {
       "series": "node_series",
