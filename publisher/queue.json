@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-26T18:38:06.093Z",
-  "last_published_at": "2026-06-26T18:38:41.217Z",
+  "generated_at": "2026-06-27T00:44:05.975Z",
+  "last_published_at": "2026-06-27T00:44:42.784Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1518,9 +1518,9 @@
         "slide_08.png"
       ],
       "caption": "UUIDs look like a good primary key.\nThey're random. They're globally unique.\nThey're also quietly destroying your B-tree. ⬇️\n\n#postgres #postgresql #database #datamodeling #dba #sql #backend #softwareengineering #devthread #programming #databases",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-27T00:44:42.784Z",
+      "media_id": "18004549646943392"
     },
     {
       "series": "db_series",
