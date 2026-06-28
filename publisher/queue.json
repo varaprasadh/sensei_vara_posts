@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-28T00:45:29.425Z",
-  "last_published_at": "2026-06-28T00:46:12.902Z",
+  "generated_at": "2026-06-28T07:23:03.916Z",
+  "last_published_at": "2026-06-28T07:23:43.464Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1613,9 +1613,9 @@
         "slide_08.png"
       ],
       "caption": "Your code looks synchronous.\nIt isn't.\nThere are two completely separate execution tracks in Node.\nKnowing which track you're on changes how you write every async function. ⬇️\n\n#nodejs #javascript #js #backend #softwareengineering #devthread #webdev #programming #coding #devtips #v8",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-28T07:23:43.464Z",
+      "media_id": "18104328062006491"
     },
     {
       "series": "node_series",
