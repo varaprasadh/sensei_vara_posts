@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-27T18:26:29.757Z",
-  "last_published_at": "2026-06-27T18:27:19.481Z",
+  "generated_at": "2026-06-28T00:45:29.425Z",
+  "last_published_at": "2026-06-28T00:46:12.902Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1594,9 +1594,9 @@
         "slide_08.png"
       ],
       "caption": "\"The event loop\" is the most-said phrase in Node.\nAnd the most misunderstood.\nIt's not one loop. It's six phases in a fixed order.\nMiss one and your async code misfires. ⬇️\n\n#nodejs #javascript #async #backend #softwareengineering #devthread #webdev #devtips #programming #eventloop #buildinpublic",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-28T00:46:12.902Z",
+      "media_id": "18329251330252885"
     },
     {
       "series": "node_series",
