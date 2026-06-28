@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-28T07:23:03.916Z",
-  "last_published_at": "2026-06-28T07:23:43.464Z",
+  "generated_at": "2026-06-28T12:30:06.811Z",
+  "last_published_at": "2026-06-28T12:30:39.072Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1632,9 +1632,9 @@
         "slide_08.png"
       ],
       "caption": "`Promise.resolve()` and `setTimeout(fn, 0)` both look instant.\nOne runs before the other — every single time.\nThe order isn't random. There's a rule. ⬇️\n\n#nodejs #javascript #async #js #backend #devthread #softwareengineering #webdev #programming #devtips #coding",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-28T12:30:39.072Z",
+      "media_id": "18121119649810354"
     },
     {
       "series": "node_series",
