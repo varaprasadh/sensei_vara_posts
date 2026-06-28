@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-28T12:30:06.811Z",
-  "last_published_at": "2026-06-28T12:30:39.072Z",
+  "generated_at": "2026-06-28T18:26:16.016Z",
+  "last_published_at": "2026-06-28T18:26:50.844Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1651,9 +1651,9 @@
         "slide_08.png"
       ],
       "caption": "There's a Node API that cuts every queue.\nPromises, timers, I/O — it beats them all.\nIt's also the easiest way to starve your entire event loop. ⬇️\n\n#nodejs #javascript #async #backend #devthread #softwareengineering #webdev #devtips #programming #coding #buildinpublic",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-28T18:26:50.844Z",
+      "media_id": "18107794751513461"
     },
     {
       "series": "node_series",
