@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-29T00:46:55.396Z",
-  "last_published_at": "2026-06-29T00:47:28.568Z",
+  "generated_at": "2026-06-29T07:45:13.924Z",
+  "last_published_at": "2026-06-29T07:46:05.229Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1689,9 +1689,9 @@
         "slide_08.png"
       ],
       "caption": "You wrote `async function getUser()`.\nYou think it sometimes returns a user.\nIt never does.\nIt always returns a Promise. Even when you return a string. ⬇️\n\n#nodejs #javascript #async #js #typescript #backend #devthread #softwareengineering #webdev #devtips #programming",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-29T07:46:05.229Z",
+      "media_id": "18107049622966254"
     },
     {
       "series": "node_series",
