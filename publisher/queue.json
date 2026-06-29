@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-28T18:26:16.016Z",
-  "last_published_at": "2026-06-28T18:26:50.844Z",
+  "generated_at": "2026-06-29T00:46:55.396Z",
+  "last_published_at": "2026-06-29T00:47:28.568Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1670,9 +1670,9 @@
         "slide_08.png"
       ],
       "caption": "async/await didn't replace Promises.\nAnd Promises didn't replace callbacks.\nEach one is a transformation of the one before it.\nUnderstanding the chain changes how you debug all three. ⬇️\n\n#nodejs #javascript #async #js #backend #softwareengineering #devthread #webdev #programming #devtips #coding",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-29T00:47:28.568Z",
+      "media_id": "18115326682681246"
     },
     {
       "series": "node_series",
