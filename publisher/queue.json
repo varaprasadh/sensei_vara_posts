@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-29T18:42:12.089Z",
-  "last_published_at": "2026-06-29T18:42:48.832Z",
+  "generated_at": "2026-06-30T00:44:52.112Z",
+  "last_published_at": "2026-06-30T00:45:27.378Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1746,9 +1746,9 @@
         "slide_08.png"
       ],
       "caption": "You wrote a `for` loop with `await` inside.\nCongratulations — you just made Node synchronous.\nHere's how to actually run those requests in parallel. ⬇️\n\n#nodejs #javascript #async #js #backend #devthread #softwareengineering #webdev #programming #devtips #performance",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-30T00:45:27.378Z",
+      "media_id": "17863718877602006"
     },
     {
       "series": "node_series",
