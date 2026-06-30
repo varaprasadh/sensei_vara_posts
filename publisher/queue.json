@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-30T07:19:59.639Z",
-  "last_published_at": "2026-06-30T07:20:32.933Z",
+  "generated_at": "2026-06-30T12:42:41.037Z",
+  "last_published_at": "2026-06-30T12:43:24.739Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1784,9 +1784,9 @@
         "slide_08.png"
       ],
       "caption": "You changed a config file.\nYou called `require('./config')` again.\nYou got the old values.\nNode didn't re-read the file.\nIt cached it on first load and never looked again. ⬇️\n\n#nodejs #javascript #js #backend #devthread #softwareengineering #webdev #devtips #programming #coding #npm",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-30T12:43:24.739Z",
+      "media_id": "18004744331948107"
     },
     {
       "series": "node_series",
