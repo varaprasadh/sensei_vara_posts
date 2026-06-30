@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-30T00:44:52.112Z",
-  "last_published_at": "2026-06-30T00:45:27.378Z",
+  "generated_at": "2026-06-30T07:19:59.639Z",
+  "last_published_at": "2026-06-30T07:20:32.933Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1765,9 +1765,9 @@
         "slide_08.png"
       ],
       "caption": "You added `\"type\": \"module\"` to your `package.json`.\nSuddenly 3 deps broke.\nYou removed it.\nNow a different dep broke.\nThis isn't a config problem. It's a module system war. ⬇️\n\n#nodejs #javascript #js #npm #backend #softwareengineering #devthread #webdev #programming #devtips #typescript",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-30T07:20:32.933Z",
+      "media_id": "18107749861953744"
     },
     {
       "series": "node_series",
