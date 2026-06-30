@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-30T12:42:41.037Z",
-  "last_published_at": "2026-06-30T12:43:24.739Z",
+  "generated_at": "2026-06-30T18:38:14.932Z",
+  "last_published_at": "2026-06-30T18:38:45.232Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1803,9 +1803,9 @@
         "slide_08.png"
       ],
       "caption": "`require('react')` has no path in it.\nHow does Node find the file?\nIt doesn't guess. There's a deterministic algorithm.\nAnd it explains every \"module not found\" you've ever seen. ⬇️\n\n#nodejs #javascript #npm #js #backend #softwareengineering #devthread #webdev #devtips #programming #coding",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-06-30T18:38:45.232Z",
+      "media_id": "17885884491604476"
     },
     {
       "series": "node_series",
