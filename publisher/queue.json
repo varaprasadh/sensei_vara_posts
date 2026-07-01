@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-30T18:38:14.932Z",
-  "last_published_at": "2026-06-30T18:38:45.232Z",
+  "generated_at": "2026-07-01T00:47:26.113Z",
+  "last_published_at": "2026-07-01T00:48:02.510Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1822,9 +1822,9 @@
         "slide_08.png"
       ],
       "caption": "You read `name`, `version`, `scripts`.\nYou skipped 4 other fields that control whether your package works for TypeScript users, tree-shakers, and bundlers.\nMost packages get these wrong. ⬇️\n\n#nodejs #javascript #npm #typescript #backend #softwareengineering #devthread #webdev #devtips #programming #buildinpublic",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-07-01T00:48:02.510Z",
+      "media_id": "18109184479987441"
     },
     {
       "series": "node_series",
