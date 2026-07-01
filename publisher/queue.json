@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-01T07:31:58.589Z",
-  "last_published_at": "2026-07-01T07:32:35.421Z",
+  "generated_at": "2026-07-01T12:58:49.462Z",
+  "last_published_at": "2026-07-01T12:59:34.017Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1860,9 +1860,9 @@
         "slide_08.png"
       ],
       "caption": "You piped a fast Readable into a slow Writable.\nIt worked — until it didn't.\nMemory climbed. Process crashed.\nNobody told you streams can push back. ⬇️\n\n#nodejs #javascript #streams #backend #softwareengineering #devthread #webdev #devtips #programming #performance #coding",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-07-01T12:59:34.017Z",
+      "media_id": "18333645160270506"
     },
     {
       "series": "node_series",
