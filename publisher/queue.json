@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-01T12:58:49.462Z",
-  "last_published_at": "2026-07-01T12:59:34.017Z",
+  "generated_at": "2026-07-01T18:40:42.898Z",
+  "last_published_at": "2026-07-01T18:41:42.931Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1879,9 +1879,9 @@
         "slide_08.png"
       ],
       "caption": "Everything in Node that touches a file, a network socket, or a crypto operation hands you a `Buffer`.\nMost devs immediately call `.toString()` and move on.\nHere's what you lost. ⬇️\n\n#nodejs #javascript #backend #js #softwareengineering #devthread #webdev #devtips #programming #coding #crypto",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-07-01T18:41:42.931Z",
+      "media_id": "18097298108591013"
     },
     {
       "series": "node_series",
