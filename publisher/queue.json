@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-01T00:47:26.113Z",
-  "last_published_at": "2026-07-01T00:48:02.510Z",
+  "generated_at": "2026-07-01T07:31:58.589Z",
+  "last_published_at": "2026-07-01T07:32:35.421Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1841,9 +1841,9 @@
         "slide_08.png"
       ],
       "caption": "You read a 2 GB file with `fs.readFile`.\nNode loaded all 2 GB into RAM.\nThere's a better way.\nIt's been in Node since v0.9. ⬇️\n\n#nodejs #javascript #streams #backend #softwareengineering #devthread #webdev #programming #devtips #coding #performance",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-07-01T07:32:35.421Z",
+      "media_id": "17934867921293899"
     },
     {
       "series": "node_series",
