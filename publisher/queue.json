@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-02T08:50:36.895Z",
-  "last_published_at": "2026-07-02T08:51:09.205Z",
+  "generated_at": "2026-07-02T13:50:52.364Z",
+  "last_published_at": "2026-07-02T13:51:25.025Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1936,9 +1936,9 @@
         "slide_08.png"
       ],
       "caption": "You left `console.log` in prod \"just to debug.\"\nOn a hot path it's serializing objects to string, writing to stdout synchronously, blocking the event loop.\nOne liner. Real latency. ⬇️\n\n#nodejs #javascript #backend #softwareengineering #devthread #buildinpublic #webdev #devtips #programming #performance #npm",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-07-02T13:51:25.025Z",
+      "media_id": "17886835914414743"
     }
   ]
 }
