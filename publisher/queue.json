@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-02T00:44:29.735Z",
-  "last_published_at": "2026-07-02T00:45:02.482Z",
+  "generated_at": "2026-07-02T08:50:36.895Z",
+  "last_published_at": "2026-07-02T08:51:09.205Z",
   "queue": [
     {
       "series": "ai_series",
@@ -1917,9 +1917,9 @@
         "slide_08.png"
       ],
       "caption": "Your server's RSS is 150 MB on deploy.\nIt's 1.2 GB after 3 days.\nRestart fixes it. Restarting isn't fixing it.\nThere are 4 shapes every Node leak takes. ⬇️\n\n#nodejs #javascript #backend #softwareengineering #devthread #webdev #devtips #programming #debugging #performance #coding",
-      "status": "pending",
-      "published_at": null,
-      "media_id": null
+      "status": "published",
+      "published_at": "2026-07-02T08:51:09.205Z",
+      "media_id": "18121119175606938"
     },
     {
       "series": "node_series",
